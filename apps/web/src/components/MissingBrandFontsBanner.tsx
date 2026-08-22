@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button } from '@open-design/components';
+import { Button } from '@readable-studio/components';
 
 import { Icon } from './Icon';
 
@@ -12,7 +12,7 @@ import { Icon } from './Icon';
 // system font stack.
 
 function fontBannerDismissKey(projectId: string): string {
-  return `od:font-banner-dismissed:${projectId}`;
+  return `readable:font-banner-dismissed:${projectId}`;
 }
 
 /** True when the user has dismissed the banner for this project. */
@@ -66,7 +66,7 @@ export function MissingBrandFontsBanner({
       <Icon name="help-circle" size={16} />
       <span>
         <strong>Missing brand fonts</strong>
-        <small>Open Design is rendering typography with substitute web fonts.</small>
+        <small>Readable Studio is rendering typography with substitute web fonts.</small>
       </span>
       <div className="ds-warning-card-actions">
         {onUploadAssets ? (

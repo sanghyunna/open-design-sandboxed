@@ -11,7 +11,7 @@ import {
 } from '../../src/components/ManualEditTypographyToolbar';
 import { quoteFontFamily, systemFontOptions, type FontOption } from '../../src/components/font-options';
 import { emptyManualEditStyles, type ManualEditStyles, type ManualEditTarget } from '../../src/edit-mode/types';
-import type { SystemFontFamily } from '@open-design/contracts';
+import type { SystemFontFamily } from '@readable-studio/contracts';
 
 const systemFontsMock = vi.hoisted(() => ({
   families: [] as SystemFontFamily[],

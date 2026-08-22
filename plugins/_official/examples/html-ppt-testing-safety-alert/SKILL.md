@@ -9,7 +9,7 @@ triggers:
 - "Accident Review"
   - "Safety Review"
   - "policy as code"
-od:
+readable:
   mode: deck
   scenario: engineering
   featured: 32

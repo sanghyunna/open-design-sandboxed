@@ -1,3 +1,5 @@
+import { ARTIFACT_MANIFEST_SCHEMA } from '@readable-studio/contracts';
+
 import type {
   ArtifactExportKind,
   ArtifactKind,
@@ -6,7 +8,6 @@ import type {
   ArtifactStatus,
 } from './types';
 
-const MANIFEST_VERSION = 1;
 const ALLOWED_KINDS: ReadonlySet<ArtifactKind> = new Set([
   'html',
   'deck',
@@ -78,7 +79,7 @@ export function createHtmlArtifactManifest(input: {
 }): ArtifactManifest {
   const now = new Date().toISOString();
   return {
-    version: MANIFEST_VERSION,
+    schema: ARTIFACT_MANIFEST_SCHEMA,
     kind: 'html',
     title: input.title,
     entry: input.entry,
@@ -101,7 +102,7 @@ export function serializeArtifactManifest(manifest: ArtifactManifest): string {
 export function parseArtifactManifest(raw: string): ArtifactManifest | null {
   try {
     const parsed = JSON.parse(raw) as Partial<ArtifactManifest>;
-    if (parsed?.version !== MANIFEST_VERSION) return null;
+    if (parsed?.schema !== ARTIFACT_MANIFEST_SCHEMA) return null;
     if (typeof parsed.entry !== 'string' || !parsed.entry) return null;
     if (typeof parsed.title !== 'string' || !parsed.title) return null;
     if (!Array.isArray(parsed.exports)) return null;
@@ -116,7 +117,7 @@ export function parseArtifactManifest(raw: string): ArtifactManifest | null {
     if (parsed.exports.length === 0) return null;
     if (parsed.exports.some((value) => !ALLOWED_EXPORTS.has(value as ArtifactExportKind))) return null;
     return {
-      version: MANIFEST_VERSION,
+      schema: ARTIFACT_MANIFEST_SCHEMA,
       kind: parsed.kind as ArtifactKind,
       title: parsed.title,
       entry: parsed.entry,
@@ -176,7 +177,7 @@ export function inferLegacyManifest(input: {
                 : kind;
   const resolvedKind = isDeck ? 'deck' : kind;
   return {
-    version: MANIFEST_VERSION,
+    schema: ARTIFACT_MANIFEST_SCHEMA,
     kind: resolvedKind,
     title: input.title || input.entry,
     entry: input.entry,

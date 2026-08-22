@@ -15,7 +15,7 @@ import type { RuntimeAgentDef } from '../types.js';
 // TUI's Switch-Model picker writes the choice to its settings.json, and
 // every `agy -p` invocation re-reads that file on startup — verified by
 // capturing the `--log-file` line `Propagating selected model override to
-// backend: label="<model>"`. So we can route OD's model picker through
+// backend: label="<model>"`. So we can route Readable Studio's model picker through
 // settings.json: when the user picks a concrete model in Settings, the
 // daemon writes the label into agy's settings.json right before spawn,
 // and the resulting print-mode run uses that model.
@@ -68,7 +68,7 @@ export function writeAntigravityModelSelection(
 
 // Per-process serialization for write-settings → spawn → agy-reads
 // cycles on antigravity. `~/.gemini/antigravity-cli/settings.json` is
-// process-global, so two OD runs that both pick concrete (non-default)
+// process-global, so two Readable Studio runs that both pick concrete (non-default)
 // models can race: run A writes model A, spawn A starts, run B writes
 // model B before A's agy has read settings.json — A then executes on
 // model B. The daemon serialises non-default antigravity spawns
@@ -190,12 +190,12 @@ export const antigravityAgentDef = {
   // resume flag on follow-up turns. Tested both shapes; `-c` activates
   // agy's internal agentic loop (multi-step model retries, tool calls,
   // fallback-to-cached-response on tool errors) which can't be steered
-  // from OD's system-prompt OVERRIDE — even with the strongest wording
+  // from Readable Studio's system-prompt OVERRIDE — even with the strongest wording
   // we got an identical byte-for-byte form re-emission on turn 2 when
   // turn 1's tool-call retry path returned the cached form response.
   //
   // Instead we treat agy as a stateless plain adapter like qwen /
-  // deepseek: every spawn gets the full OD-rendered transcript via
+  // deepseek: every spawn gets the full Readable Studio-rendered transcript via
   // `buildDaemonTranscript`, and that transcript's prior assistant
   // turns are sanitized to strip `<question-form>` markup + form-schema
   // JSON fences (see `sanitizePriorAssistantTurnForTranscript` in
@@ -225,7 +225,7 @@ export const antigravityAgentDef = {
     // renamed the entry point; until upstream confirms a stable
     // headless subcommand (see google-antigravity/antigravity-cli#119)
     // and the change actually ships in the auto-update channel that
-    // packaged OD users get, `-p -` is the contract that actually
+    // packaged Readable Studio users get, `-p -` is the contract that actually
     // produces a print-mode reply on the installed CLI.
     const args: string[] = [];
     // Always opt into `--log-file` when the daemon supplied a path so

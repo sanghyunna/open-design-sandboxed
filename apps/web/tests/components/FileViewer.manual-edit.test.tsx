@@ -33,7 +33,7 @@ describe('FileViewer manual edit regressions', () => {
     const frame = await previewFrame();
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-hover', target },
+        data: { type: 'readable-edit-hover', target },
         source: frame.contentWindow,
       }));
     });
@@ -48,7 +48,7 @@ describe('FileViewer manual edit regressions', () => {
     const frame = await previewFrame();
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-background' },
+        data: { type: 'readable-edit-background' },
         source: frame.contentWindow,
       }));
     });
@@ -67,7 +67,7 @@ describe('FileViewer manual edit regressions', () => {
     const frame = await previewFrame();
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-select', target },
+        data: { type: 'readable-edit-select', target },
         source: frame.contentWindow,
       }));
     });
@@ -147,7 +147,7 @@ describe('FileViewer manual edit regressions', () => {
   });
 
   it('opens edit mode with a clean canvas and no docked panel', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main></body></html>';
     vi.stubGlobal('fetch', vi.fn(async () =>
       new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
     ));
@@ -171,7 +171,7 @@ describe('FileViewer manual edit regressions', () => {
   });
 
   it('removes the hover affordance when the bridge reports no hover target', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main></body></html>';
     vi.stubGlobal('fetch', vi.fn(async () =>
       new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
     ));
@@ -184,7 +184,7 @@ describe('FileViewer manual edit regressions', () => {
     const frame = await previewFrame();
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-hover', target: null },
+        data: { type: 'readable-edit-hover', target: null },
         source: frame.contentWindow,
       }));
     });
@@ -195,7 +195,7 @@ describe('FileViewer manual edit regressions', () => {
   });
 
   it('keeps the Desktop edit preview sized to the live canvas', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main></body></html>';
     vi.stubGlobal('fetch', vi.fn(async () =>
       new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
     ));
@@ -220,7 +220,7 @@ describe('FileViewer manual edit regressions', () => {
   });
 
   it('opens the compact page-styles card when the empty canvas is clicked', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main></body></html>';
     vi.stubGlobal('fetch', vi.fn(async () =>
       new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
     ));
@@ -239,7 +239,7 @@ describe('FileViewer manual edit regressions', () => {
   });
 
   it('pins docked controls to a target only after clicking the hover affordance', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main></body></html>';
     vi.stubGlobal('fetch', vi.fn(async () =>
       new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
     ));
@@ -261,14 +261,14 @@ describe('FileViewer manual edit regressions', () => {
 
     await waitFor(() => {
       expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({
-        type: 'od-edit-select-target',
+        type: 'readable-edit-select-target',
         id: 'hero',
       }), '*');
     });
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-select',
+          type: 'readable-edit-select',
           target: { ...heroTarget(), authoredSize: { width: '', height: '' } },
         },
         source: frame.contentWindow,
@@ -283,7 +283,7 @@ describe('FileViewer manual edit regressions', () => {
   });
 
   it('docks the typography toolbar for a text selection and posts rich-format on Bold', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main></body></html>';
     vi.stubGlobal('fetch', vi.fn(async () =>
       new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
     ));
@@ -310,7 +310,7 @@ describe('FileViewer manual edit regressions', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-selection-state',
+          type: 'readable-edit-selection-state',
           editing: true, hasSelection: true, bold: false, italic: false, underline: false,
         },
         source: frame.contentWindow,
@@ -322,13 +322,13 @@ describe('FileViewer manual edit regressions', () => {
     });
     fireEvent.click(document.querySelector('button[aria-label="Bold"]')!);
     expect(postSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'od-edit-rich-format', command: 'bold' }),
+      expect.objectContaining({ type: 'readable-edit-rich-format', command: 'bold' }),
       '*',
     );
   });
 
   it('docks shape controls for every selected target without mounting the floating panel', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main><img data-od-id="photo" src="/old.png" alt="Old"></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main><img data-readable-id="photo" src="/old.png" alt="Old"></body></html>';
     vi.stubGlobal('fetch', vi.fn(async () =>
       new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
     ));
@@ -360,7 +360,7 @@ describe('FileViewer manual edit regressions', () => {
   });
 
   it('surfaces shape preview-style errors in the docked toolbar', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main></body></html>';
     vi.stubGlobal('fetch', vi.fn(async () =>
       new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
     ));
@@ -379,7 +379,7 @@ describe('FileViewer manual edit regressions', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'hero',
           version: 1,
           ok: false,
@@ -395,7 +395,7 @@ describe('FileViewer manual edit regressions', () => {
   });
 
   it('updates per-side padding from the spacing popover', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main></body></html>';
     vi.stubGlobal('fetch', vi.fn(async () =>
       new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
     ));
@@ -419,7 +419,7 @@ describe('FileViewer manual edit regressions', () => {
     });
     expect(postSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'od-edit-preview-style',
+        type: 'readable-edit-preview-style',
         id: 'hero',
         styles: { paddingTop: '16px' },
         includeAuthoredSize: true,
@@ -429,7 +429,7 @@ describe('FileViewer manual edit regressions', () => {
   });
 
   it('keeps the latest shape selection requested while a style save is in flight', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main><section data-od-id="trend">Trend</section><aside data-od-id="cta">CTA</aside></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main><section data-readable-id="trend">Trend</section><aside data-readable-id="cta">CTA</aside></body></html>';
     const save = deferredResponse();
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
@@ -451,14 +451,14 @@ describe('FileViewer manual edit regressions', () => {
     fireEvent.change(screen.getByLabelText('Width'), { target: { value: '111' } });
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'od-edit-preview-style', id: 'hero' }),
+        expect.objectContaining({ type: 'readable-edit-preview-style', id: 'hero' }),
         '*',
       );
     });
 
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-select', target: containerTarget({ id: 'trend', label: 'Trend', styles: { ...emptyManualEditStyles(), width: '222px' } }) },
+        data: { type: 'readable-edit-select', target: containerTarget({ id: 'trend', label: 'Trend', styles: { ...emptyManualEditStyles(), width: '222px' } }) },
         source: frame.contentWindow,
       }));
     });
@@ -471,7 +471,7 @@ describe('FileViewer manual edit regressions', () => {
 
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-select', target: containerTarget({ id: 'cta', label: 'CTA', styles: { ...emptyManualEditStyles(), width: '333px' } }) },
+        data: { type: 'readable-edit-select', target: containerTarget({ id: 'cta', label: 'CTA', styles: { ...emptyManualEditStyles(), width: '333px' } }) },
         source: frame.contentWindow,
       }));
     });
@@ -486,7 +486,7 @@ describe('FileViewer manual edit regressions', () => {
   });
 
   it('keeps a background click newer than a pending shape selection after the save resolves', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main><section data-od-id="trend">Trend</section></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main><section data-readable-id="trend">Trend</section></body></html>';
     const save = deferredResponse();
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
@@ -508,7 +508,7 @@ describe('FileViewer manual edit regressions', () => {
 
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-select', target: containerTarget({ id: 'trend', label: 'Trend', styles: { ...emptyManualEditStyles(), width: '222px' } }) },
+        data: { type: 'readable-edit-select', target: containerTarget({ id: 'trend', label: 'Trend', styles: { ...emptyManualEditStyles(), width: '222px' } }) },
         source: frame.contentWindow,
       }));
     });
@@ -521,7 +521,7 @@ describe('FileViewer manual edit regressions', () => {
 
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-background' },
+        data: { type: 'readable-edit-background' },
         source: frame.contentWindow,
       }));
     });
@@ -537,7 +537,7 @@ describe('FileViewer manual edit regressions', () => {
   });
 
   it('keeps manual edit mode exited when exit is newer than a pending shape selection save', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main><section data-od-id="trend">Trend</section></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main><section data-readable-id="trend">Trend</section></body></html>';
     const save = deferredResponse();
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
@@ -559,7 +559,7 @@ describe('FileViewer manual edit regressions', () => {
 
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-select', target: containerTarget({ id: 'trend', label: 'Trend', styles: { ...emptyManualEditStyles(), width: '222px' } }) },
+        data: { type: 'readable-edit-select', target: containerTarget({ id: 'trend', label: 'Trend', styles: { ...emptyManualEditStyles(), width: '222px' } }) },
         source: frame.contentWindow,
       }));
     });
@@ -583,7 +583,7 @@ describe('FileViewer manual edit regressions', () => {
   });
 
   it('saves a pending text-target style edit before clearing selection on background click', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main></body></html>';
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
       if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
@@ -609,7 +609,7 @@ describe('FileViewer manual edit regressions', () => {
     const frame = await previewFrame();
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-background' },
+        data: { type: 'readable-edit-background' },
         source: frame.contentWindow,
       }));
     });
@@ -642,7 +642,7 @@ describe('FileViewer manual edit regressions', () => {
     const second = { ...htmlPreviewFile(), name: 'second.html', path: 'second.html' };
     const { rerender } = render(
       <FileViewer projectId="project-1" projectKind="prototype" file={first}
-        liveHtml='<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<!doctype html><html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
@@ -653,7 +653,7 @@ describe('FileViewer manual edit regressions', () => {
 
     rerender(
       <FileViewer projectId="project-1" projectKind="prototype" file={second}
-        liveHtml='<!doctype html><html><body><main data-od-id="second">Second</main></body></html>'
+        liveHtml='<!doctype html><html><body><main data-readable-id="second">Second</main></body></html>'
       />,
     );
 
@@ -677,7 +677,7 @@ describe('FileViewer manual edit regressions', () => {
         });
       }
       if (url.includes('/api/projects/project-1/raw/second.html')) return secondFetch;
-      return new Response('<!doctype html><html><body><main data-od-id="hero">First</main></body></html>', { status: 200 });
+      return new Response('<!doctype html><html><body><main data-readable-id="hero">First</main></body></html>', { status: 200 });
     });
     vi.stubGlobal('fetch', fetchMock);
     try {
@@ -706,14 +706,14 @@ describe('FileViewer manual edit regressions', () => {
         '/api/projects/project-1/files',
         expect.objectContaining({ method: 'POST' }),
       );
-      secondResolve(new Response('<!doctype html><html><body><main data-od-id="second">Second</main></body></html>', { status: 200 }));
+      secondResolve(new Response('<!doctype html><html><body><main data-readable-id="second">Second</main></body></html>', { status: 200 }));
     } finally {
       vi.useRealTimers();
     }
   });
 
   it('clears a prior manual edit save error after a later successful save', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main></body></html>';
     let saveAttempts = 0;
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
@@ -761,7 +761,7 @@ describe('FileViewer manual edit regressions', () => {
   });
 
   it('retries the actual save when background clear is requested again after a failure', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main></body></html>';
     let postAttempts = 0;
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
@@ -804,7 +804,7 @@ describe('FileViewer manual edit regressions', () => {
   });
 
   it('surfaces a preview-style-applied failure from the iframe as a manual edit error', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main></body></html>';
     const fetchMock = vi.fn(async () =>
       new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
     );
@@ -825,7 +825,7 @@ describe('FileViewer manual edit regressions', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'hero',
           version: 1,
           ok: false,
@@ -841,7 +841,7 @@ describe('FileViewer manual edit regressions', () => {
   });
 
   it('keeps page styles open when selecting a target fails to save, then selects it on retry', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main></body></html>';
     let saveAttempts = 0;
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
@@ -877,7 +877,7 @@ describe('FileViewer manual edit regressions', () => {
     const frame = await previewFrame();
     const selectTarget = () => act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-select', target: heroTarget() },
+        data: { type: 'readable-edit-select', target: heroTarget() },
         source: frame.contentWindow,
       }));
     });
@@ -901,7 +901,7 @@ describe('FileViewer manual edit regressions', () => {
   });
 
   it('closes the page-styles card without saving on cancel, staying in edit mode', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main></body></html>';
     const fetchMock = vi.fn(async () =>
       new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
     );
@@ -928,7 +928,7 @@ describe('FileViewer manual edit regressions', () => {
   });
 
   it('closes the page-styles card after save succeeds, staying in edit mode', async () => {
-    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    const source = '<!doctype html><html><body><main data-readable-id="hero">Hero</main></body></html>';
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
       if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
@@ -976,10 +976,10 @@ function heroTarget(): ManualEditTarget {
     text: 'Hero',
     rect: { x: 24, y: 24, width: 160, height: 48 },
     fields: { text: 'Hero' },
-    attributes: { 'data-od-id': 'hero' },
+    attributes: { 'data-readable-id': 'hero' },
     styles: emptyManualEditStyles(),
     isLayoutContainer: false,
-    outerHtml: '<main data-od-id="hero">Hero</main>',
+    outerHtml: '<main data-readable-id="hero">Hero</main>',
   };
 }
 
@@ -989,7 +989,7 @@ function containerTarget(overrides: Partial<ManualEditTarget> = {}): ManualEditT
     kind: 'container',
     text: '',
     fields: {},
-    outerHtml: '<main data-od-id="hero">Hero</main>',
+    outerHtml: '<main data-readable-id="hero">Hero</main>',
     ...overrides,
   };
 }
@@ -1003,8 +1003,8 @@ function imageTarget(): ManualEditTarget {
     tagName: 'img',
     text: '',
     fields: { src: '/old.png', alt: 'Old' },
-    attributes: { 'data-od-id': 'photo', src: '/old.png', alt: 'Old' },
-    outerHtml: '<img data-od-id="photo" src="/old.png" alt="Old">',
+    attributes: { 'data-readable-id': 'photo', src: '/old.png', alt: 'Old' },
+    outerHtml: '<img data-readable-id="photo" src="/old.png" alt="Old">',
   };
 }
 
@@ -1018,7 +1018,7 @@ function htmlPreviewFile(): ProjectFile {
     mime: 'text/html',
     kind: 'html',
     artifactManifest: {
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
       kind: 'html',
       title: 'Preview',
       entry: 'preview.html',

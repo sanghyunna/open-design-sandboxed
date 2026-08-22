@@ -4,7 +4,7 @@
 // viewport. The ids are daemon plugin ids, so the ordering remains
 // stable across locales and title-copy tweaks.
 
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 
 // Pinned-to-front template set (curator request): these premium
 // prototype templates lead both the Home hero prototype chip and the
@@ -33,7 +33,7 @@ const PINNED_TEMPLATE_PLUGIN_IDS = [
 
 const CURATED_PROTOTYPE_PLUGIN_IDS = [
   ...PINNED_TEMPLATE_PLUGIN_IDS,
-  'example-open-design-landing',
+  'example-readable-landing',
   'example-kanban-board',
   'example-social-carousel',
   'example-blog-post',

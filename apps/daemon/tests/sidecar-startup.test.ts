@@ -8,7 +8,7 @@ import {
   APP_KEYS,
   SIDECAR_MODES,
   SIDECAR_SOURCES,
-} from '@open-design/sidecar-proto';
+} from '@readable-studio/sidecar-proto';
 
 const stopRuntime = vi.fn(async () => undefined);
 const startDaemonRuntime = vi.fn(async () => ({
@@ -35,7 +35,7 @@ describe('daemon sidecar startup', () => {
   it('starts through the shared daemon startup path and reports live auth state', async () => {
     const { setDesktopAuthSecret } = await import('../src/desktop-auth.js');
     const { startDaemonSidecar } = await import('../src/sidecar/server.js');
-    const root = await mkdtemp(join(tmpdir(), 'od-daemon-sidecar-'));
+    const root = await mkdtemp(join(tmpdir(), 'readable-daemon-sidecar-'));
     const handle = await startDaemonSidecar({
       app: APP_KEYS.DAEMON,
       base: root,

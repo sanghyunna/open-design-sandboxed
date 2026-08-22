@@ -14,13 +14,13 @@ after(async () => {
 
 describe("native isolator build", () => {
   it("builds a missing or stale clean-checkout helper and reuses a fresh one", async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), "od-native-build-"));
+    const root = await mkdtemp(path.join(os.tmpdir(), "readable-native-build-"));
     roots.push(root);
     const nativeRoot = path.join(root, "packages/platform/native/win32");
-    const output = path.join(root, "packages/platform/dist/native/win32/od-agent-isolator.exe");
+    const output = path.join(root, "packages/platform/dist/native/win32/agent-isolator.exe");
     await mkdir(nativeRoot, { recursive: true });
     await writeFile(path.join(nativeRoot, "build.ps1"), "build");
-    await writeFile(path.join(nativeRoot, "od-agent-isolator.cpp"), "source");
+    await writeFile(path.join(nativeRoot, "agent-isolator.cpp"), "source");
 
     let builds = 0;
     const runBuild = async () => {

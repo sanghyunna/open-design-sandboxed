@@ -3,35 +3,35 @@
 ## Status
 
 Architecture review draft. This document describes the hardening work needed to
-keep Open Design safe to embed under an external orchestrator without adding
+keep Readable Studio safe to embed under an external orchestrator without adding
 consumer-specific infrastructure to this repository.
 
-The plan is intentionally upstream-neutral. Open Design should refer to this
+The plan is intentionally upstream-neutral. Readable Studio should refer to this
 integration shape as an external orchestrator, not by any private deployment or
 infrastructure name.
 
 ## Goal
 
 Future contributors should not be able to accidentally weaken the sandbox
-runtime contract while adding normal Open Design features. The durable defense is
+runtime contract while adding normal Readable Studio features. The durable defense is
 not a large inventory of happy-path tests. The durable defense is to make unsafe
 states hard to construct, then pin the remaining public contracts with focused
 guards and smoke coverage.
 
 The protected use case is:
 
-1. An external orchestrator launches Open Design with `OD_SANDBOX_MODE=1` and an
-   isolated `OD_DATA_DIR`.
+1. An external orchestrator launches Readable Studio with `READABLE_SANDBOX_MODE=1` and an
+   isolated `READABLE_DATA_DIR`.
 2. The orchestrator creates runs over HTTP/SSE and supplies only run-scoped
    policy, tools, and project context.
-3. Open Design contributes design context, skills, previews, artifacts, CLI/UI
+3. Readable Studio contributes design context, skills, previews, artifacts, CLI/UI
    parity, and agent execution.
 4. The orchestrator owns caller auth, provider credentials, budgets, rate
    limits, external media tools, accounting, fanout, retries, and fulfillment.
 
 ## Corrected Framing
 
-`OD_SANDBOX_MODE=1` is the spine of the sandbox runtime contract. Several
+`READABLE_SANDBOX_MODE=1` is the spine of the sandbox runtime contract. Several
 important behaviors are deliberately conditional on sandbox mode:
 
 - persisted MCP servers are not mixed into a run-scoped tool bundle;
@@ -41,13 +41,13 @@ important behaviors are deliberately conditional on sandbox mode:
 - imported-folder project access is restricted until files are mirrored into a
   managed project directory.
 
-Without `OD_SANDBOX_MODE=1`, Open Design is the normal local product runtime, not
+Without `READABLE_SANDBOX_MODE=1`, Readable Studio is the normal local product runtime, not
 the external-orchestrator containment runtime. Tests and docs must say which mode
 they are proving.
 
 Namespace and data isolation are separate axes. Namespace identifies sidecar
 processes, IPC sockets, pointers, and launcher-managed runtime files. Daemon data
-is isolated by `OD_DATA_DIR` plus sandbox mode, not by namespace alone.
+is isolated by `READABLE_DATA_DIR` plus sandbox mode, not by namespace alone.
 
 ## Safety Invariants
 
@@ -95,8 +95,8 @@ persisted registry/OAuth state should not bleed into the run.
 Hardening:
 
 - Keep the existing unit coverage for run-scoped bundle selection.
-- Add one tools-dev/e2e variant that launches with `OD_SANDBOX_MODE=1` and a
-  unique `OD_DATA_DIR`, then asserts run-scoped tools and runtime homes are
+- Add one tools-dev/e2e variant that launches with `READABLE_SANDBOX_MODE=1` and a
+  unique `READABLE_DATA_DIR`, then asserts run-scoped tools and runtime homes are
   contained.
 - Pin `applySandboxRuntimeEnv` behavior with primitive tests that inspect the
   child environment assembled for an agent.
@@ -110,7 +110,7 @@ daemon data. The useful hardening targets are:
   runtime paths;
 - port changes must not change namespace-scoped paths;
 - stale pointer cleanup must only remove the pointer it owns;
-- process matching must not classify a foreign process tree as an Open Design
+- process matching must not classify a foreign process tree as an Readable Studio
   sidecar just because command text looks similar.
 
 These are primitive tests against `packages/sidecar-proto`,
@@ -189,7 +189,7 @@ opening, so review catches conflicts within the stack instead of at merge time.
 - Add a public guard that fails on named orchestrator examples in public
   contract, prompt, docs, help, and shipped content surfaces; support stricter
   private terms through local configuration.
-- Keep the allowlist narrow so normal references to Open Design, GitHub
+- Keep the allowlist narrow so normal references to Readable Studio, GitHub
   repository names, and public package names do not fail.
 - Delete dead shadow handlers for `POST /api/projects/:id/media/generate` and
   `POST /api/projects/:id/export/pdf`.
@@ -212,7 +212,7 @@ opening, so review catches conflicts within the stack instead of at merge time.
 
 ### Phase 2: Sandbox-Mode E2E Variant
 
-- Plumb `OD_SANDBOX_MODE=1` and a unique `OD_DATA_DIR` through a
+- Plumb `READABLE_SANDBOX_MODE=1` and a unique `READABLE_DATA_DIR` through a
   `createSmokeSuite(...).with.toolsDev(...)` variant.
 - Assert sandbox mode through `/api/daemon/status`.
 - Start one run with a run-scoped MCP tool and verify persisted MCP registry
@@ -255,7 +255,7 @@ should check one live daemon against the same fixture.
 
 ## Open Decisions
 
-1. `/api/ready` already exists. Either add `od daemon ready --json` for CLI
+1. `/api/ready` already exists. Either add `readable daemon ready --json` for CLI
    parity or classify readiness as an internal daemon probe exempt from the
    UI/CLI dual-track rule.
 2. CODEOWNERS needs real repository owner handles before it can be enforced.
@@ -269,8 +269,8 @@ should check one live daemon against the same fixture.
 ## Non-Goals
 
 - Do not add a generic provider router, provider account pool, global media
-  budget system, or external executor API to Open Design.
-- Do not add consumer-specific conformance tests to Open Design CI.
+  budget system, or external executor API to Readable Studio.
+- Do not add consumer-specific conformance tests to Readable Studio CI.
 - Do not claim namespace alone isolates daemon data.
 - Do not use regex-only guards for data-flow properties like "paths are not
   derived from ports"; write primitive tests instead.
@@ -283,7 +283,7 @@ should check one live daemon against the same fixture.
    `tool_result` pending-id enforcement.
 2. Sandbox-mode fail-closed media and e2e smoke: explicit run media policy for
    orbit/routine paths, sandbox-only legacy media hardening, and one
-   `OD_SANDBOX_MODE=1` tools-dev smoke.
+   `READABLE_SANDBOX_MODE=1` tools-dev smoke.
 3. Contracts goldens and static ownership checks: contract-owned denial codes
    and fixtures, raw project-file regression coverage, web import isolation, and
    CODEOWNERS/external PR-duty updates if owner handles are known.

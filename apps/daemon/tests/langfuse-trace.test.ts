@@ -107,9 +107,9 @@ describe('readLangfuseConfig', () => {
 });
 
 describe('readTelemetrySinkConfig', () => {
-  it('ignores the Open Design telemetry relay when configured', () => {
+  it('ignores the Readable Studio telemetry relay when configured', () => {
     expect(readTelemetrySinkConfig({
-      OPEN_DESIGN_TELEMETRY_RELAY_URL: 'https://telemetry.open-design.ai/api/langfuse//',
+      READABLE_TELEMETRY_RELAY_URL: 'https://telemetry.readable-studio.ai/api/langfuse//',
       LANGFUSE_PUBLIC_KEY: 'pk',
       LANGFUSE_SECRET_KEY: 'sk',
     })).toBeNull();
@@ -117,9 +117,9 @@ describe('readTelemetrySinkConfig', () => {
 
   it('ignores relay-specific timeout and retry tuning when present', () => {
     expect(readTelemetrySinkConfig({
-      OPEN_DESIGN_TELEMETRY_RELAY_URL: 'https://telemetry.open-design.ai/api/langfuse',
-      OPEN_DESIGN_TELEMETRY_TIMEOUT_MS: '30000',
-      OPEN_DESIGN_TELEMETRY_RETRIES: '3',
+      READABLE_TELEMETRY_RELAY_URL: 'https://telemetry.readable-studio.ai/api/langfuse',
+      READABLE_TELEMETRY_TIMEOUT_MS: '30000',
+      READABLE_TELEMETRY_RETRIES: '3',
       LANGFUSE_TIMEOUT_MS: '1',
       LANGFUSE_RETRIES: '0',
     })).toBeNull();
@@ -273,7 +273,7 @@ describe('buildTracePayload', () => {
     const generation = bodyOf(batch, 'generation-create', 'llm');
     expect(trace.input).toBe('Make a landing page for a coffee shop.');
     expect(generation.input).toMatchObject({
-      type: 'open-design.prompt-stack',
+      type: 'readable-studio.prompt-stack',
       redactionVersion: 'prompt-stack-redaction-v1',
       sectionCount: 3,
       sections: [
@@ -319,7 +319,7 @@ describe('buildTracePayload', () => {
       expect(trace.metadata.promptStack).toBeUndefined();
       expect(trace.metadata.promptStack_redactedContentBytes).toBe(0);
       expect(generation.input).toMatchObject({
-        type: 'open-design.prompt-stack',
+        type: 'readable-studio.prompt-stack',
         redactedContentBytes: 0,
         sections: [expect.not.objectContaining({ redactedContent: expect.any(String) })],
       });
@@ -379,7 +379,7 @@ describe('buildTracePayload', () => {
           {
             attachment_id: 'att-1',
             object_class: 'attachment',
-            storage_ref: 'od://objects/workspaces/unknown/projects/proj-1/runs/run-1/attachment/att-1',
+            storage_ref: 'readable-studio://objects/workspaces/unknown/projects/proj-1/runs/run-1/attachment/att-1',
             status: 'ok',
             project_id: 'proj-1',
             run_id: 'run-1',
@@ -387,7 +387,7 @@ describe('buildTracePayload', () => {
             size_bytes: 100,
             redacted: false,
             truncated: false,
-            stored_in_open_design: true,
+            stored_in_readable_studio: true,
             retention_policy: 'project_lifetime',
             access_scope: 'project',
             sensitivity: 'private',
@@ -401,7 +401,7 @@ describe('buildTracePayload', () => {
             artifact_id: 'art-1',
             object_class: 'artifact',
             type: 'html',
-            storage_ref: 'od://objects/workspaces/unknown/projects/proj-1/runs/run-1/artifact/art-1',
+            storage_ref: 'readable-studio://objects/workspaces/unknown/projects/proj-1/runs/run-1/artifact/art-1',
             status: 'ok',
             project_id: 'proj-1',
             run_id: 'run-1',
@@ -409,7 +409,7 @@ describe('buildTracePayload', () => {
             size_bytes: 200,
             redacted: false,
             truncated: false,
-            stored_in_open_design: true,
+            stored_in_readable_studio: true,
             retention_policy: 'project_lifetime',
             access_scope: 'project',
             sensitivity: 'private',
@@ -437,7 +437,7 @@ describe('buildTracePayload', () => {
           {
             attachment_id: 'att-1',
             object_class: 'attachment',
-            storage_ref: 'od://objects/workspaces/unknown/projects/proj-1/runs/run-1/attachment/att-1',
+            storage_ref: 'readable-studio://objects/workspaces/unknown/projects/proj-1/runs/run-1/attachment/att-1',
             status: 'ok',
             project_id: 'proj-1',
             run_id: 'run-1',
@@ -448,7 +448,7 @@ describe('buildTracePayload', () => {
             extension: 'pdf',
             redacted: false,
             truncated: false,
-            stored_in_open_design: true,
+            stored_in_readable_studio: true,
             retention_policy: 'project_lifetime',
             access_scope: 'project',
             sensitivity: 'private',
@@ -462,7 +462,7 @@ describe('buildTracePayload', () => {
             artifact_id: 'art-1',
             object_class: 'artifact',
             type: 'html',
-            storage_ref: 'od://objects/workspaces/unknown/projects/proj-1/runs/run-1/artifact/art-1',
+            storage_ref: 'readable-studio://objects/workspaces/unknown/projects/proj-1/runs/run-1/artifact/art-1',
             status: 'partial',
             reason: 'size_unavailable',
             project_id: 'proj-1',
@@ -473,7 +473,7 @@ describe('buildTracePayload', () => {
             export_status: 'available',
             redacted: false,
             truncated: false,
-            stored_in_open_design: true,
+            stored_in_readable_studio: true,
             retention_policy: 'project_lifetime',
             access_scope: 'project',
             sensitivity: 'private',
@@ -537,7 +537,7 @@ describe('buildTracePayload', () => {
       artifact_id: `art-${i}`,
       object_class: 'artifact' as const,
       type: 'html',
-      storage_ref: `od://objects/workspaces/unknown/projects/proj-1/runs/run-1/artifact/art-${i}`,
+      storage_ref: `readable-studio://objects/workspaces/unknown/projects/proj-1/runs/run-1/artifact/art-${i}`,
       status: 'ok' as const,
       project_id: 'proj-1',
       run_id: 'run-1',
@@ -545,7 +545,7 @@ describe('buildTracePayload', () => {
       size_bytes: 1,
       redacted: false,
       truncated: false,
-      stored_in_open_design: true,
+      stored_in_readable_studio: true,
       retention_policy: 'project_lifetime' as const,
       access_scope: 'project' as const,
       sensitivity: 'private' as const,
@@ -569,7 +569,7 @@ describe('buildTracePayload', () => {
     const many = Array.from({ length: 75 }, (_, i) => ({
       attachment_id: `att-${i}`,
       object_class: 'attachment' as const,
-      storage_ref: `od://objects/workspaces/unknown/projects/proj-1/runs/run-1/attachment/att-${i}`,
+      storage_ref: `readable-studio://objects/workspaces/unknown/projects/proj-1/runs/run-1/attachment/att-${i}`,
       status: 'ok' as const,
       project_id: 'proj-1',
       run_id: 'run-1',
@@ -580,7 +580,7 @@ describe('buildTracePayload', () => {
       extension: 'pdf',
       redacted: false,
       truncated: false,
-      stored_in_open_design: true,
+      stored_in_readable_studio: true,
       retention_policy: 'project_lifetime' as const,
       access_scope: 'project' as const,
       sensitivity: 'private' as const,
@@ -672,7 +672,7 @@ describe('buildTracePayload', () => {
       makeCtx({ extraTags: ['legacy:tag'] }),
     );
     expect((batch[0] as any).body.tags).toEqual([
-      'open-design',
+      'readable-studio',
       'project:proj-1',
       'agent:claude',
       'legacy:tag',
@@ -698,7 +698,7 @@ describe('buildTracePayload', () => {
       }),
     );
     expect((batch[0] as any).body.tags).toEqual([
-      'open-design',
+      'readable-studio',
       'project:proj-1',
       'agent:claude',
       'model:gpt-4o',
@@ -930,7 +930,7 @@ describe('buildTracePayload', () => {
           {
             attachment_id: 'att-1',
             object_class: 'attachment',
-            storage_ref: 'od://objects/workspaces/unknown/projects/proj-1/runs/run-spans/attachment/att-1',
+            storage_ref: 'readable-studio://objects/workspaces/unknown/projects/proj-1/runs/run-spans/attachment/att-1',
             status: 'ok',
             project_id: 'proj-1',
             run_id: 'run-spans',
@@ -941,7 +941,7 @@ describe('buildTracePayload', () => {
             extension: 'pdf',
             redacted: false,
             truncated: false,
-            stored_in_open_design: true,
+            stored_in_readable_studio: true,
             retention_policy: 'project_lifetime',
             access_scope: 'project',
             sensitivity: 'private',
@@ -1538,10 +1538,10 @@ describe.skip('reportRunCompleted legacy network sender', () => {
     expect(JSON.stringify(batch)).not.toContain('sk-raw');
   });
 
-  it('POSTs serialized ingestion batches to the Open Design telemetry relay', async () => {
+  it('POSTs serialized ingestion batches to the Readable Studio telemetry relay', async () => {
     const relayConfig: TelemetrySinkConfig = {
       kind: 'relay',
-      relayUrl: 'https://telemetry.open-design.ai/api/langfuse',
+      relayUrl: 'https://telemetry.readable-studio.ai/api/langfuse',
       timeoutMs: 20_000,
       retries: 0,
     };
@@ -1561,11 +1561,11 @@ describe.skip('reportRunCompleted legacy network sender', () => {
     const call = fetchSpy.mock.calls[0]!;
     const url = call[0] as string;
     const init = call[1] as RequestInit & { headers: Record<string, string> };
-    expect(url).toBe('https://telemetry.open-design.ai/api/langfuse');
+    expect(url).toBe('https://telemetry.readable-studio.ai/api/langfuse');
     expect(init.method).toBe('POST');
     expect(init.headers.Authorization).toBeUndefined();
     expect(init.headers['Content-Type']).toBe('application/json');
-    expect(init.headers['X-Open-Design-Telemetry']).toBe('langfuse-ingestion-v1');
+    expect(init.headers['X-Readable-Studio-Telemetry']).toBe('langfuse-ingestion-v1');
     const body = JSON.parse(init.body as string);
     expect(Array.isArray(body.batch)).toBe(true);
     expect(result).toEqual({
@@ -1577,7 +1577,7 @@ describe.skip('reportRunCompleted legacy network sender', () => {
   it('warns when the relay returns per-event errors', async () => {
     const relayConfig: TelemetrySinkConfig = {
       kind: 'relay',
-      relayUrl: 'https://telemetry.open-design.ai/api/langfuse',
+      relayUrl: 'https://telemetry.readable-studio.ai/api/langfuse',
       timeoutMs: 20_000,
       retries: 0,
     };
@@ -1610,7 +1610,7 @@ describe.skip('reportRunCompleted legacy network sender', () => {
   it('classifies relay 413 responses as relay_413', async () => {
     const relayConfig: TelemetrySinkConfig = {
       kind: 'relay',
-      relayUrl: 'https://telemetry.open-design.ai/api/langfuse',
+      relayUrl: 'https://telemetry.readable-studio.ai/api/langfuse',
       timeoutMs: 20_000,
       retries: 0,
     };
@@ -1636,7 +1636,7 @@ describe.skip('reportRunCompleted legacy network sender', () => {
   it('classifies relay 5xx responses as relay_5xx', async () => {
     const relayConfig: TelemetrySinkConfig = {
       kind: 'relay',
-      relayUrl: 'https://telemetry.open-design.ai/api/langfuse',
+      relayUrl: 'https://telemetry.readable-studio.ai/api/langfuse',
       timeoutMs: 20_000,
       retries: 0,
     };
@@ -1682,7 +1682,7 @@ describe.skip('reportRunCompleted legacy network sender', () => {
   it('classifies relay per-event 429s separately from generic 4xx', async () => {
     const relayConfig: TelemetrySinkConfig = {
       kind: 'relay',
-      relayUrl: 'https://telemetry.open-design.ai/api/langfuse',
+      relayUrl: 'https://telemetry.readable-studio.ai/api/langfuse',
       timeoutMs: 20_000,
       retries: 0,
     };

@@ -16,7 +16,7 @@ describe('preTurnFileNames persistence', () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(path.join(os.tmpdir(), 'od-db-pre-turn-'));
+    tempDir = mkdtempSync(path.join(os.tmpdir(), 'readable-db-pre-turn-'));
   });
 
   afterEach(() => {

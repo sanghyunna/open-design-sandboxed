@@ -1,4 +1,5 @@
 import type http from 'node:http';
+import { createRuntimeDescriptor } from '@readable-studio/sidecar-proto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startServer } from '../src/server.js';
 
@@ -23,6 +24,7 @@ describe('/api/version', () => {
 
     expect(res.ok).toBe(true);
     expect(json).toEqual({
+      descriptor: createRuntimeDescriptor((json as { version: { version: string } }).version.version),
       version: {
         version: expect.any(String),
         channel: expect.any(String),
@@ -38,11 +40,15 @@ describe('/api/version', () => {
       fetch(`${baseUrl}/api/health`),
       fetch(`${baseUrl}/api/version`),
     ]);
-    const health = await healthRes.json() as { ok?: unknown; version?: unknown };
-    const version = await versionRes.json() as { version?: { version?: unknown } };
+    const health = await healthRes.json() as { descriptor?: unknown; ok?: unknown; version?: unknown };
+    const version = await versionRes.json() as { descriptor?: unknown; version?: { version?: unknown } };
 
     expect(healthRes.ok).toBe(true);
     expect(versionRes.ok).toBe(true);
-    expect(health).toEqual({ ok: true, version: version.version?.version });
+    expect(health).toEqual({
+      descriptor: version.descriptor,
+      ok: true,
+      version: version.version?.version,
+    });
   });
 });

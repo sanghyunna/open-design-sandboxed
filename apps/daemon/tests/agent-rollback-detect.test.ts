@@ -8,7 +8,7 @@ import {
 describe('agent rollback marker detection', () => {
   it('detects a valid self-closing marker with mode and reason', () => {
     const result = detectAgentRollbackRequest(
-      '<od-rollback-request mode="files_only" reason="I accidentally deleted the hero section" />',
+      '<readable-rollback-request mode="files_only" reason="I accidentally deleted the hero section" />',
     );
     expect(result).toEqual({
       mode: 'files_only',
@@ -16,9 +16,9 @@ describe('agent rollback marker detection', () => {
     });
   });
 
-  it('detects a closed </od-rollback-request> variant', () => {
+  it('detects a closed </readable-rollback-request> variant', () => {
     const result = detectAgentRollbackRequest(
-      '<od-rollback-request mode="chat_only" reason="Wrong answer">-extra-</od-rollback-request>',
+      '<readable-rollback-request mode="chat_only" reason="Wrong answer">-extra-</readable-rollback-request>',
     );
     expect(result).toEqual({
       mode: 'chat_only',
@@ -33,27 +33,27 @@ describe('agent rollback marker detection', () => {
 
   it('returns null for invalid mode', () => {
     expect(
-      detectAgentRollbackRequest('<od-rollback-request mode="everything" reason="oops" />'),
+      detectAgentRollbackRequest('<readable-rollback-request mode="everything" reason="oops" />'),
     ).toBeNull();
   });
 
   it('strips one or multiple markers while preserving surrounding text', () => {
     expect(
       stripAgentRollbackRequestMarkers(
-        'Before <od-rollback-request mode="files_only" reason="x" /> after',
+        'Before <readable-rollback-request mode="files_only" reason="x" /> after',
       ),
     ).toBe('Before  after');
 
     expect(
       stripAgentRollbackRequestMarkers(
-        'A <od-rollback-request mode="chat_only" /> B <od-rollback-request mode="files_and_chat"></od-rollback-request> C',
+        'A <readable-rollback-request mode="chat_only" /> B <readable-rollback-request mode="files_and_chat"></readable-rollback-request> C',
       ),
     ).toBe('A  B  C');
   });
 
   it('handles XML attribute order variations', () => {
     const result = detectAgentRollbackRequest(
-      '<od-rollback-request reason="out of order" mode="files_and_chat" />',
+      '<readable-rollback-request reason="out of order" mode="files_and_chat" />',
     );
     expect(result).toEqual({
       mode: 'files_and_chat',
@@ -63,7 +63,7 @@ describe('agent rollback marker detection', () => {
 
   it('preserves double quotes inside a single-quoted reason', () => {
     const result = detectAgentRollbackRequest(
-      `<od-rollback-request mode="files_only" reason='I overwrote the "main" file' />`,
+      `<readable-rollback-request mode="files_only" reason='I overwrote the "main" file' />`,
     );
     expect(result).toEqual({
       mode: 'files_only',
@@ -72,7 +72,7 @@ describe('agent rollback marker detection', () => {
   });
 
   it('parses and strips a greater-than sign inside a quoted reason', () => {
-    const text = 'Before <od-rollback-request mode="files_only" reason="expected > actual" /> after';
+    const text = 'Before <readable-rollback-request mode="files_only" reason="expected > actual" /> after';
     expect(detectAgentRollbackRequest(text)).toEqual({
       mode: 'files_only',
       reason: 'expected > actual',
@@ -87,7 +87,7 @@ describe('agent rollback marker detection', () => {
   });
 
   it('returns an empty reason when the attribute is omitted', () => {
-    const result = detectAgentRollbackRequest('<od-rollback-request mode="files_only" />');
+    const result = detectAgentRollbackRequest('<readable-rollback-request mode="files_only" />');
     expect(result).toEqual({
       mode: 'files_only',
       reason: '',
@@ -97,7 +97,7 @@ describe('agent rollback marker detection', () => {
   describe('RollingAgentRollbackDetector', () => {
     it('detects a marker split across multiple chunks', () => {
       const detector = new RollingAgentRollbackDetector();
-      const r1 = detector.process('Before <od-rollback');
+      const r1 = detector.process('Before <readable-rollback');
       expect(r1.visible).toBe('Before ');
       expect(r1.requests).toHaveLength(0);
 
@@ -108,7 +108,7 @@ describe('agent rollback marker detection', () => {
 
     it('emits trailing text only after a marker completes', () => {
       const detector = new RollingAgentRollbackDetector();
-      const r1 = detector.process('Start <od-rollback-request mode="chat_only"');
+      const r1 = detector.process('Start <readable-rollback-request mode="chat_only"');
       expect(r1.visible).toBe('Start ');
       expect(r1.requests).toHaveLength(0);
 
@@ -119,22 +119,22 @@ describe('agent rollback marker detection', () => {
 
     it('strips markers from visible output and preserves surrounding text', () => {
       const detector = new RollingAgentRollbackDetector();
-      const r = detector.process('Hello <od-rollback-request mode="files_only" /> world');
+      const r = detector.process('Hello <readable-rollback-request mode="files_only" /> world');
       expect(r.requests).toEqual([{ mode: 'files_only', reason: '' }]);
       expect(r.visible).toBe('Hello  world');
     });
 
     it('detects a marker in each independent chunk (one per process call)', () => {
       const detector = new RollingAgentRollbackDetector();
-      const r1 = detector.process('<od-rollback-request mode="files_only" />');
+      const r1 = detector.process('<readable-rollback-request mode="files_only" />');
       expect(r1.requests).toHaveLength(1);
-      const r2 = detector.process('<od-rollback-request mode="chat_only" />');
+      const r2 = detector.process('<readable-rollback-request mode="chat_only" />');
       expect(r2.requests).toHaveLength(1);
     });
 
     it('flushes remaining text without leaking an incomplete marker', () => {
       const detector = new RollingAgentRollbackDetector();
-      const r = detector.process('Before <od-rollback-request mode="files_only"');
+      const r = detector.process('Before <readable-rollback-request mode="files_only"');
       expect(r.visible).toBe('Before ');
       expect(detector.flush()).toBe('');
     });
@@ -148,7 +148,7 @@ describe('agent rollback marker detection', () => {
     it('handles multiple markers in one chunk', () => {
       const detector = new RollingAgentRollbackDetector();
       const r = detector.process(
-        'A <od-rollback-request mode="files_only" /> B <od-rollback-request mode="chat_only" /> C',
+        'A <readable-rollback-request mode="files_only" /> B <readable-rollback-request mode="chat_only" /> C',
       );
       expect(r.requests).toEqual([
         { mode: 'files_only', reason: '' },

@@ -19,7 +19,7 @@ example_tagline: "Ink Classic palette + serif display"
 example_desc: "L02 Act Divider section cover + L03 Big Numbers Grid data cards, paper-print feel"
 example_source_url: "https://github.com/op7418/guizang-ppt-skill"
 example_source_label: "op7418/guizang-ppt-skill"
-od:
+readable:
   mode: deck
   surface: web
   scenario: marketing

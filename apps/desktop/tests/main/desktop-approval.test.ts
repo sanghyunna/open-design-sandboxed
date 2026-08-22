@@ -1,6 +1,6 @@
 import type { BrowserWindow, MessageBoxOptions } from "electron";
 
-import type { DesktopRollbackApprovalNextResponse } from "@open-design/contracts";
+import type { DesktopRollbackApprovalNextResponse } from "@readable-studio/contracts";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -29,7 +29,7 @@ const PLAN = {
   targetMessageId: "message-1",
 } as const satisfies NonNullable<DesktopRollbackApprovalNextResponse["approval"]>;
 const SAFETY_WARNING =
-  "Approving can overwrite current files. Open Design creates a safety checkpoint before the rollback.";
+  "Approving can overwrite current files. Readable Studio creates a safety checkpoint before the rollback.";
 
 async function runApproval(buttonResponse: number, plan: Record<string, unknown> = PLAN) {
   const requests: Array<{ init?: RequestInit; url: string }> = [];
@@ -79,7 +79,7 @@ async function expectRejectedPlan(plan: Record<string, unknown>) {
 describe("desktop rollback approval", () => {
   it("consumes every case variant before a BrowserWindow can inherit it", () => {
     const env = {
-      Od_DeSkToP_ApPrOvAl_ToKeN: ` ${TOKEN} `,
+      ReAdAbLe_DeSkToP_ApPrOvAl_ToKeN: ` ${TOKEN} `,
       PATH: "safe",
     };
 

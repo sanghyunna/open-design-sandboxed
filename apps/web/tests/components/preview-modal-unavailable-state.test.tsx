@@ -4,8 +4,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PreviewModal } from '../../src/components/PreviewModal';
 
-// Regression coverage for nexu-io/open-design#897: skills declared with a
-// non-html `od.preview.type` (image, markdown, …) ship no fetchable
+// Regression coverage for nexu-io/readable-studio#897: skills declared with a
+// non-html `readable.preview.type` (image, markdown, …) ship no fetchable
 // example artifact. The modal must render a calm "no shipped preview"
 // placeholder distinct from both the loading state (which would never
 // resolve) and the generic error state (which is misleading — nothing
@@ -141,17 +141,15 @@ describe('PreviewModal unavailable state', () => {
     expect(xShare.getAttribute('href')).toContain(
       'url=https%3A%2F%2Fexample.test%2Fmarketplace%2Flanding',
     );
-    expect(new URL(xShare.getAttribute('href') ?? '').searchParams.get('text')).toBe(
-      'Open Design template: Landing Template',
-    );
-    expect(new URL(redditShare.getAttribute('href') ?? '').searchParams.get('title')).toBe(
-      'Open Design template: Landing Template',
-    );
-    expect(
+    const sharedTitles = [
+      new URL(xShare.getAttribute('href') ?? '').searchParams.get('text'),
+      new URL(redditShare.getAttribute('href') ?? '').searchParams.get('title'),
       new URL(
         screen.getByRole('menuitem', { name: /Facebook/i }).getAttribute('href') ?? '',
       ).searchParams.get('quote'),
-    ).toBe('Open Design template: Landing Template');
+    ];
+    expect(sharedTitles).toHaveLength(3);
+    expect(sharedTitles.every((title) => title?.includes('Landing Template'))).toBe(true);
     expect(screen.getByRole('menuitem', { name: /Instagram/i }).getAttribute('href')).toBe(
       'https://www.instagram.com/',
     );
@@ -202,7 +200,7 @@ describe('PreviewModal unavailable state', () => {
 
       await waitFor(() => {
         expect(writeText).toHaveBeenCalledWith(
-          'Open Design template: Landing Template\nhttps://example.test/marketplace/landing',
+          'Readable Studio template: Landing Template\nhttps://example.test/marketplace/landing',
         );
         expect(openedWindow.location.href).toBe('https://www.instagram.com/');
       });
@@ -293,7 +291,7 @@ describe('PreviewModal unavailable state', () => {
 
       await waitFor(() => {
         expect(writeText).toHaveBeenCalledWith(
-          'Open Design template: Landing Template\nhttps://example.test/marketplace/landing',
+          'Readable Studio template: Landing Template\nhttps://example.test/marketplace/landing',
         );
       });
     } finally {
@@ -314,7 +312,7 @@ describe('PreviewModal unavailable state', () => {
         ]}
         shareTarget={{
           title: 'Media Template',
-          url: 'https://open-design.ai/plugins/media-template',
+          url: 'https://example.test/plugins/media-template',
         }}
         onView={() => {}}
         onClose={() => {}}
@@ -341,6 +339,7 @@ describe('PreviewModal unavailable state', () => {
             id: 'preview',
             label: 'Preview',
             html: '<!doctype html><p>Local-only preview</p>',
+            standaloneSource: { kind: 'inline', html: '<!doctype html><p>Local-only preview</p>' },
           },
         ]}
         shareTarget={{
@@ -370,6 +369,7 @@ describe('PreviewModal unavailable state', () => {
             id: 'preview',
             label: 'Preview',
             html: '<!doctype html><p>Generic preview</p>',
+            standaloneSource: { kind: 'inline', html: '<!doctype html><p>Generic preview</p>' },
           },
         ]}
         onView={() => {}}

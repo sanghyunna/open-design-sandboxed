@@ -16,8 +16,8 @@ import { join } from 'node:path';
 import Database from 'better-sqlite3';
 import { migrateCritique, getCritiqueRun } from '../src/critique/persistence.js';
 import { runOrchestrator, type CritiqueSseBus } from '../src/critique/orchestrator.js';
-import type { CritiqueSseEvent } from '@open-design/contracts/critique';
-import { defaultCritiqueConfig } from '@open-design/contracts/critique';
+import type { CritiqueSseEvent } from '@readable-studio/contracts/critique';
+import { defaultCritiqueConfig } from '@readable-studio/contracts/critique';
 
 function freshDb(): Database.Database {
   const db = new Database(':memory:');
@@ -60,7 +60,7 @@ let tmpDir: string;
 let db: Database.Database;
 
 beforeEach(() => {
-  tmpDir = mkdtempSync(join(tmpdir(), 'od-authority-test-'));
+  tmpDir = mkdtempSync(join(tmpdir(), 'readable-authority-test-'));
   db = freshDb();
 });
 

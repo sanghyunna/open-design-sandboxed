@@ -23,7 +23,7 @@ import type {
   SystemFontFormat,
   SystemFontsPlatform,
   SystemFontsResponse,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 const REGISTRY_FONTS_SUBKEY = 'SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts';
 

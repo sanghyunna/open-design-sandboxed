@@ -2,7 +2,7 @@
 name: luxury-botanical
 description: "Use this plugin when the user wants a cinematic luxury-fragrance / botanical landing page: a fullscreen video hero, a scroll-driven elliptical clip-path reveal, an orbiting carousel of perfume bottles that scales up at a focal point, plus a 'Stay in the collection' newsletter section and a warm parchment footer. Invoke for 'luxury botanical', 'perfume landing page', 'fragrance hero', 'orbit carousel', or when the user references the Bentley — Beyond The Collection template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design
@@ -50,7 +50,7 @@ Load once via `<link>`:
 These are large, stable CDN media; keep them as remote URLs (do **not** try to inline them, and do **not** swap them for other hosts):
 
 - Hero background video (autoplay/muted/loop/playsinline, `object-fit:cover`, fixed inside the sticky stage):
-  `https://plugin-assets.open-design.ai/plugins/luxury-botanical/hf_20260520_114550_b72cc2b7-2267-4d9e-b19f-f3bb4b0c7084-e5c560.mp4`
+  `https://plugin-assets.readable-studio.ai/plugins/luxury-botanical/hf_20260520_114550_b72cc2b7-2267-4d9e-b19f-f3bb4b0c7084-e5c560.mp4`
 - Six fragrance-bottle `.webp` stills on `res.cloudinary.com/dsdhxhhqh` (the orbit images), in this order:
   1. Wild Vetiver — `…/v1780390315/BL1996-Beyond_wild_vetiver_Flakon_100ml_300dpi_a55ie5.webp`
   2. Radiant Osmanthus — `…/v1780390315/BL2156_BEYOND_RADIANT_OSMANTHUS_hoc3up.webp`
@@ -58,7 +58,7 @@ These are large, stable CDN media; keep them as remote URLs (do **not** try to i
   4. Mellow Heliotrope — `…/v1780390315/BL2158_BEYOND_MELLOW_HELIOTROPE_agqych.webp`
   5. Magnetic Amber — `…/v1780390317/BL2371-BL2372-BL2373-Magnetic-Amber_web_2_dbmtpy.webp`
   6. Crystal Edition — `…/v1780390315/BL2156_BEYOND_RADIANT_OSMANTHUS_1_hlc4v1.webp`
-- Stay-section bottom decoration still: `https://plugin-assets.open-design.ai/plugins/luxury-botanical/pasted-1779282335552-1_gmztyi-eccf42.webp`
+- Stay-section bottom decoration still: `https://plugin-assets.readable-studio.ai/plugins/luxury-botanical/pasted-1779282335552-1_gmztyi-eccf42.webp`
 
 There are **no avatar / face images** in this template — nothing needs base64 inlining. Keep the CDN URLs exactly as above.
 

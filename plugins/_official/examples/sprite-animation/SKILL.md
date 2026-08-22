@@ -17,14 +17,10 @@ triggers:
   - "kinetic typography"
   - "history explainer"
   - "nintendo style"
-  - "sprite sheet"
-  - "pixel animation"
-  - "retro animation"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: marketing
-  featured: 8
   preview:
     type: html
     entry: index.html
@@ -73,7 +69,7 @@ display, looping CSS animations, kinetic Japanese / English display type.
    - All animations use `@keyframes` + `animation: ... infinite`.
    - Stage uses a fixed canvas ratio (e.g. 16:9 letterboxed) so the loop
      reads as a single frame from a video.
-   - `data-od-id` on stage, year, sprite, caption, and tick ribbon.
+   - `data-readable-id` on stage, year, sprite, caption, and tick ribbon.
 8. **Self-check**:
    - The page is one cohesive scene, not a collage. The eye lands on the
      year first, then the sprite, then the caption.

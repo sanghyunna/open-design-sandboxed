@@ -12,7 +12,7 @@ import {
 let folder: string;
 
 beforeEach(async () => {
-  const tmp = await mkdtemp(path.join(os.tmpdir(), 'od-validate-'));
+  const tmp = await mkdtemp(path.join(os.tmpdir(), 'readable-validate-'));
   folder = path.join(tmp, 'my-plugin');
   await mkdir(folder, { recursive: true });
 });
@@ -22,7 +22,7 @@ afterEach(async () => {
 });
 
 async function writeManifest(body: Record<string, unknown>) {
-  await writeFile(path.join(folder, 'open-design.json'), JSON.stringify(body, null, 2));
+  await writeFile(path.join(folder, 'readable-studio.json'), JSON.stringify(body, null, 2));
 }
 
 async function writeSkill(body: string) {
@@ -35,7 +35,7 @@ describe('validatePluginFolder', () => {
       name: 'my-plugin',
       version: '0.1.0',
       title: 'Test plugin',
-      od: { taskKind: 'new-generation' },
+      readable: { taskKind: 'new-generation' },
     });
     await writeSkill('---\nname: my-plugin\n---\n# Test plugin\n');
     const result = await validatePluginFolder({ folder });
@@ -50,18 +50,32 @@ describe('validatePluginFolder', () => {
     expect(result.resolveErrors.length).toBeGreaterThan(0);
   });
 
-  it('rejects malformed open-design.json with a parse error', async () => {
-    await writeFile(path.join(folder, 'open-design.json'), '{ this is not json');
+  it('rejects malformed readable-studio.json with a parse error', async () => {
+    await writeFile(path.join(folder, 'readable-studio.json'), '{ this is not json');
     const result = await validatePluginFolder({ folder });
     expect(result.ok).toBe(false);
-    expect(result.resolveErrors.some((e) => e.includes('open-design.json'))).toBe(true);
+    expect(result.resolveErrors.some((error) => error.includes('readable-studio.json'))).toBe(true);
   });
 
-  it('flags an unknown atom id in od.pipeline', async () => {
+  it('rejects an Readable Studio v1 filename with the documented unsupported code', async () => {
+    const retiredManifestName = `${['open', 'design'].join('-')}.json`;
+    await writeFile(path.join(folder, retiredManifestName), JSON.stringify({
+      name: 'legacy-plugin',
+      version: '1.0.0',
+      [['o', 'd'].join('')]: { taskKind: 'new-generation' },
+    }));
+
+    const result = await validatePluginFolder({ folder });
+
+    expect(result).toMatchObject({ ok: false });
+    expect(result.resolveErrors).toContain('UNSUPPORTED_LEGACY_PRODUCT_V1');
+  });
+
+  it('flags an unknown atom id in readable.pipeline', async () => {
     await writeManifest({
       name: 'pipe',
       version: '0.1.0',
-      od: {
+      readable: {
         taskKind: 'new-generation',
         pipeline: { stages: [{ id: 'one', atoms: ['no-such-atom'] }] },
       },
@@ -75,7 +89,7 @@ describe('validatePluginFolder', () => {
     await writeManifest({
       name: 'pipe',
       version: '0.1.0',
-      od: {
+      readable: {
         taskKind: 'new-generation',
         pipeline: {
           stages: [
@@ -98,7 +112,7 @@ describe('validatePluginFolder', () => {
     await writeManifest({
       name: 'with-skill',
       version: '0.1.0',
-      od: {
+      readable: {
         taskKind: 'new-generation',
         context: { skills: [{ ref: 'missing-skill' }] },
       },
@@ -112,7 +126,7 @@ describe('validatePluginFolder', () => {
     await writeManifest({
       name: 'with-skill',
       version: '0.1.0',
-      od: {
+      readable: {
         taskKind: 'new-generation',
         context: { skills: [{ ref: 'missing-skill' }] },
       },
@@ -126,7 +140,7 @@ describe('validatePluginFolder', () => {
   });
 
   it('flattenValidationDiagnostics merges resolve + doctor diagnostics in order', async () => {
-    await writeFile(path.join(folder, 'open-design.json'), '{ broken');
+    await writeFile(path.join(folder, 'readable-studio.json'), '{ broken');
     const result = await validatePluginFolder({ folder });
     const flat = flattenValidationDiagnostics(result);
     // Resolve errors come first.

@@ -1,18 +1,18 @@
 // External MCP server configuration storage + spawn-time wiring.
 //
-// Open Design acts as an MCP CLIENT to one or more external MCP servers
+// Readable Studio acts as an MCP CLIENT to one or more external MCP servers
 // (Higgsfield openclaw, GitHub, filesystem, anything the user configures).
 // At spawn time we hand those servers to whichever agent is being launched
 // (Claude Code via a project-cwd `.mcp.json`, ACP agents via the existing
 // `mcpServers` parameter) so the agent surfaces their tools to the model.
 //
 // Storage: <dataDir>/mcp-config.json with shape `{ servers: [...] }`. The
-// dataDir resolution mirrors app-config.ts so OD_DATA_DIR / packaged daemon
+// dataDir resolution mirrors app-config.ts so READABLE_DATA_DIR / packaged daemon
 // runtime layouts route this file alongside the rest of the runtime state.
 //
 // We deliberately keep the schema close to Claude Code's `.mcp.json` and
 // Cursor's MCP config — those are the de-facto interchange formats — so
-// users can copy-paste between Open Design and other tools without
+// users can copy-paste between Readable Studio and other tools without
 // translation.
 
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
@@ -409,7 +409,7 @@ export function buildAcpMcpServers(servers: McpServerConfig[]): AcpMcpServer[] {
  * `~/.config/opencode/opencode.json`, the `OPENCODE_CONFIG` file path, the
  * project `opencode.json`, and the `OPENCODE_CONFIG_CONTENT` env var (an
  * inline JSON string). The env-var path is what lets a launcher like the
- * Open Design daemon hand servers to a single `opencode run` invocation
+ * Readable Studio daemon hand servers to a single `opencode run` invocation
  * without writing into the user's global config or leaving a temp file
  * around on crash.
  *
@@ -497,7 +497,7 @@ export const MCP_TEMPLATES: McpTemplate[] = [
     id: 'higgsfield-openclaw',
     label: 'Higgsfield (OpenClaw)',
     description:
-      'Image and video generation MCP from higgsfield.ai. Exposes Soul, Nano Banana, Flux, Kling, Veo, Seedance, and 25+ other models. Endpoint is streamable HTTP at /mcp; click "Connect" after saving — Open Design completes OAuth and stores the token server-side, so no terminal step is needed and the connection survives across chat turns and cloud deployments.',
+      'Image and video generation MCP from higgsfield.ai. Exposes Soul, Nano Banana, Flux, Kling, Veo, Seedance, and 25+ other models. Endpoint is streamable HTTP at /mcp; click "Connect" after saving — Readable Studio completes OAuth and stores the token server-side, so no terminal step is needed and the connection survives across chat turns and cloud deployments.',
     transport: 'http',
     authMode: 'oauth',
     category: 'image-generation',
@@ -672,7 +672,7 @@ export const MCP_TEMPLATES: McpTemplate[] = [
     id: 'imagician',
     label: 'Imagician (image post-processing)',
     description:
-      'Local sharp-based image editor: resize, crop, rotate, flip, format conversion (JPEG / PNG / WebP / AVIF), compression and batch operations. Pairs naturally with the generation MCPs above so the agent can polish a freshly rendered artifact before saving it under .od/artifacts/. No auth, no network — all operations run locally on absolute file paths.',
+      'Local sharp-based image editor: resize, crop, rotate, flip, format conversion (JPEG / PNG / WebP / AVIF), compression and batch operations. Pairs naturally with the generation MCPs above so the agent can polish a freshly rendered artifact before saving it under .readable-studio/artifacts/. No auth, no network — all operations run locally on absolute file paths.',
     transport: 'stdio',
     category: 'image-editing',
     homepage: 'https://github.com/flowy11/imagician',
@@ -1054,7 +1054,7 @@ export const MCP_TEMPLATES: McpTemplate[] = [
     category: 'publishing',
     homepage: 'https://ogforge.dev/',
     example:
-      'Generate a 1200×630 dark-theme OG image titled "Open Design 1.0" with a subtitle "Design with agents", with a Lucide "sparkles" icon.',
+      'Generate a 1200×630 dark-theme OG image titled "Readable Studio 1.0" with a subtitle "Design with agents", with a Lucide "sparkles" icon.',
     command: 'npx',
     args: ['-y', 'ogforge-api'],
   },
@@ -1067,7 +1067,7 @@ export const MCP_TEMPLATES: McpTemplate[] = [
     category: 'publishing',
     homepage: 'https://qrmcp.dev/',
     example:
-      'Generate a brand-orange (#FF5722) QR code pointing to https://opendesign.app, with our logo at /absolute/path/to/logo.png embedded in the center.',
+      'Generate a brand-orange (#FF5722) QR code pointing to https://github.com/sanghyunna/readable-studio, with our logo at /absolute/path/to/logo.png embedded in the center.',
     command: 'npx',
     args: ['-y', 'qr-mcp'],
   },
@@ -1111,7 +1111,7 @@ export const MCP_TEMPLATES: McpTemplate[] = [
     id: 'filesystem',
     label: 'Filesystem',
     description:
-      'Read, write and list files in a sandboxed directory. Useful for letting the agent operate on a folder outside your Open Design project.',
+      'Read, write and list files in a sandboxed directory. Useful for letting the agent operate on a folder outside your Readable Studio project.',
     transport: 'stdio',
     category: 'utilities',
     homepage: 'https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem',

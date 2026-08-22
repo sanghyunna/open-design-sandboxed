@@ -6,11 +6,11 @@ Follow the root `AGENTS.md` first. This file only records module-level boundarie
 
 - `packages/contracts`: web/daemon app contract layer. Keep it pure TypeScript; it must not depend on Next.js, Express, Node filesystem/process APIs, browser APIs, SQLite, daemon internals, or the sidecar control-plane protocol.
 - `packages/components`: shared React UI primitives and primitive CSS. It may depend on React types/runtime only; keep product workflows and app-specific layout/styling in the apps.
-- `packages/host`: web/desktop host bridge contract. It models renderer-facing host capabilities and helpers while keeping `window.__od__` access out of app UI code.
+- `packages/host`: web/desktop host bridge contract. It models renderer-facing host capabilities and helpers while keeping `window.__readableStudio__` access out of app UI code.
 - `packages/metatool`: internal metadata helpers for repo-local tool build outputs. Keep reusable hash/check/write mechanics here; each concrete tool owns its own `meta.json`.
-- `packages/sidecar-proto`: Open Design sidecar business protocol. Owns app/mode/source constants, namespace validation, stamp descriptor/fields/flags, IPC message schema, status shapes, error semantics, and default product path constants.
-- `packages/sidecar`: generic sidecar runtime primitives. Includes bootstrap, IPC transport, path/runtime resolution, launch env, and JSON runtime file helpers; it must not hard-code Open Design app keys or IPC business messages.
-- `packages/platform`: generic OS process primitives. Includes stamp serialization, command parsing, process matching/search, and well-known user-toolchain bin discovery; it must consume the `sidecar-proto` descriptor and must not hard-code `--od-stamp-*` details. The toolchain helper is the single source of truth shared by the daemon agent resolver (`apps/daemon/src/agents.ts`) and the packaged sidecar PATH builder (`apps/packaged/src/sidecars.ts`) so neither layer can drift the search list.
+- `packages/sidecar-proto`: Readable Studio sidecar business protocol. Owns app/mode/source constants, namespace validation, stamp descriptor/fields/flags, IPC message schema, status shapes, error semantics, and default product path constants.
+- `packages/sidecar`: generic sidecar runtime primitives. Includes bootstrap, IPC transport, path/runtime resolution, launch env, and JSON runtime file helpers; it must not hard-code Readable Studio app keys or IPC business messages.
+- `packages/platform`: generic OS process primitives. Includes stamp serialization, command parsing, process matching/search, and well-known user-toolchain bin discovery; it must consume the `sidecar-proto` descriptor and must not hard-code `--readable-studio-stamp-*` details. The toolchain helper is the single source of truth shared by the daemon agent resolver (`apps/daemon/src/agents.ts`) and the packaged sidecar PATH builder (`apps/packaged/src/sidecars.ts`) so neither layer can drift the search list.
 
 ## Removed directories
 
@@ -22,21 +22,21 @@ Follow the root `AGENTS.md` first. This file only records module-level boundarie
 - Package tests live in each package's `tests/` directory, sibling to `src/`; keep `src/` source-only and do not add new `*.test.ts` or `*.test.tsx` files under `src/`.
 - Do not move runtime validation/schema enforcement into `contracts` prematurely; current contracts define the typed target shape only.
 - Do not let app packages depend directly on sidecar control-plane details.
-- Do not hard-code Open Design app/source/mode constants in `sidecar` or `platform`.
+- Do not hard-code Readable Studio app/source/mode constants in `sidecar` or `platform`.
 - Keep stamp fields limited to five: `app`, `mode`, `namespace`, `ipc`, and `source`.
 
 ## Common package commands
 
 ```bash
-pnpm --filter @open-design/contracts typecheck
-pnpm --filter @open-design/host typecheck
-pnpm --filter @open-design/host test
-pnpm --filter @open-design/metatool typecheck
-pnpm --filter @open-design/metatool test
-pnpm --filter @open-design/sidecar-proto typecheck
-pnpm --filter @open-design/sidecar-proto test
-pnpm --filter @open-design/sidecar typecheck
-pnpm --filter @open-design/sidecar test
-pnpm --filter @open-design/platform typecheck
-pnpm --filter @open-design/platform test
+pnpm --filter @readable-studio/contracts typecheck
+pnpm --filter @readable-studio/host typecheck
+pnpm --filter @readable-studio/host test
+pnpm --filter @readable-studio/metatool typecheck
+pnpm --filter @readable-studio/metatool test
+pnpm --filter @readable-studio/sidecar-proto typecheck
+pnpm --filter @readable-studio/sidecar-proto test
+pnpm --filter @readable-studio/sidecar typecheck
+pnpm --filter @readable-studio/sidecar test
+pnpm --filter @readable-studio/platform typecheck
+pnpm --filter @readable-studio/platform test
 ```

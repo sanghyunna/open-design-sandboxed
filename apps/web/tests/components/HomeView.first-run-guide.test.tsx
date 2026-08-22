@@ -165,7 +165,7 @@ describe('Home first-run guide trail', () => {
         title: 'Web Prototype',
         version: '0.1.0',
         description: 'General-purpose desktop web prototype.',
-        od: { kind: 'scenario', taskKind: 'new-generation' },
+        readable: { kind: 'scenario', taskKind: 'new-generation' },
       },
     };
     vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL) => {

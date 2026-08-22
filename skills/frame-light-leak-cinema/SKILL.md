@@ -18,7 +18,7 @@ example_tagline: "Warm orange light leaks and 35mm grain"
 example_desc: "2.39:1 letterbox, large italic serif type, and film sprockets"
 example_source_url: "https://hyperframes.heygen.com/catalog"
 example_source_label: "hyperframes · light-leak"
-od:
+readable:
   mode: video
   surface: video
   scenario: video

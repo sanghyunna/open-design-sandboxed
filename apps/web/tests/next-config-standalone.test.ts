@@ -18,7 +18,7 @@ describe('next.config standalone runtime', () => {
   });
 
   it('disables eager entry preloading for the standalone server output', async () => {
-    vi.stubEnv('OD_WEB_OUTPUT_MODE', 'standalone');
+    vi.stubEnv('READABLE_WEB_OUTPUT_MODE', 'standalone');
     vi.stubEnv('NODE_ENV', 'production');
 
     const config = await import('../next.config');
@@ -30,7 +30,7 @@ describe('next.config standalone runtime', () => {
   });
 
   it('leaves preloadEntriesOnStart unset for the static export build', async () => {
-    vi.stubEnv('OD_WEB_OUTPUT_MODE', undefined);
+    vi.stubEnv('READABLE_WEB_OUTPUT_MODE', undefined);
     vi.stubEnv('NODE_ENV', 'production');
 
     const config = await import('../next.config');

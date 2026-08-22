@@ -1,5 +1,5 @@
 {
-  "name": "@open-design/e2e",
+  "name": "@readable-studio/e2e",
   "version": "0.2.2",
   "private": true,
   "type": "module",
@@ -15,12 +15,12 @@
     "test:ui:p1": "playwright test -c playwright.config.ts ui --grep '\\[P1\\]'",
     "test:ui:p2": "playwright test -c playwright.config.ts ui --grep '\\[P2\\]'",
     "test:ui:critical": "playwright test -c playwright.config.ts ui/critical-smoke.test.ts ui/entry-chrome-flows.test.ts ui/app.test.ts ui/app-design-files.test.ts ui/app-manual-edit.test.ts ui/app-restoration.test.ts ui/api-empty-response.test.ts ui/amr-onboarding.test.ts ui/project-management-flows.test.ts ui/settings-api-protocol.test.ts ui/settings-local-cli-codex-fallback.test.ts ui/workspace-keyboard-flows.test.ts --grep '@critical'",
-    "test:ui:extended": "OD_PLAYWRIGHT_TIMEOUT=10000 playwright test -c playwright.config.ts ui/app.test.ts ui/api-empty-response.test.ts ui/app-restoration.test.ts ui/app-manual-edit.test.ts ui/app-design-files.test.ts ui/project-management-flows.test.ts ui/settings-api-protocol.test.ts ui/settings-local-cli-codex-fallback.test.ts ui/settings-memory-routines.test.ts ui/workspace-keyboard-flows.test.ts ui/real-daemon-run.test.ts ui/critique-theater.test.ts",
+    "test:ui:extended": "READABLE_PLAYWRIGHT_TIMEOUT=10000 playwright test -c playwright.config.ts ui/app.test.ts ui/api-empty-response.test.ts ui/app-restoration.test.ts ui/app-manual-edit.test.ts ui/app-design-files.test.ts ui/project-management-flows.test.ts ui/settings-api-protocol.test.ts ui/settings-local-cli-codex-fallback.test.ts ui/settings-memory-routines.test.ts ui/workspace-keyboard-flows.test.ts ui/real-daemon-run.test.ts ui/critique-theater.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
-    "@open-design/contracts": "workspace:*",
-    "@open-design/daemon": "workspace:*",
+    "@readable-studio/contracts": "workspace:*",
+    "@readable-studio/daemon": "workspace:*",
     "@playwright/test": "1.60.0",
     "@types/node": "20.19.39",
     "@types/pngjs": "6.0.5",

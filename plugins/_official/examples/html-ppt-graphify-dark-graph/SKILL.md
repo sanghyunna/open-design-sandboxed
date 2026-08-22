@@ -8,7 +8,7 @@ triggers:
   - "dev tool launch"
   - "cli launch"
   - "data viz launch"
-od:
+readable:
   mode: deck
   scenario: engineering
   featured: 28

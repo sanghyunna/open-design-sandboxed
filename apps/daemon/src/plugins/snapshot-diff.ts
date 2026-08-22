@@ -14,7 +14,7 @@
 // values). The shape is intentionally identical so renderers reuse
 // the same +/-/~ glyph format.
 
-import type { AppliedPluginSnapshot } from '@open-design/contracts';
+import type { AppliedPluginSnapshot } from '@readable-studio/contracts';
 
 export interface SnapshotDiffEntry {
   field:    string;

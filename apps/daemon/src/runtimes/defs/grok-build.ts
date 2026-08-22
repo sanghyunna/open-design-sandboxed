@@ -27,20 +27,20 @@ function grokModelSupportsReasoningEffort(model: string | null | undefined): boo
 // which symlinks `~/.grok/bin/grok` into PATH.
 //
 // `grok` ships its own SuperGrok OAuth dance (same `auth.x.ai` issuer +
-// loopback-redirect shape Open Design's xAI Settings panel uses), so it's
-// already authenticated by the time OD detects the binary; OD does not
+// loopback-redirect shape Readable Studio's xAI Settings panel uses), so it's
+// already authenticated by the time Readable Studio detects the binary; Readable Studio does not
 // need to inject credentials. Users authenticate once with `grok login
 // --oauth` and the resulting `~/.grok/auth.json` is what every spawned
 // invocation reads.
 //
 // Headless mode uses `--prompt-file <PATH>` because recent Grok CLI builds
 // require `-p/--single` to receive the prompt as an argv value and no longer
-// read piped stdin. OD's composed prompts often exceed safe argv limits, so
+// read piped stdin. Readable Studio's composed prompts often exceed safe argv limits, so
 // the daemon stages the prompt in a temp file and passes that path here. The
 // CLI also exposes `--output-format streaming-json`, but
 // the streaming-json schema is xAI-specific and we do not yet have a
 // daemon-side parser for it. To ship the runtime now and let users at
-// least chat with grok inside OD, this defaults to `plain` streamFormat
+// least chat with grok inside Readable Studio, this defaults to `plain` streamFormat
 // (single-turn text reply, no tool_use streaming). Upgrading to a
 // `grok-stream-json` event parser is follow-up work once the format is
 // stable enough to lock in.
@@ -73,7 +73,7 @@ export const grokBuildAgentDef = {
     },
   ],
   // Grok Build CLI v0.1.212+ enforces `-p, --single <PROMPT>` as value-
-  // required, while normal OD composed prompts exceed safe argv budgets.
+  // required, while normal Readable Studio composed prompts exceed safe argv budgets.
   // Use the CLI's explicit prompt-file transport instead.
   buildArgs: (_prompt, _imagePaths, _extra = [], options = {}, runtimeContext = {}) => {
     if (!runtimeContext.promptFilePath) {

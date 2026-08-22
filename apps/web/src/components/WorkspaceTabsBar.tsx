@@ -60,8 +60,8 @@ interface Props {
   onboardingCompleted?: boolean;
 }
 
-const STORAGE_KEY = 'open-design:workspace-tabs:v1';
-const OPEN_WORKSPACE_TAB_EVENT = 'open-design:workspace-tabs:open';
+const STORAGE_KEY = 'readable-studio:workspace-tabs:v1';
+const OPEN_WORKSPACE_TAB_EVENT = 'readable-studio:workspace-tabs:open';
 const MAX_SEARCH_RESULTS = 80;
 const TAB_DRAG_HAPTIC_MS = 8;
 const TAB_DROP_HAPTIC_MS = 12;
@@ -930,7 +930,7 @@ export function WorkspaceTabsBar({ route, projects, onboardingCompleted = false 
             >
               <button
                 type="button"
-                className="workspace-tab__main od-tooltip"
+                className="workspace-tab__main readable-tooltip"
                 onClick={() => openTab(tab)}
                 title={display.title}
                 data-tooltip={display.title}
@@ -946,7 +946,7 @@ export function WorkspaceTabsBar({ route, projects, onboardingCompleted = false 
               {isPinned ? null : (
                 <button
                   type="button"
-                  className="workspace-tab__close od-tooltip"
+                  className="workspace-tab__close readable-tooltip"
                   aria-label={t('common.close')}
                   title={t('common.close')}
                   data-tooltip={t('common.close')}
@@ -961,7 +961,7 @@ export function WorkspaceTabsBar({ route, projects, onboardingCompleted = false 
         })}
         <button
           type="button"
-          className="workspace-tabs-new-btn od-tooltip"
+          className="workspace-tabs-new-btn readable-tooltip"
           onClick={createNewTab}
           title="New tab"
           data-tooltip="New tab"
@@ -974,7 +974,7 @@ export function WorkspaceTabsBar({ route, projects, onboardingCompleted = false 
       <div className="workspace-tabs-actions" ref={menuRef}>
         <button
           type="button"
-          className={`workspace-tabs-icon-btn od-tooltip${tabsMenuOpen ? ' is-active' : ''}`}
+          className={`workspace-tabs-icon-btn readable-tooltip${tabsMenuOpen ? ' is-active' : ''}`}
           onClick={() => setTabsMenuOpen((open) => !open)}
           title="Search tabs"
           data-tooltip="Search tabs"
@@ -1020,7 +1020,7 @@ export function WorkspaceTabsBar({ route, projects, onboardingCompleted = false 
                         >
                           <button
                             type="button"
-                            className="workspace-tabs-list__main od-tooltip"
+                            className="workspace-tabs-list__main readable-tooltip"
                             onClick={() => openTab(display.tab)}
                             title={display.title}
                             data-tooltip={display.title}
@@ -1037,7 +1037,7 @@ export function WorkspaceTabsBar({ route, projects, onboardingCompleted = false 
                           {display.tab.kind === 'entry' ? null : (
                             <button
                               type="button"
-                              className="workspace-tabs-list__close od-tooltip"
+                              className="workspace-tabs-list__close readable-tooltip"
                               onClick={() => closeTab(display.id)}
                               title={t('common.close')}
                               data-tooltip={t('common.close')}

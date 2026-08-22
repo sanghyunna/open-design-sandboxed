@@ -1,11 +1,11 @@
-// `od mcp` - stdio MCP server that proxies project tool calls to the
+// `readable mcp` - stdio MCP server that proxies project tool calls to the
 // running daemon's HTTP API. Lets a coding agent in a *different* repo
-// (Claude Code, Cursor, Zed) pull files from a local Open Design
+// (Claude Code, Cursor, Zed) pull files from a local Readable Studio
 // project and create project-scoped artifacts without the
 // export-zip-import dance.
 //
 // The server itself holds no state and never touches the filesystem;
-// every tool resolves to a fetch() against `OD_DAEMON_URL`. Spawn the
+// every tool resolves to a fetch() against `READABLE_DAEMON_URL`. Spawn the
 // MCP server with no daemon running and tool calls return a clear
 // "daemon not reachable" error - the server itself still launches so
 // the client can list its tool schema.
@@ -22,7 +22,7 @@ import { randomUUID } from 'node:crypto';
 
 import { postCreateArtifactRequest } from './artifact-create.js';
 
-const SERVER_NAME = 'open-design';
+const SERVER_NAME = 'readable-studio';
 const SERVER_VERSION = '0.2.0';
 
 type JsonObject = Record<string, unknown>;
@@ -82,20 +82,20 @@ const WRITE_ANNOTATIONS = {
 // shipped to the model on every session.
 const PROJECT_ARG = {
   type: 'string',
-  description: 'Project id (UUID) or name substring. Optional; defaults to the active project (expires after ~5 minutes of no Open Design activity).',
+  description: 'Project id (UUID) or name substring. Optional; defaults to the active project (expires after ~5 minutes of no Readable Studio activity).',
 } as const;
 
 const TOOL_DEFS = [
   {
     name: 'list_projects',
-    description: 'List every Open Design project on this daemon.',
+    description: 'List every Readable Studio project on this daemon.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-    annotations: { ...READ_ANNOTATIONS, title: 'List Open Design projects' },
+    annotations: { ...READ_ANNOTATIONS, title: 'List Readable Studio projects' },
   },
   {
     name: 'get_active_context',
     description:
-      'Project + file the user has open in Open Design right now. Returns {active:false, hint:"..."} when no project is active so the agent can ask the user to interact with Open Design (the active context expires ~5 minutes after the last user interaction). Most tools default to this when project is omitted, so you rarely need to call this directly.',
+      'Project + file the user has open in Readable Studio right now. Returns {active:false, hint:"..."} when no project is active so the agent can ask the user to interact with Readable Studio (the active context expires ~5 minutes after the last user interaction). Most tools default to this when project is omitted, so you rarely need to call this directly.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     annotations: { ...READ_ANNOTATIONS, title: 'What is the user looking at?' },
   },
@@ -110,7 +110,7 @@ const TOOL_DEFS = [
         entry: {
           type: 'string',
           description:
-            "Entry file path relative to project root. Defaults to the active file or project's metadata.entryFile. Active-file fallback expires after ~5 minutes of no Open Design activity.",
+            "Entry file path relative to project root. Defaults to the active file or project's metadata.entryFile. Active-file fallback expires after ~5 minutes of no Readable Studio activity.",
         },
         include: {
           type: 'string',
@@ -136,12 +136,12 @@ const TOOL_DEFS = [
       properties: { project: PROJECT_ARG },
       additionalProperties: false,
     },
-    annotations: { ...READ_ANNOTATIONS, title: 'Get Open Design project' },
+    annotations: { ...READ_ANNOTATIONS, title: 'Get Readable Studio project' },
   },
   {
     name: 'get_file',
     description:
-      'Read one project file. Text mimes only (HTML, JSX, CSS, JSON, SVG, Markdown). Binary files return an error; use list_files for metadata. Returns up to `limit` lines starting at `offset` (defaults: offset=0, limit=2000), mirroring Claude Code\'s Read tool. For files longer than the slice, the response carries an `[od:file-window ...]` marker with totalLines so you can page by re-calling with the next offset. For multi-file designs prefer get_artifact.',
+      'Read one project file. Text mimes only (HTML, JSX, CSS, JSON, SVG, Markdown). Binary files return an error; use list_files for metadata. Returns up to `limit` lines starting at `offset` (defaults: offset=0, limit=2000), mirroring Claude Code\'s Read tool. For files longer than the slice, the response carries an `[readable-studio:file-window ...]` marker with totalLines so you can page by re-calling with the next offset. For multi-file designs prefer get_artifact.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -149,7 +149,7 @@ const TOOL_DEFS = [
         path: {
           type: 'string',
           description:
-            'File path relative to project root, forward slashes. Optional; defaults to the active file when project is also omitted. Active-file fallback expires after ~5 minutes of no Open Design activity.',
+            'File path relative to project root, forward slashes. Optional; defaults to the active file when project is also omitted. Active-file fallback expires after ~5 minutes of no Readable Studio activity.',
         },
         offset: {
           type: 'number',
@@ -210,7 +210,7 @@ const TOOL_DEFS = [
   {
     name: 'create_artifact',
     description:
-      'Create one normal Open Design project artifact entry file. Writes name+content, rejects existing targets, and persists artifactManifest when supplied. HTML, Markdown, and SVG entries get a default manifest when omitted. Project optional; defaults to the active project.',
+      'Create one normal Readable Studio project artifact entry file. Writes name+content, rejects existing targets, and persists artifactManifest when supplied. HTML, Markdown, and SVG entries get a default manifest when omitted. Project optional; defaults to the active project.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -231,13 +231,13 @@ const TOOL_DEFS = [
         artifactManifest: {
           type: 'object',
           additionalProperties: true,
-          description: 'Optional ArtifactManifest sidecar. If omitted, Open Design infers one for HTML, Markdown, or SVG entry files.',
+          description: 'Optional ArtifactManifest sidecar. If omitted, Readable Studio infers one for HTML, Markdown, or SVG entry files.',
         },
       },
       required: ['name', 'content'],
       additionalProperties: false,
     },
-    annotations: { ...WRITE_ANNOTATIONS, title: 'Create Open Design artifact' },
+    annotations: { ...WRITE_ANNOTATIONS, title: 'Create Readable Studio artifact' },
   },
   {
     name: 'write_file',
@@ -264,7 +264,7 @@ const TOOL_DEFS = [
       required: ['path', 'content'],
       additionalProperties: false,
     },
-    annotations: { ...WRITE_ANNOTATIONS, title: 'Write Open Design project file' },
+    annotations: { ...WRITE_ANNOTATIONS, title: 'Write Readable Studio project file' },
   },
   {
     name: 'delete_file',
@@ -282,12 +282,12 @@ const TOOL_DEFS = [
       required: ['path'],
       additionalProperties: false,
     },
-    annotations: { ...WRITE_ANNOTATIONS, destructiveHint: true, title: 'Delete Open Design project file' },
+    annotations: { ...WRITE_ANNOTATIONS, destructiveHint: true, title: 'Delete Readable Studio project file' },
   },
   {
     name: 'delete_project',
     description:
-      'Permanently delete an Open Design project including its files and conversations. Requires both an explicit project id/name AND confirm:true — there is no active-project fallback because the operation is irreversible.',
+      'Permanently delete a Readable Studio project including its files and conversations. Requires both an explicit project id/name AND confirm:true — there is no active-project fallback because the operation is irreversible.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -303,12 +303,12 @@ const TOOL_DEFS = [
       required: ['project', 'confirm'],
       additionalProperties: false,
     },
-    annotations: { ...WRITE_ANNOTATIONS, destructiveHint: true, title: 'Delete Open Design project' },
+    annotations: { ...WRITE_ANNOTATIONS, destructiveHint: true, title: 'Delete Readable Studio project' },
   },
   {
     name: 'create_project',
     description:
-      'Create a new empty Open Design project to generate into, then call start_run against it. Returns the project (with its id) plus a conversationId. The id is derived from name unless you pass one explicitly.',
+      'Create a new empty Readable Studio project to generate into, then call start_run against it. Returns the project (with its id) plus a conversationId. The id is derived from name unless you pass one explicitly.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -319,39 +319,39 @@ const TOOL_DEFS = [
         },
         designSystem: {
           type: 'string',
-          description: 'Optional design system id to attach (see the od://design-systems/... resources).',
+          description: 'Optional design system id to attach (see the readable-studio://design-systems/... resources).',
         },
         skill: { type: 'string', description: 'Optional skill id to seed the project with.' },
       },
       required: ['name'],
       additionalProperties: false,
     },
-    annotations: { ...WRITE_ANNOTATIONS, title: 'Create Open Design project' },
+    annotations: { ...WRITE_ANNOTATIONS, title: 'Create Readable Studio project' },
   },
   // Discovery + generation. An external coding agent does NOT run a
-  // skill itself — it commissions Open Design to, via start_run. The
+  // skill itself — it commissions Readable Studio to, via start_run. The
   // daemon then spawns ITS OWN agent (Claude Code / API fallback /…)
   // to do the work. So list_skills / list_plugins exist purely so the
-  // caller can discover what it can ask OD to generate; start_run
+  // caller can discover what it can ask Readable Studio to generate; start_run
   // kicks off the run and get_run polls it to completion. Design
-  // systems stay resource-only (od://design-systems/...) since they're
+  // systems stay resource-only (readable-studio://design-systems/...) since they're
   // reference material the caller opts into, not something to run.
   {
     name: 'list_skills',
-    description: 'List Open Design skills you can pass to start_run as a recipe. Discovery only — Open Design runs the skill, not you.',
+    description: 'List Readable Studio skills you can pass to start_run as a recipe. Discovery only — Readable Studio runs the skill, not you.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-    annotations: { ...READ_ANNOTATIONS, title: 'List Open Design skills' },
+    annotations: { ...READ_ANNOTATIONS, title: 'List Readable Studio skills' },
   },
   {
     name: 'list_plugins',
-    description: 'List installed Open Design plugins (packaged design workflows) you can pass to start_run as plugin + inputs.',
+    description: 'List installed Readable Studio plugins (packaged design workflows) you can pass to start_run as plugin + inputs.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-    annotations: { ...READ_ANNOTATIONS, title: 'List Open Design plugins' },
+    annotations: { ...READ_ANNOTATIONS, title: 'List Readable Studio plugins' },
   },
   {
     name: 'start_run',
     description:
-      'Commission Open Design to generate or refine a design. Open Design spawns its own agent to do the work and returns a runId immediately. Poll get_run(runId) until status is terminal, then get_artifact to pull the result. Project optional; defaults to the active project. Requires an existing project (create one first with create_project).',
+      'Commission Readable Studio to generate or refine a design. Readable Studio spawns its own agent to do the work and returns a runId immediately. Poll get_run(runId) until status is terminal, then get_artifact to pull the result. Project optional; defaults to the active project. Requires an existing project (create one first with create_project).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -375,7 +375,7 @@ const TOOL_DEFS = [
         },
         agent: {
           type: 'string',
-          description: "Which agent Open Design should run, e.g. 'claude' | 'codex' | 'gemini'. Optional; defaults to the user's configured agent.",
+          description: "Which agent Readable Studio should run, e.g. 'claude' | 'codex' | 'gemini'. Optional; defaults to the user's configured agent.",
         },
         model: {
           type: 'string',
@@ -384,7 +384,7 @@ const TOOL_DEFS = [
       },
       additionalProperties: false,
     },
-    annotations: { ...WRITE_ANNOTATIONS, title: 'Generate with Open Design' },
+    annotations: { ...WRITE_ANNOTATIONS, title: 'Generate with Readable Studio' },
   },
   {
     name: 'get_run',
@@ -398,7 +398,7 @@ const TOOL_DEFS = [
       required: ['runId'],
       additionalProperties: false,
     },
-    annotations: { ...READ_ANNOTATIONS, title: 'Check Open Design run' },
+    annotations: { ...READ_ANNOTATIONS, title: 'Check Readable Studio run' },
   },
   {
     name: 'cancel_run',
@@ -411,12 +411,12 @@ const TOOL_DEFS = [
       required: ['runId'],
       additionalProperties: false,
     },
-    annotations: { ...WRITE_ANNOTATIONS, title: 'Cancel Open Design run' },
+    annotations: { ...WRITE_ANNOTATIONS, title: 'Cancel Readable Studio run' },
   },
   {
     name: 'list_agents',
     description:
-      'List the agent CLIs Open Design can run for start_run.agent. Returns only installed (available) agents by default — pass includeUnavailable:true to also see agents we know about but that are not on PATH (each carries an installUrl for the user). Each entry includes id, name, version, and up to 10 sample models (modelsCount carries the real total).',
+      'List the agent CLIs Readable Studio can run for start_run.agent. Returns only installed (available) agents by default — pass includeUnavailable:true to also see agents we know about but that are not on PATH (each carries an installUrl for the user). Each entry includes id, name, version, and up to 10 sample models (modelsCount carries the real total).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -427,7 +427,7 @@ const TOOL_DEFS = [
       },
       additionalProperties: false,
     },
-    annotations: { ...READ_ANNOTATIONS, title: 'List Open Design agents' },
+    annotations: { ...READ_ANNOTATIONS, title: 'List Readable Studio agents' },
   },
 ];
 
@@ -439,13 +439,15 @@ export async function runMcpStdio({ daemonUrl }: RunMcpOptions): Promise<void> {
     {
       capabilities: { tools: {}, resources: {} },
       instructions: [
-        'Open Design (OD) is a local-first design workspace. The user typically',
-        'has OD running on their machine; each project contains a rendered',
+        'Readable Studio is a local-first design workspace. The user typically',
+        'has Readable Studio running on their machine; each project contains a rendered',
         'artifact (HTML/JSX/CSS) plus its source files.',
+        'Its document workflow is Source Text -> AI Generation -> Direct Editing -> Standalone HTML,',
+        'built for office workers producing business documents during enterprise AI transformation.',
         '',
         'Active context: get_artifact, get_project, get_file, search_files,',
         'and list_files all accept project as OPTIONAL. When omitted, they',
-        'default to the project the user has open in OD right now; get_file',
+        'default to the project the user has open in Readable Studio right now; get_file',
         'and get_artifact additionally default to the active file. So when',
         'the user says "this file" / "the design I have open" / "find X",',
         'just call the tool without project - no need to ask first. The',
@@ -459,7 +461,7 @@ export async function runMcpStdio({ daemonUrl }: RunMcpOptions): Promise<void> {
         '    wants to understand or extend a design.',
         ' - get_file(path) for a single known file. Returns up to 2000',
         '    lines starting at offset (default 0) and stamps a',
-        '    [od:file-window ...] marker when the file is longer; page',
+        '    [readable-studio:file-window ...] marker when the file is longer; page',
         '    by re-calling with the next offset.',
         ' - search_files(query) to find a class/component/copy string',
         '    without fetching every file.',
@@ -477,9 +479,9 @@ export async function runMcpStdio({ daemonUrl }: RunMcpOptions): Promise<void> {
         ' - get_active_context() if you want the active project/file',
         '    explicitly without making any other tool call.',
         '',
-        'To make Open Design GENERATE or refine a design (rather than just',
+        'To make Readable Studio GENERATE or refine a design (rather than just',
         'read/edit files), commission a run - you do not run skills yourself:',
-        ' - list_skills / list_plugins to see what you can ask OD to make.',
+        ' - list_skills / list_plugins to see what you can ask Readable Studio to make.',
         ' - list_agents when you need to pass start_run.agent — do not',
         '    guess "claude" / "codex" / "gemini"; only agents in the',
         '    returned list will actually spawn on this machine.',
@@ -487,13 +489,13 @@ export async function runMcpStdio({ daemonUrl }: RunMcpOptions): Promise<void> {
         '    generate into; start_run requires an existing project.',
         ' - start_run(prompt, [skill], [plugin], [inputs]) kicks off generation in',
         '    the active or named project and returns a runId immediately.',
-        '    Open Design spawns its own agent to do the work.',
+        '    Readable Studio spawns its own agent to do the work.',
         ' - get_run(runId) polls until status is succeeded/failed/canceled;',
         '    on success it returns a previewUrl you can open in a browser',
         '    and a hint to pull the files with get_artifact.',
         ' - cancel_run(runId) aborts an in-flight run.',
         '',
-        'Generation patience: Open Design runs typically take 5–30',
+        'Generation patience: Readable Studio runs typically take 5–30',
         'minutes. Polls returning status:running with unchanged file',
         'mtimes is the inner agent thinking, not a hang. Do NOT cancel',
         'and substitute write_file as a "faster" workaround — that',
@@ -505,10 +507,10 @@ export async function runMcpStdio({ daemonUrl }: RunMcpOptions): Promise<void> {
         '',
         'Ambiguous-format requests: words like "PPT" / "deck" / "slides" /',
         '"presentation" / "document" / "PDF" / "doc" map to two different',
-        'deliverables — Open Design natively produces browser-viewable',
+        'deliverables — Readable Studio natively produces browser-viewable',
         'HTML/SVG (including HTML-rendered decks), but the user may want a',
-        'real binary file (.pptx / .docx / .pdf) which Open Design does NOT',
-        'produce and which you would have to export yourself from OD\'s',
+        'real binary file (.pptx / .docx / .pdf) which Readable Studio does NOT',
+        'produce and which you would have to export yourself from Readable Studio\'s',
         'output. When the user\'s request is ambiguous, ASK them which one',
         'they want before kicking off work; do not silently pick one and do',
         'not run both paths in parallel.',
@@ -520,12 +522,12 @@ export async function runMcpStdio({ daemonUrl }: RunMcpOptions): Promise<void> {
         'resolved. Verify with the user if the match was unexpected.',
         '',
         'Reference material is exposed as MCP resources, not tools - read',
-        'od://design-systems/<id>/DESIGN.md when you need the brand spec',
+        'readable-studio://design-systems/<id>/DESIGN.md when you need the brand spec',
         'for a design (palette, typography, voice). Skills are similarly',
-        'available at od://skills/<id>/SKILL.md but are mostly relevant',
+        'available at readable-studio://skills/<id>/SKILL.md but are mostly relevant',
         'when the user asks about how a particular artifact was generated.',
         '',
-        'When extending an Open Design design in another codebase, pull',
+        'When extending a Readable Studio design in another codebase, pull',
         'the full bundle once with get_artifact and work from those files',
         'locally - do not fetch files one-by-one if you can avoid it.',
       ].join('\n'),
@@ -543,15 +545,15 @@ export async function runMcpStdio({ daemonUrl }: RunMcpOptions): Promise<void> {
     ]);
     const resources = [
       {
-        uri: 'od://focus/active',
-        name: 'Active Open Design context',
-        description: 'The project/file the user has open in Open Design right now.',
+        uri: 'readable-studio://focus/active',
+        name: 'Active Readable Studio context',
+        description: 'The project/file the user has open in Readable Studio right now.',
         mimeType: 'application/json',
       },
     ];
     for (const s of skillsData?.skills || []) {
       resources.push({
-        uri: `od://skills/${encodeURIComponent(s.id)}/SKILL.md`,
+        uri: `readable-studio://skills/${encodeURIComponent(s.id)}/SKILL.md`,
         name: `Skill: ${s.name || s.id}`,
         description: oneLine(s.description) ?? '',
         mimeType: 'text/markdown',
@@ -559,7 +561,7 @@ export async function runMcpStdio({ daemonUrl }: RunMcpOptions): Promise<void> {
     }
     for (const d of dsData?.designSystems || []) {
       resources.push({
-        uri: `od://design-systems/${encodeURIComponent(d.id)}/DESIGN.md`,
+        uri: `readable-studio://design-systems/${encodeURIComponent(d.id)}/DESIGN.md`,
         name: `Design system: ${d.title || d.name || d.id}`,
         description: oneLine(d.summary) ?? '',
         mimeType: 'text/markdown',
@@ -570,7 +572,7 @@ export async function runMcpStdio({ daemonUrl }: RunMcpOptions): Promise<void> {
 
   server.setRequestHandler(ReadResourceRequestSchema, async (req) => {
     const uri = req.params?.uri;
-    if (uri === 'od://focus/active') {
+    if (uri === 'readable-studio://focus/active') {
       const data = await getJson<ActiveContext>(`${baseUrl}/api/active`);
       return {
         contents: [
@@ -582,7 +584,7 @@ export async function runMcpStdio({ daemonUrl }: RunMcpOptions): Promise<void> {
         ],
       };
     }
-    const m = String(uri || '').match(/^od:\/\/(skills|design-systems)\/([^/]+)\/(.+)$/);
+    const m = String(uri || '').match(/^readable-studio:\/\/(skills|design-systems)\/([^/]+)\/(.+)$/);
     if (!m) {
       throw new Error(`unsupported resource URI: ${uri}`);
     }
@@ -657,7 +659,7 @@ async function handleMcpToolCall(baseUrl: string, name: unknown, args: McpArgs) 
         if (!data || data.active === false) {
           return ok({
             active: false,
-            hint: 'Open Design has no active project right now. The active context expires about 5 minutes after the last user interaction with Open Design, so the user may need to click into a project (or switch tabs inside one) to wake it up. Alternatively, pass project="<id-or-name>" to other tools to bypass active context entirely.',
+            hint: 'Readable Studio has no active project right now. The active context expires about 5 minutes after the last user interaction with Readable Studio, so the user may need to click into a project (or switch tabs inside one) to wake it up. Alternatively, pass project="<id-or-name>" to other tools to bypass active context entirely.',
           });
         }
         return ok(data);
@@ -685,7 +687,7 @@ async function handleMcpToolCall(baseUrl: string, name: unknown, args: McpArgs) 
               resolvedDir,
               // previewUrl: open in a browser to view the rendered
               // design directly (HTML entries render; see
-              // rawPreviewUrl). studioUrl: open the OD studio page
+              // rawPreviewUrl). studioUrl: open the Readable Studio studio page
               // that shows the rendered file alongside the chat
               // history for the project. Both omitted when their
               // prerequisites aren't met.
@@ -786,7 +788,7 @@ async function writeFile(baseUrl: string, args: McpArgs) {
   const encoding = args.encoding === 'base64' ? 'base64' : 'utf8';
   // No `artifact: true` and no `overwrite: false`: the route then takes
   // the default writeProjectFile path, which overwrites the target. This
-  // is the exact shape `od files write` uses (see apps/daemon/src/cli.ts).
+  // is the exact shape `readable files write` uses (see apps/daemon/src/cli.ts).
   const url = `${baseUrl}/api/projects/${encodeURIComponent(id)}/files`;
   const resp = await fetch(url, {
     method: 'POST',
@@ -874,11 +876,11 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
 
 // Create an empty project to generate into. start_run needs an existing
 // project; without this an external agent could only work on projects
-// the user had already created in Open Design.
+// the user had already created in Readable Studio.
 //
 // skipDiscoveryBrief defaults to true: the outer agent (Codex, Cursor,
-// …) IS the user-facing surface, so OD's own interactive discovery
-// stage would create a confusing nested-clarification loop where OD's
+// …) IS the user-facing surface, so Readable Studio's own interactive discovery
+// stage would create a confusing nested-clarification loop where Readable Studio's
 // <question-form> output ends up dropped from the MCP response because
 // no project file is produced. Better to let the outer agent gather
 // requirements directly and pass a precise prompt to start_run.
@@ -903,18 +905,18 @@ async function createProject(baseUrl: string, args: McpArgs) {
 // record carries 16+ fields (fsPath, sourceMarketplaceId, installedAt,
 // resolvedSource, …) that an agent never reasons about, and the
 // human-readable description / kind live one level deeper in
-// `manifest.description` / `manifest.od.kind`.
+// `manifest.description` / `manifest.readable.kind`.
 async function listPlugins(baseUrl: string): Promise<JsonObject> {
   const raw = await getJson<{ plugins?: JsonObject[] }>(`${baseUrl}/api/plugins`);
   const plugins = (raw?.plugins ?? []).map((p) => {
     const manifest = (p?.manifest as JsonObject | undefined) ?? {};
-    const od = (manifest.od as JsonObject | undefined) ?? {};
+    const readable = (manifest.readable as JsonObject | undefined) ?? {};
     const result: JsonObject = {
       id: p?.id,
       title: manifest.title ?? p?.title ?? p?.id,
     };
     if (typeof manifest.description === 'string') result.description = manifest.description;
-    const kind = od.taskKind ?? od.kind;
+    const kind = readable.taskKind ?? readable.kind;
     if (typeof kind === 'string') result.kind = kind;
     if (Array.isArray(manifest.tags)) result.tags = manifest.tags;
     return result;
@@ -996,7 +998,7 @@ async function startRun(baseUrl: string, args: McpArgs) {
       {
         ...created,
         ...(studioUrl ? { studioUrl } : {}),
-        hint: 'Run started. Open Design generation normally takes 5–30 minutes. Polls showing status:running with no new files / unchanged file mtimes is the inner agent thinking, NOT a hang — DO NOT cancel_run out of impatience and DO NOT substitute write_file to produce the design yourself; OD\'s pipeline is what gives the result its design quality. Poll get_run(runId) every 30–60 seconds; report "still working" to the user between polls and keep waiting. On terminal status the response carries previewUrl + agentMessage which together are the canonical deliverable. When studioUrl is present, ALWAYS show it to the user as a clickable markdown link: `[Open Open Design studio](STUDIO_URL)` — never as inline code or bare text, because Codex / Cursor / Zed render markdown links as navigable in their built-in browser pane and inline code blocks are not clickable.',
+        hint: 'Run started. Readable Studio generation normally takes 5–30 minutes. Polls showing status:running with no new files / unchanged file mtimes is the inner agent thinking, NOT a hang — DO NOT cancel_run out of impatience and DO NOT substitute write_file to produce the design yourself; Readable Studio\'s pipeline is what gives the result its design quality. Poll get_run(runId) every 30–60 seconds; report "still working" to the user between polls and keep waiting. On terminal status the response carries previewUrl + agentMessage which together are the canonical deliverable. When studioUrl is present, ALWAYS show it to the user as a clickable markdown link: `[Open Readable Studio studio](STUDIO_URL)` — never as inline code or bare text, because Codex / Cursor / Zed render markdown links as navigable in their built-in browser pane and inline code blocks are not clickable.',
       },
       active,
       resolved,
@@ -1030,7 +1032,7 @@ async function getRun(baseUrl: string, args: McpArgs) {
     if (typeof status.eventsLogPath === 'string' && status.eventsLogPath.length > 0) {
       enriched.hint = 'Run still in flight. Tail eventsLogPath in your own shell (e.g. `tail -n 50 -f "' + status.eventsLogPath + '"`) to see live text_delta / tool_use events from the inner agent — that is your in-flight progress signal. Keep polling get_run every 30–60s; do not cancel because file mtimes look static, that is the agent thinking between writes.';
       if (studioUrl) {
-        enriched.hint += ` Once you have something to show the user, give them a clickable markdown link to studioUrl — render it as \`[Watch progress in Open Design studio](${studioUrl})\`, NEVER as inline code or bare text, so clients like Codex / Cursor / Zed make it navigable in their built-in browser pane.`;
+        enriched.hint += ` Once you have something to show the user, give them a clickable markdown link to studioUrl — render it as \`[Watch progress in Readable Studio studio](${studioUrl})\`, NEVER as inline code or bare text, so clients like Codex / Cursor / Zed make it navigable in their built-in browser pane.`;
       }
     }
     return ok(enriched);
@@ -1052,8 +1054,8 @@ async function getRun(baseUrl: string, args: McpArgs) {
   if (agentMessage) enriched.agentMessage = agentMessage;
   if (studioUrl) enriched.studioUrl = studioUrl;
   enriched.hint = previewUrl
-    ? `Run finished. studioUrl (when present) is the BEST link to hand the user — it opens the OD studio page that shows the rendered design AND the chat history (your prompts and the inner agent's replies) side by side. ALWAYS render studioUrl as a clickable markdown link: \`[Open Open Design studio](STUDIO_URL)\` — never as inline code or bare text, because clients like Codex / Cursor / Zed render markdown links as navigable in their built-in browser pane and inline code blocks are not clickable. previewUrl is the raw file URL if the user only wants the rendered output. agentMessage carries the inner agent's explanation; show it alongside the link. Call get_artifact({ project: "${status.projectId}" }) when you need the source files — always pass project explicitly; omitting it falls back to the active project, which may differ. eventsLogPath, when present, holds the full inner-agent event log for forensics.`
-    : 'Run finished but produced no files. The inner agent\'s output is in agentMessage — relay it to the user verbatim. Most often this is a clarifying question (e.g. a <question-form>) you should answer by calling start_run again with a more specific prompt or a chosen plugin. When studioUrl is present, show it as a clickable markdown link (`[Open Open Design studio](STUDIO_URL)`) so the user can navigate to the OD page that shows the chat history — never render it as inline code. eventsLogPath, when present, holds the full event log if you need to inspect what happened.';
+    ? `Run finished. studioUrl (when present) is the BEST link to hand the user — it opens the Readable Studio studio page that shows the rendered design AND the chat history (your prompts and the inner agent's replies) side by side. ALWAYS render studioUrl as a clickable markdown link: \`[Open Readable Studio studio](STUDIO_URL)\` — never as inline code or bare text, because clients like Codex / Cursor / Zed render markdown links as navigable in their built-in browser pane and inline code blocks are not clickable. previewUrl is the raw file URL if the user only wants the rendered output. agentMessage carries the inner agent's explanation; show it alongside the link. Call get_artifact({ project: "${status.projectId}" }) when you need the source files — always pass project explicitly; omitting it falls back to the active project, which may differ. eventsLogPath, when present, holds the full inner-agent event log for forensics.`
+    : 'Run finished but produced no files. The inner agent\'s output is in agentMessage — relay it to the user verbatim. Most often this is a clarifying question (e.g. a <question-form>) you should answer by calling start_run again with a more specific prompt or a chosen plugin. When studioUrl is present, show it as a clickable markdown link (`[Open Readable Studio studio](STUDIO_URL)`) so the user can navigate to the Readable Studio page that shows the chat history — never render it as inline code. eventsLogPath, when present, holds the full event log if you need to inspect what happened.';
   return ok(enriched);
 }
 
@@ -1093,7 +1095,7 @@ async function fetchRunAgentMessage(baseUrl: string, runId: string): Promise<str
   }
 }
 
-// Studio deep links (browser-facing OD page that shows the file
+// Studio deep links (browser-facing Readable Studio page that shows the file
 // preview alongside the conversation history for a run). Built from
 // the daemon's advertised webBaseUrl + project + conversation + entry
 // file. The webBaseUrl is exposed by /api/mcp/install-info; we cache
@@ -1208,7 +1210,7 @@ async function resolveProjectEntry(baseUrl: string, projectId: string, declared:
 // serves it with the right Content-Type and resolves sibling
 // CSS/JS/img relative to the same dir, so this URL opens directly in a
 // browser (HTML entries render; bare JSX entries that rely on
-// host-injected React/Babel do not — those still need the Open Design
+// host-injected React/Babel do not — those still need the Readable Studio
 // UI). Returns null when there's no entry file. Pure: no I/O, so
 // get_project can call it from project data it already has.
 function rawPreviewUrl(baseUrl: string, projectId: string, entry: unknown): string | null {
@@ -1280,7 +1282,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // Short-lived cache for the project list. A typical agent session
 // makes several name-based lookups in quick succession; without this
 // each one re-fetches /api/projects. The TTL is short so a project
-// renamed in the Open Design UI shows up within a few seconds.
+// renamed in the Readable Studio UI shows up within a few seconds.
 const PROJECT_LIST_TTL_MS = 5000;
 let projectListCache: ProjectListCache | null = null;
 
@@ -1300,7 +1302,7 @@ async function fetchProjectList(baseUrl: string): Promise<ProjectSummary[]> {
 }
 
 // When the agent omits `project`, fall back to whatever the user has
-// open in Open Design. Returns the resolved id plus, for echo-back to the
+// open in Readable Studio. Returns the resolved id plus, for echo-back to the
 // caller, the active-context payload that was used. Throws a clear
 // error when neither is available so the agent can prompt the user
 // rather than guessing.
@@ -1319,7 +1321,7 @@ async function resolveProjectArg(baseUrl: string, arg: unknown): Promise<{ id: s
   }
   if (!active || active.active === false || !active.projectId) {
     throw new Error(
-      'project arg omitted and Open Design has no active project. The active context expires about 5 minutes after the last user interaction with Open Design - the user may need to click into a project to wake it up. Otherwise pass project="<id-or-name>".',
+      'project arg omitted and Readable Studio has no active project. The active context expires about 5 minutes after the last user interaction with Readable Studio - the user may need to click into a project to wake it up. Otherwise pass project="<id-or-name>".',
     );
   }
   return { id: active.projectId, resolved: null, active };
@@ -1391,7 +1393,7 @@ async function getFile(baseUrl: string, project: string, relPath: string, active
   const mime = ((resp.headers.get('content-type') || 'application/octet-stream').split(';')[0] ?? 'application/octet-stream').trim();
   if (!isTextualMime(mime)) {
     return errorResult(
-      `file at "${relPath}" has mime "${mime}"; binary content is not yet supported by od mcp. Use list_files to inspect its metadata.`,
+      `file at "${relPath}" has mime "${mime}"; binary content is not yet supported by readable mcp. Use list_files to inspect its metadata.`,
     );
   }
   const text = await resp.text();
@@ -1405,13 +1407,13 @@ async function getFile(baseUrl: string, project: string, relPath: string, active
   const extra: string[] = [];
   if (active) extra.push(formatActiveEchoLine(active, relPath));
   if (resolved && (resolved.source === 'slug' || resolved.source === 'substring')) {
-    extra.push(`[od:resolved-project id="${resolved.id}" name="${resolved.name}" via="${resolved.source}"]`);
+    extra.push(`[readable-studio:resolved-project id="${resolved.id}" name="${resolved.name}" via="${resolved.source}"]`);
   }
   if (truncated || start > 0) {
     const nextOffset = start + returnedLines;
     const next = truncated ? `; call get_file again with offset=${nextOffset} to read more` : '';
     extra.push(
-      `[od:file-window offset=${start} returnedLines=${returnedLines} totalLines=${totalLines}${next}]`,
+      `[readable-studio:file-window offset=${start} returnedLines=${returnedLines} totalLines=${totalLines}${next}]`,
     );
   }
   return {
@@ -1445,7 +1447,7 @@ function activeEchoPayload(active: ActiveContext) {
 
 function formatActiveEchoLine(active: ActiveContext, resolvedPath: string): string {
   const proj = active.projectName || active.projectId;
-  const note = `[od:active-context project="${proj}" file="${resolvedPath}"]`;
+  const note = `[readable-studio:active-context project="${proj}" file="${resolvedPath}"]`;
   return active.fileName === resolvedPath
     ? note
     : `${note} (active file: ${active.fileName ?? 'none'})`;
@@ -1746,7 +1748,7 @@ function formatError(err: unknown, daemonUrl: string): string {
   const code = e && (e.cause?.code || e.code);
   const msg = errorMessage(err);
   if (code === 'ECONNREFUSED' || code === 'ENOTFOUND') {
-    return `cannot reach the Open Design daemon at ${daemonUrl}. Is it running? Start it with \`pnpm tools-dev\`.`;
+    return `cannot reach the Readable Studio daemon at ${daemonUrl}. Is it running? Start it with \`pnpm tools-dev\`.`;
   }
   return msg;
 }

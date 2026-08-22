@@ -92,8 +92,8 @@ describe('provider CLI', () => {
       key: ' key with spaces ',
     });
     expect(new Headers(mutations[0]?.[1]?.headers).get('origin')).toBe(daemonUrl);
-    expect(new Headers(mutations[0]?.[1]?.headers).get('X-Open-Design-CSRF')).toBe('csrf-1');
-    expect(new Headers(mutations[1]?.[1]?.headers).get('X-Open-Design-CSRF')).toBe('csrf-2');
+    expect(new Headers(mutations[0]?.[1]?.headers).get('X-Readable-Studio-CSRF')).toBe('csrf-1');
+    expect(new Headers(mutations[1]?.[1]?.headers).get('X-Readable-Studio-CSRF')).toBe('csrf-2');
     expect(`${h.stdout.join('')} ${h.stderr.join('')}`).not.toContain('key with spaces');
     expect(h.stdout.join('')).not.toContain('must-not-be-forwarded');
   });
@@ -135,7 +135,7 @@ describe('provider CLI', () => {
       session(),
       json({ result: 'set', provider: 'anthropic', configured: true }),
     ], { identity: 'bearer-secret', '-': 'provider-secret\n' });
-    h.deps.env = { OD_HOSTED_IDENTITY_TOKEN_FILE: 'identity' };
+    h.deps.env = { READABLE_HOSTED_IDENTITY_TOKEN_FILE: 'identity' };
 
     const result = await runProviderCli([
       'set', '--provider', 'anthropic', '--key-file', '-', '--daemon-url', daemonUrl,

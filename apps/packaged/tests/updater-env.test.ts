@@ -1,83 +1,36 @@
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
-import {
-  resolvePackagedUpdaterEnv,
-  UPDATE_ENABLED_ENV,
-  UPDATE_METADATA_URL_ENV,
-} from "../src/updater-env.js";
+const packagedRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const REMOVED_RUNTIME_TOKENS = [
+  "READABLE_UPDATE_",
+  "releases.readable-studio.ai",
+  "updateMetadataUrl",
+  "setInterval(",
+  "setTimeout(",
+] as const;
 
-const METADATA_URL = "https://releases.open-design.ai/beta/latest/metadata.json";
+describe("packaged updater absence", () => {
+  it("has no updater environment module, timer, or release-feed client", () => {
+    // Given every packaged startup source that can schedule side effects
+    const updaterEnvironmentModule = join(packagedRoot, "src", "updater-env.ts");
+    const startupSource = ["config.ts", "headless.ts", "index.ts", "launch.ts", "sidecars.ts"]
+      .map((fileName) => readFileSync(join(packagedRoot, "src", fileName), "utf8"))
+      .join("\n");
 
-describe("resolvePackagedUpdaterEnv updater disable (fork never auto-updates)", () => {
-  it("disables the updater for a portable run when OD_UPDATE_ENABLED is unset", () => {
-    const overrides = resolvePackagedUpdaterEnv({
-      updateMetadataUrl: METADATA_URL,
-      portable: true,
-      env: {},
+    // When updater-owned environment, timer, and network tokens are selected
+    const retainedTokens = REMOVED_RUNTIME_TOKENS.filter((token) => startupSource.includes(token));
+
+    // Then the packaged runtime cannot activate an updater
+    expect({
+      retainedTokens,
+      updaterEnvironmentModuleExists: existsSync(updaterEnvironmentModule),
+    }).toEqual({
+      retainedTokens: [],
+      updaterEnvironmentModuleExists: false,
     });
-
-    expect(overrides[UPDATE_ENABLED_ENV]).toBe("0");
-  });
-
-  it("leaves an explicit OD_UPDATE_ENABLED untouched in a portable run", () => {
-    const overrides = resolvePackagedUpdaterEnv({
-      updateMetadataUrl: METADATA_URL,
-      portable: true,
-      env: { [UPDATE_ENABLED_ENV]: "1" },
-    });
-
-    expect(overrides).not.toHaveProperty(UPDATE_ENABLED_ENV);
-  });
-
-  it("disables the updater for a non-portable run too (regression: win-unpacked pulled upstream 0.10.1)", () => {
-    const overrides = resolvePackagedUpdaterEnv({
-      updateMetadataUrl: METADATA_URL,
-      portable: false,
-      env: {},
-    });
-
-    expect(overrides[UPDATE_ENABLED_ENV]).toBe("0");
-  });
-
-  it("leaves an explicit OD_UPDATE_ENABLED untouched in a non-portable run", () => {
-    const overrides = resolvePackagedUpdaterEnv({
-      updateMetadataUrl: METADATA_URL,
-      portable: false,
-      env: { [UPDATE_ENABLED_ENV]: "1" },
-    });
-
-    expect(overrides).not.toHaveProperty(UPDATE_ENABLED_ENV);
-  });
-
-  it("still applies the baked metadata URL when unset, regardless of portable mode", () => {
-    const overrides = resolvePackagedUpdaterEnv({
-      updateMetadataUrl: METADATA_URL,
-      portable: true,
-      env: {},
-    });
-
-    expect(overrides[UPDATE_METADATA_URL_ENV]).toBe(METADATA_URL);
-  });
-
-  it("never overwrites an explicit metadata URL", () => {
-    const overrides = resolvePackagedUpdaterEnv({
-      updateMetadataUrl: METADATA_URL,
-      portable: false,
-      env: { [UPDATE_METADATA_URL_ENV]: "https://example.test/custom.json" },
-    });
-
-    expect(overrides).not.toHaveProperty(UPDATE_METADATA_URL_ENV);
-  });
-
-  it("emits no metadata override when the baked URL is absent", () => {
-    const overrides = resolvePackagedUpdaterEnv({
-      updateMetadataUrl: null,
-      portable: true,
-      env: {},
-    });
-
-    expect(overrides).not.toHaveProperty(UPDATE_METADATA_URL_ENV);
-    // ...but the portable gate still fires independently of the metadata URL.
-    expect(overrides[UPDATE_ENABLED_ENV]).toBe("0");
   });
 });

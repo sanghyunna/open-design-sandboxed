@@ -9,7 +9,7 @@ triggers:
   - "Pictures and Text"
   - "instagram carousel"
   - "Grow grass"
-od:
+readable:
   mode: deck
   scenario: marketing
   featured: 24

@@ -1,6 +1,5 @@
 import path from 'node:path';
-
-const MANIFEST_VERSION = 1;
+import { ARTIFACT_MANIFEST_SCHEMA } from '@readable-studio/contracts';
 const MAX_TITLE_LENGTH = 200;
 const MAX_ENTRY_LENGTH = 260;
 const MAX_SOURCE_SKILL_ID_LENGTH = 128;
@@ -91,6 +90,12 @@ export function validateArtifactManifestInput(
   if (manifest == null) return { ok: true, value: null };
   if (!isPlainObject(manifest)) {
     return { ok: false, error: 'artifactManifest must be an object' };
+  }
+  if (manifest.schema !== ARTIFACT_MANIFEST_SCHEMA) {
+    return {
+      ok: false,
+      error: `artifactManifest.schema must be ${ARTIFACT_MANIFEST_SCHEMA}`,
+    };
   }
 
   const kindErr = validateBoundedString(manifest.kind, 'artifactManifest.kind', 64);
@@ -221,7 +226,7 @@ export function sanitizeManifest(
 ): JsonRecord {
   const now = new Date().toISOString();
   return {
-    version: MANIFEST_VERSION,
+    schema: ARTIFACT_MANIFEST_SCHEMA,
     kind: manifest.kind,
     title: manifest.title || entry,
     entry,
@@ -251,7 +256,7 @@ export function sanitizeManifest(
 export function parsePersistedManifest(raw: string, fallbackEntry: string): JsonRecord | null {
   try {
     const parsed = JSON.parse(raw);
-    if (!parsed || parsed.version !== MANIFEST_VERSION) return null;
+    if (!parsed || parsed.schema !== ARTIFACT_MANIFEST_SCHEMA) return null;
     const entry = typeof parsed.entry === 'string' && parsed.entry ? parsed.entry : fallbackEntry;
     const result = validateArtifactManifestInput(parsed, entry, { preserveUpdatedAt: true });
     return result.ok ? result.value : null;
@@ -269,7 +274,7 @@ export function inferLegacyManifest(entry: string): JsonRecord | null {
   const isDeck = ext === '.html' && (lower.includes('deck') || lower.includes('slides') || lower.includes('pitch'));
   if (ext === '.html' || ext === '.htm') {
     return {
-      version: MANIFEST_VERSION,
+      schema: ARTIFACT_MANIFEST_SCHEMA,
       kind: isDeck ? 'deck' : 'html',
       title: entry,
       entry,
@@ -282,7 +287,7 @@ export function inferLegacyManifest(entry: string): JsonRecord | null {
 
   if (ext === '.md') {
     return {
-      version: MANIFEST_VERSION,
+      schema: ARTIFACT_MANIFEST_SCHEMA,
       kind: 'markdown-document',
       title: entry,
       entry,
@@ -294,7 +299,7 @@ export function inferLegacyManifest(entry: string): JsonRecord | null {
   }
   if (ext === '.svg') {
     return {
-      version: MANIFEST_VERSION,
+      schema: ARTIFACT_MANIFEST_SCHEMA,
       kind: 'svg',
       title: entry,
       entry,

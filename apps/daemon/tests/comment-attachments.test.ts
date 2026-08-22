@@ -13,6 +13,7 @@ import {
   listMessages,
   listPreviewComments,
   openDatabase,
+  READABLE_STUDIO_SQLITE_APPLICATION_ID,
   updatePreviewCommentStatus,
   upsertMessage,
   upsertPreviewComment,
@@ -41,7 +42,7 @@ afterEach(() => {
 
 describe('preview comment persistence', () => {
   it('keeps critique migration wired while adding pod columns on a fresh database', () => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'od-comments-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'readable-comments-'));
     const db = openDatabase(tempDir);
 
     const previewColumns = db
@@ -181,10 +182,11 @@ describe('preview comment persistence', () => {
   });
 
   it('migrates legacy preview comments into a slide-aware conflict key', () => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'od-comments-'));
-    const odDir = path.join(tempDir, '.od');
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'readable-comments-'));
+    const odDir = path.join(tempDir, '.readable-studio');
     fs.mkdirSync(odDir, { recursive: true });
     const legacyDb = new Database(path.join(odDir, 'app.sqlite'));
+    legacyDb.pragma(`application_id = ${READABLE_STUDIO_SQLITE_APPLICATION_ID}`);
     legacyDb.exec(`
       CREATE TABLE projects (
         id TEXT PRIMARY KEY,
@@ -254,11 +256,11 @@ describe('preview comment persistence', () => {
       'conversation-1',
       'index.html',
       'hero-title',
-      '[data-od-id="hero-title"]',
+      '[data-readable-id="hero-title"]',
       'h1.hero-title',
       'Legacy slide one',
       JSON.stringify({ x: 10, y: 20, width: 300, height: 80 }),
-      '<h1 data-od-id="hero-title">',
+      '<h1 data-readable-id="hero-title">',
       'element',
       0,
       'Legacy note',
@@ -449,7 +451,7 @@ describe('preview comment agent payload', () => {
     expect(normalized[0]?.htmlHint.length).toBeLessThanOrEqual(180);
     expect(hint).toContain('<attached-preview-comments>');
     expect(hint).toContain('file: index.html');
-    expect(hint).toContain('selector: [data-od-id="hero-title"]');
+    expect(hint).toContain('selector: [data-readable-id="hero-title"]');
     expect(hint).toContain('comment: Make the headline shorter');
     // The hard-scope sentence IS the behavior change. Assert its key phrases
     // so a future edit that softens or drops the directive lights the suite
@@ -492,7 +494,7 @@ describe('preview comment agent payload', () => {
     const hint = renderCommentAttachmentHint(normalized);
 
     expect(normalized[0]).toMatchObject({ comment: '', commentContext: 'query' });
-    expect(hint).toContain('selector: [data-od-id="hero-title"]');
+    expect(hint).toContain('selector: [data-readable-id="hero-title"]');
     expect(hint).not.toContain('comment:');
   });
 
@@ -502,24 +504,24 @@ describe('preview comment agent payload', () => {
         id: 'pod-1',
         selectionKind: 'pod',
         memberCount: 99,
-        selector: '[data-od-id="hero"], [data-od-id="chart"]',
+        selector: '[data-readable-id="hero"], [data-readable-id="chart"]',
         label: 'Hero and chart',
         podMembers: [
           {
             elementId: 'hero',
-            selector: '[data-od-id="hero"]',
+            selector: '[data-readable-id="hero"]',
             label: 'section.hero',
             text: 'Hero title',
             position: { x: 10, y: 20, width: 200, height: 100 },
-            htmlHint: '<section data-od-id="hero">',
+            htmlHint: '<section data-readable-id="hero">',
           },
           {
             elementId: 'chart',
-            selector: '[data-od-id="chart"]',
+            selector: '[data-readable-id="chart"]',
             label: 'section.chart',
             text: 'Chart value',
             position: { x: 120, y: 80, width: 190, height: 120 },
-            htmlHint: '<section data-od-id="chart">',
+            htmlHint: '<section data-readable-id="chart">',
           },
         ],
       }),
@@ -530,7 +532,7 @@ describe('preview comment agent payload', () => {
     expect(hint).toContain('targetKind: pod');
     expect(hint).toContain('memberCount: 2');
     expect(normalized[0]?.memberCount).toBe(2);
-    expect(hint).toContain('member.1: hero | section.hero | [data-od-id="hero"]');
+    expect(hint).toContain('member.1: hero | section.hero | [data-readable-id="hero"]');
   });
 
   it('normalizes visual annotation attachments without a selector', () => {
@@ -566,7 +568,7 @@ describe('preview comment agent payload', () => {
 });
 
 function seededDb() {
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'od-comments-'));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'readable-comments-'));
   const db = openDatabase(tempDir);
   insertProject(db, {
     id: 'project-1',
@@ -588,11 +590,11 @@ function target(patch: Record<string, unknown>) {
   return {
     filePath: 'index.html',
     elementId: 'hero-title',
-    selector: '[data-od-id="hero-title"]',
+    selector: '[data-readable-id="hero-title"]',
     label: 'h1.hero-title',
     text: 'Current title',
     position: { x: 10, y: 20, width: 300, height: 80 },
-    htmlHint: '<h1 data-od-id="hero-title">',
+    htmlHint: '<h1 data-readable-id="hero-title">',
     ...patch,
   };
 }
@@ -603,12 +605,12 @@ function commentAttachment(patch: Record<string, unknown>) {
     order: 1,
     filePath: 'index.html',
     elementId: 'hero-title',
-    selector: '[data-od-id="hero-title"]',
+    selector: '[data-readable-id="hero-title"]',
     label: 'h1.hero-title',
     comment: 'Comment',
     currentText: 'Current title',
     pagePosition: { x: 10, y: 20, width: 300, height: 80 },
-    htmlHint: '<h1 data-od-id="hero-title">',
+    htmlHint: '<h1 data-readable-id="hero-title">',
     ...patch,
   };
 }

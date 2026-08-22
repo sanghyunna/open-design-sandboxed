@@ -6,7 +6,7 @@ import {
   type AgentRollbackRequestEvent,
   type ChatSessionMode,
   type PluginManifest,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { createProjectArtifactFile } from './artifact-create.js';
 import { ArtifactPublicationBlockedError } from './artifact-publication-guard.js';
 import { ArtifactRegressionError } from './artifact-stub-guard.js';
@@ -93,10 +93,10 @@ function projectDetailResolvedDir(
   });
 }
 
-const URL_PREVIEW_SCROLL_BRIDGE = `<script data-od-url-scroll-bridge>
+const URL_PREVIEW_SCROLL_BRIDGE = `<script data-readable-url-scroll-bridge>
 (function(){
-  if (window.__odUrlScrollBridge) return;
-  window.__odUrlScrollBridge = true;
+  if (window.__readableStudioUrlScrollBridge) return;
+  window.__readableStudioUrlScrollBridge = true;
   var pending = false;
   function scrollElement(){
     return document.querySelector('.design-canvas') || document.scrollingElement || document.documentElement;
@@ -110,7 +110,7 @@ const URL_PREVIEW_SCROLL_BRIDGE = `<script data-od-url-scroll-bridge>
     if (!el) return;
     var frame = document.scrollingElement || document.documentElement;
     window.parent.postMessage({
-      type: 'od:preview-scroll',
+      type: 'readable-studio:preview-scroll',
       canvasLeft: Math.round(el.scrollLeft || 0),
       canvasTop: Math.round(el.scrollTop || 0),
       frameLeft: Math.round(frame.scrollLeft || 0),
@@ -145,18 +145,18 @@ const URL_PREVIEW_SCROLL_BRIDGE = `<script data-od-url-scroll-bridge>
     }
   }
   function requestRestore(){
-    window.parent.postMessage({ type: 'od:preview-scroll-request' }, '*');
+    window.parent.postMessage({ type: 'readable-studio:preview-scroll-request' }, '*');
   }
   window.addEventListener('message', function(ev){
     var data = ev && ev.data;
     if (!data || !data.type) return;
-    if (data.type === 'od:preview-scroll-restore') {
+    if (data.type === 'readable-studio:preview-scroll-restore') {
       scrollTo(document.scrollingElement || document.documentElement, data.frameLeft, data.frameTop);
       scrollTo(scrollElement(), data.canvasLeft, data.canvasTop);
       setTimeout(post, 0);
       return;
     }
-    if (data.type === 'od:preview-scroll-by') {
+    if (data.type === 'readable-studio:preview-scroll-by') {
       scrollBy(scrollElement(), data.left, data.top);
       schedule();
     }
@@ -178,10 +178,10 @@ const URL_PREVIEW_SCROLL_BRIDGE = `<script data-od-url-scroll-bridge>
 })();
 </script>`;
 
-const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
+const URL_PREVIEW_SELECTION_BRIDGE = `<script data-readable-url-selection-bridge>
 (function(){
-  if (window.__odUrlSelectionBridge) return;
-  window.__odUrlSelectionBridge = true;
+  if (window.__readableStudioUrlSelectionBridge) return;
+  window.__readableStudioUrlSelectionBridge = true;
   var commentEnabled = false;
   var mode = 'picker';
   var hoveredId = null;
@@ -198,20 +198,20 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
     catch (_) { return String(value); }
   }
   function ensureStyle(){
-    if (document.querySelector('style[data-od-url-selection-style]')) return;
+    if (document.querySelector('style[data-readable-url-selection-style]')) return;
     var style = document.createElement('style');
-    style.setAttribute('data-od-url-selection-style', '');
+    style.setAttribute('data-readable-url-selection-style', '');
     style.textContent =
-      'html[data-od-comment-mode] body * { cursor: crosshair !important; }' +
-      'html[data-od-comment-mode][data-od-comment-mode-kind="pod"] body * { cursor: cell !important; }' +
-      'html[data-od-comment-mode] body iframe,html[data-od-comment-mode] body object,html[data-od-comment-mode] body embed { pointer-events: none !important; }';
+      'html[data-readable-comment-mode] body * { cursor: crosshair !important; }' +
+      'html[data-readable-comment-mode][data-readable-comment-mode-kind="pod"] body * { cursor: cell !important; }' +
+      'html[data-readable-comment-mode] body iframe,html[data-readable-comment-mode] body object,html[data-readable-comment-mode] body embed { pointer-events: none !important; }';
     (document.head || document.documentElement).appendChild(style);
   }
   function active(){ return commentEnabled; }
   function annotatedSelectorFor(el){
-    var id = el.getAttribute('data-od-id') || el.getAttribute('data-screen-label');
+    var id = el.getAttribute('data-readable-id') || el.getAttribute('data-screen-label');
     if (!id) return null;
-    return el.hasAttribute('data-od-id') ? '[data-od-id="' + esc(id) + '"]' : '[data-screen-label="' + esc(id) + '"]';
+    return el.hasAttribute('data-readable-id') ? '[data-readable-id="' + esc(id) + '"]' : '[data-screen-label="' + esc(id) + '"]';
   }
   function domSelectorFor(el){
     if (!el || !el.tagName || el === document.documentElement || el === document.body) return null;
@@ -288,7 +288,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
     } catch (_) { return null; }
   }
   function targetFrom(el, allowDomFallback, clickedEl, clickPoint){
-    var id = el.getAttribute('data-od-id') || el.getAttribute('data-screen-label');
+    var id = el.getAttribute('data-readable-id') || el.getAttribute('data-screen-label');
     if (allowDomFallback && id && generatedRootAnnotation(el, id)) return null;
     var selector = annotatedSelectorFor(el);
     if (!id && allowDomFallback && meaningfulDomFallbackTarget(el)) {
@@ -305,7 +305,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
       html = match ? match[0] : '';
     } catch (_) {}
     var payload = {
-      type: 'od:comment-target',
+      type: 'readable-studio:comment-target',
       elementId: id,
       selector: selector,
       label: tag + cls,
@@ -327,7 +327,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
   }
   function allTargets(){
     var includeDomFallback = commentEnabled && mode === 'picker';
-    var nodes = includeDomFallback ? document.querySelectorAll('body *') : document.querySelectorAll('[data-od-id], [data-screen-label]');
+    var nodes = includeDomFallback ? document.querySelectorAll('body *') : document.querySelectorAll('[data-readable-id], [data-screen-label]');
     var items = [];
     var seen = Object.create(null);
     for (var i = 0; i < nodes.length; i++) {
@@ -341,7 +341,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
   }
   function postTargets(){
     if (!active()) return;
-    window.parent.postMessage({ type: 'od:comment-targets', targets: allTargets() }, '*');
+    window.parent.postMessage({ type: 'readable-studio:comment-targets', targets: allTargets() }, '*');
   }
   function schedulePostTargets(){
     if (!active() || postTargetsPending) return;
@@ -363,7 +363,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
     if (!el && elementId) {
       try {
         var id = String(elementId).replace(/"/g, '\\\\"');
-        el = document.querySelector('[data-od-id="' + id + '"], [data-screen-label="' + id + '"]');
+        el = document.querySelector('[data-readable-id="' + id + '"], [data-screen-label="' + id + '"]');
       } catch (_) { el = null; }
     }
     return el;
@@ -373,7 +373,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
     var el = findCommentTargetByIdentity(activeCommentElementId, activeCommentSelector);
     if (!el) return;
     var payload = targetFrom(el, commentEnabled && mode === 'picker');
-    if (payload) window.parent.postMessage(Object.assign({}, payload, { type: 'od:comment-active-target-update' }), '*');
+    if (payload) window.parent.postMessage(Object.assign({}, payload, { type: 'readable-studio:comment-active-target-update' }), '*');
   }
   function schedulePostActiveCommentTarget(){
     if (!active() || !activeCommentElementId || activeTargetPending) return;
@@ -416,8 +416,8 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
       var el = clicked;
       while (el && el !== document.documentElement) {
         if (allowDomFallback && meaningfulDomFallbackTarget(el)) return { target: el, clicked: clicked };
-        if (el.getAttribute && (el.hasAttribute('data-od-id') || el.hasAttribute('data-screen-label'))) {
-          var id = el.getAttribute('data-od-id') || el.getAttribute('data-screen-label');
+        if (el.getAttribute && (el.hasAttribute('data-readable-id') || el.hasAttribute('data-screen-label'))) {
+          var id = el.getAttribute('data-readable-id') || el.getAttribute('data-screen-label');
           if (allowDomFallback && generatedRootAnnotation(el, id)) {
             el = el.parentElement;
             continue;
@@ -437,21 +437,21 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
     if (strokeFrame !== null) return;
     strokeFrame = requestAnimationFrame(function(){
       strokeFrame = null;
-      postStroke('od:pod-stroke');
+      postStroke('readable-studio:pod-stroke');
     });
   }
   window.addEventListener('message', function(ev){
     var data = ev && ev.data;
     if (!data || !data.type) return;
-    if (data.type === 'od:url-selection-bridge-probe') {
-      window.parent.postMessage({ type: 'od:url-selection-bridge-ready' }, '*');
+    if (data.type === 'readable-studio:url-selection-bridge-probe') {
+      window.parent.postMessage({ type: 'readable-studio:url-selection-bridge-ready' }, '*');
       return;
     }
-    if (data.type === 'od:comment-mode') {
+    if (data.type === 'readable-studio:comment-mode') {
       commentEnabled = !!data.enabled;
       mode = data.mode === 'pod' ? 'pod' : 'picker';
-      document.documentElement.toggleAttribute('data-od-comment-mode', commentEnabled);
-      document.documentElement.setAttribute('data-od-comment-mode-kind', mode);
+      document.documentElement.toggleAttribute('data-readable-comment-mode', commentEnabled);
+      document.documentElement.setAttribute('data-readable-comment-mode-kind', mode);
       if (commentEnabled) setTimeout(postTargets, 0);
       else {
         hoveredId = null;
@@ -461,11 +461,11 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
       if (!commentEnabled || mode !== 'pod') {
         drawing = false;
         stroke = [];
-        try { window.parent.postMessage({ type: 'od:pod-clear' }, '*'); } catch (_) {}
+        try { window.parent.postMessage({ type: 'readable-studio:pod-clear' }, '*'); } catch (_) {}
       }
       return;
     }
-    if (data.type === 'od:comment-active-target') {
+    if (data.type === 'readable-studio:comment-active-target') {
       activeCommentElementId = data.elementId ? String(data.elementId) : null;
       activeCommentSelector = data.selector ? String(data.selector) : null;
       schedulePostActiveCommentTarget();
@@ -478,7 +478,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
     var payload = targetFrom(result.target, true);
     if (!payload || payload.elementId === hoveredId) return;
     hoveredId = payload.elementId;
-    window.parent.postMessage(Object.assign({}, payload, { type: 'od:comment-hover' }), '*');
+    window.parent.postMessage(Object.assign({}, payload, { type: 'readable-studio:comment-hover' }), '*');
   }, true);
   document.addEventListener('mouseout', function(ev){
     if (!commentEnabled || mode !== 'picker') return;
@@ -490,7 +490,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
       next = next.parentElement;
     }
     hoveredId = null;
-    window.parent.postMessage({ type: 'od:comment-leave' }, '*');
+    window.parent.postMessage({ type: 'readable-studio:comment-leave' }, '*');
   }, true);
   document.addEventListener('click', function(ev){
     if (!commentEnabled || mode !== 'picker') return;
@@ -520,9 +520,9 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
     var pinY = Math.round(ev.clientY);
     var pinId = 'pin-' + Date.now().toString(36) + '-' + Math.floor(Math.random() * 1e6).toString(36);
     window.parent.postMessage({
-      type: 'od:comment-target',
+      type: 'readable-studio:comment-target',
       elementId: pinId,
-      selector: '[data-od-pin="' + pinId + '"]',
+      selector: '[data-readable-pin="' + pinId + '"]',
       label: 'pin',
       text: '',
       position: { x: pinX - 12, y: pinY - 12, width: 24, height: 24 },
@@ -538,7 +538,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
     stroke = [relativePoint(ev)];
     ev.preventDefault();
     ev.stopPropagation();
-    postStroke('od:pod-stroke');
+    postStroke('readable-studio:pod-stroke');
   }, true);
   document.addEventListener('pointermove', function(ev){
     if (!drawing || mode !== 'pod') return;
@@ -558,7 +558,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
       ev.preventDefault();
       ev.stopPropagation();
     }
-    postStroke('od:pod-select');
+    postStroke('readable-studio:preadable-select');
   }
   document.addEventListener('pointerup', finishStroke, true);
   document.addEventListener('pointercancel', finishStroke, true);
@@ -570,14 +570,14 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
   var mo = new MutationObserver(schedulePostTargets);
   mo.observe(document.documentElement, { subtree: true, childList: true });
   ensureStyle();
-  window.parent.postMessage({ type: 'od:url-selection-bridge-ready' }, '*');
+  window.parent.postMessage({ type: 'readable-studio:url-selection-bridge-ready' }, '*');
 })();
 </script>`;
 
-const URL_PREVIEW_SNAPSHOT_BRIDGE = `<script data-od-url-snapshot-bridge>
+const URL_PREVIEW_SNAPSHOT_BRIDGE = `<script data-readable-url-snapshot-bridge>
 (function(){
-  if (window.__odUrlSnapshotBridge) return;
-  window.__odUrlSnapshotBridge = true;
+  if (window.__readableStudioUrlSnapshotBridge) return;
+  window.__readableStudioUrlSnapshotBridge = true;
   var SNAPSHOT_STYLE_PROPS = [
     'display','position','box-sizing','width','height','min-width','max-width','min-height','max-height',
     'margin','margin-top','margin-right','margin-bottom','margin-left',
@@ -731,22 +731,22 @@ const URL_PREVIEW_SNAPSHOT_BRIDGE = `<script data-od-url-snapshot-bridge>
         ctx.fillRect(0, 0, w, h);
         ctx.drawImage(img, 0, 0, w, h);
         if (canvasLooksBlank(ctx, canvas.width, canvas.height)) {
-          window.parent.postMessage({ type: 'od:snapshot:result', id: id, error: 'empty-render' }, '*');
+          window.parent.postMessage({ type: 'readable-studio:snapshot:result', id: id, error: 'empty-render' }, '*');
           return;
         }
-        window.parent.postMessage({ type: 'od:snapshot:result', id: id, dataUrl: canvas.toDataURL('image/png'), w: canvas.width, h: canvas.height }, '*');
+        window.parent.postMessage({ type: 'readable-studio:snapshot:result', id: id, dataUrl: canvas.toDataURL('image/png'), w: canvas.width, h: canvas.height }, '*');
       } catch (err) {
-        window.parent.postMessage({ type: 'od:snapshot:result', id: id, error: String(err && err.message || err) }, '*');
+        window.parent.postMessage({ type: 'readable-studio:snapshot:result', id: id, error: String(err && err.message || err) }, '*');
       }
     };
     img.onerror = function(){
-      window.parent.postMessage({ type: 'od:snapshot:result', id: id, error: 'snapshot image failed' }, '*');
+      window.parent.postMessage({ type: 'readable-studio:snapshot:result', id: id, error: 'snapshot image failed' }, '*');
     };
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   }
   window.addEventListener('message', function(ev){
     var data = ev && ev.data;
-    if (!data || data.type !== 'od:snapshot' || !data.id) return;
+    if (!data || data.type !== 'readable-studio:snapshot' || !data.id) return;
     waitForImages().then(function(){ renderSnapshot(String(data.id)); });
   });
 })();
@@ -781,12 +781,12 @@ function injectBeforeBodyClose(html: string, marker: string, injection: string):
 
 function injectUrlPreviewBridge(html: string, bridge: 'scroll' | 'selection' | 'snapshot'): string {
   if (bridge === 'scroll') {
-    return injectBeforeBodyClose(html, 'data-od-url-scroll-bridge', URL_PREVIEW_SCROLL_BRIDGE);
+    return injectBeforeBodyClose(html, 'data-readable-url-scroll-bridge', URL_PREVIEW_SCROLL_BRIDGE);
   }
   if (bridge === 'selection') {
-    return injectBeforeBodyClose(html, 'data-od-url-selection-bridge', URL_PREVIEW_SELECTION_BRIDGE);
+    return injectBeforeBodyClose(html, 'data-readable-url-selection-bridge', URL_PREVIEW_SELECTION_BRIDGE);
   }
-  return injectBeforeBodyClose(html, 'data-od-url-snapshot-bridge', URL_PREVIEW_SNAPSHOT_BRIDGE);
+  return injectBeforeBodyClose(html, 'data-readable-url-snapshot-bridge', URL_PREVIEW_SNAPSHOT_BRIDGE);
 }
 
 function normalizeChatSessionMode(value: unknown): ChatSessionMode {
@@ -840,17 +840,17 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
     type ScenarioEntry = {
       id: string;
       taskKind: 'new-generation' | 'figma-migration' | 'code-migration' | 'tune-collab';
-      pipeline: NonNullable<NonNullable<PluginManifest['od']>['pipeline']>;
+      pipeline: NonNullable<NonNullable<PluginManifest['readable']>['pipeline']>;
     };
     const byTaskKind = new Map<ScenarioEntry['taskKind'], ScenarioEntry>();
     try {
       const all = listInstalledPlugins(db);
       for (const row of all) {
         if (row.sourceKind !== 'bundled') continue;
-        const od = row.manifest.od;
-        if (!od || od.kind !== 'scenario') continue;
-        if (!od.pipeline || !Array.isArray(od.pipeline.stages) || od.pipeline.stages.length === 0) continue;
-        const taskKind = (od.taskKind ?? 'new-generation') as ScenarioEntry['taskKind'];
+        const readable = row.manifest.readable;
+        if (!readable || readable.kind !== 'scenario') continue;
+        if (!readable.pipeline || !Array.isArray(readable.pipeline.stages) || readable.pipeline.stages.length === 0) continue;
+        const taskKind = (readable.taskKind ?? 'new-generation') as ScenarioEntry['taskKind'];
         if (
           taskKind !== 'new-generation' &&
           taskKind !== 'figma-migration' &&
@@ -859,9 +859,9 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
         ) {
           continue;
         }
-        const entry: ScenarioEntry = { id: row.id, taskKind, pipeline: od.pipeline };
+        const entry: ScenarioEntry = { id: row.id, taskKind, pipeline: readable.pipeline };
         const existing = byTaskKind.get(taskKind);
-        if (!existing || entry.id === `od-${taskKind}`) {
+        if (!existing || entry.id === `readable-${taskKind}`) {
           byTaskKind.set(taskKind, entry);
         }
       }
@@ -961,7 +961,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
   app.get('/api/project-locations', async (_req, res) => {
     try {
       const locations = await configuredProjectLocations();
-      /** @type {import('@open-design/contracts').ProjectLocationsResponse} */
+      /** @type {import('@readable-studio/contracts').ProjectLocationsResponse} */
       const body = { locations };
       res.json(body);
     } catch (err: any) {
@@ -992,7 +992,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
       const config = await writeAppConfig(ctx.paths.RUNTIME_DATA_DIR, { projectLocations: prepared });
       const locations = allProjectLocations(PROJECTS_DIR, config.projectLocations);
       const removedProjectIds = unregisterProjectsForRemovedLocations(previousLocations, config.projectLocations ?? []);
-      /** @type {import('@open-design/contracts').ProjectLocationsResponse} */
+      /** @type {import('@readable-studio/contracts').ProjectLocationsResponse} */
       const body = { locations, removedProjectIds };
       res.json(body);
     } catch (err: any) {
@@ -1053,7 +1053,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
           }
         }
       }
-      /** @type {import('@open-design/contracts').ScanProjectLocationsResponse} */
+      /** @type {import('@readable-studio/contracts').ScanProjectLocationsResponse} */
       const body = { scanned, imported, existing, skipped };
       res.json(body);
     } catch (err: any) {
@@ -1082,7 +1082,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
           }
         }
       }
-      /** @type {import('@open-design/contracts').ProjectsResponse} */
+      /** @type {import('@readable-studio/contracts').ProjectsResponse} */
       const body = {
         projects: listProjects(db)
           .filter((project: any) => projectVisibleForLocations(project, locations))
@@ -1335,7 +1335,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
           }
         }
       }
-      /** @type {import('@open-design/contracts').CreateProjectResponse} */
+      /** @type {import('@readable-studio/contracts').CreateProjectResponse} */
       const body = {
         project: resolvedSnapshot?.ok ? getProject(db, id) ?? project : project,
         conversationId: cid,
@@ -1355,7 +1355,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
     if (!project || !projectVisibleForLocations(project, locations))
       return sendApiError(res, 404, 'PROJECT_NOT_FOUND', 'not found');
     const resolvedDir = projectDetailResolvedDir(PROJECTS_DIR, project, resolveProjectDir);
-    /** @type {import('@open-design/contracts').ProjectResponse} */
+    /** @type {import('@readable-studio/contracts').ProjectResponse} */
     const body = { project, resolvedDir };
     res.json(body);
   });
@@ -1371,7 +1371,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
       //      updateProject() replaces metadata wholesale, so without
       //      preservation the existing baseDir gets wiped and the project
       //      detaches from the user's folder — subsequent reads/writes
-      //      silently fall back to .od/projects/<id>.
+      //      silently fall back to .readable-studio/projects/<id>.
       // For case 2 we re-stamp the immutable fields from the existing
       // project record onto the incoming patch so the user can keep
       // patching other metadata without ever losing their import root.
@@ -1447,7 +1447,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
       const project = updateProject(db, req.params.id, patch);
       if (!project)
         return sendApiError(res, 404, 'PROJECT_NOT_FOUND', 'not found');
-      /** @type {import('@open-design/contracts').ProjectResponse} */
+      /** @type {import('@readable-studio/contracts').ProjectResponse} */
       const body = { project };
       res.json(body);
     } catch (err: any) {
@@ -1459,7 +1459,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
     try {
       dbDeleteProject(db, req.params.id);
       await removeProjectDir(PROJECTS_DIR, req.params.id).catch(() => {});
-      /** @type {import('@open-design/contracts').OkResponse} */
+      /** @type {import('@readable-studio/contracts').OkResponse} */
       const body = { ok: true };
       res.json(body);
     } catch (err: any) {
@@ -2229,7 +2229,7 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
     );
   }
 
-  // Project files. Each project owns a flat folder under .od/projects/<id>/
+  // Project files. Each project owns a flat folder under .readable-studio/projects/<id>/
   // containing every file the user has uploaded, pasted, sketched, or that
   // the agent has generated. Names are sanitized; paths are confined to the
   // project's own folder (see apps/daemon/src/projects.ts).
@@ -2241,7 +2241,7 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
         since: Number.isFinite(since) ? since : undefined,
         metadata: project?.metadata,
       });
-      /** @type {import('@open-design/contracts').ProjectFilesResponse} */
+      /** @type {import('@readable-studio/contracts').ProjectFilesResponse} */
       const body = { files };
       res.json(body);
     } catch (err: any) {
@@ -2279,7 +2279,7 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
       const folders = await listProjectFolders(PROJECTS_DIR, req.params.id, {
         metadata: project.metadata,
       });
-      /** @type {import('@open-design/contracts').ProjectFoldersResponse} */
+      /** @type {import('@readable-studio/contracts').ProjectFoldersResponse} */
       const body = { folders };
       res.json(body);
     } catch (err: any) {
@@ -2303,7 +2303,7 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
         name,
         project.metadata,
       );
-      /** @type {import('@open-design/contracts').ProjectFolderResponse} */
+      /** @type {import('@readable-studio/contracts').ProjectFolderResponse} */
       const body = { folder };
       res.json(body);
     } catch (err: any) {
@@ -2327,7 +2327,7 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
         folderPath,
         project.metadata,
       );
-      /** @type {import('@open-design/contracts').DeleteProjectFolderResponse} */
+      /** @type {import('@readable-studio/contracts').DeleteProjectFolderResponse} */
       const body = { ok: true };
       res.json(body);
     } catch (err: any) {
@@ -2366,7 +2366,7 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
         project.metadata,
       );
       const scope = projectPreviewScopes.mint(project.id);
-      /** @type {import('@open-design/contracts').ProjectPreviewUrlResponse} */
+      /** @type {import('@readable-studio/contracts').ProjectPreviewUrlResponse} */
       const body = {
         url: `/api/projects/${encodeURIComponent(project.id)}/preview/${scope}/${encodeProjectPathForUrl(meta.name)}`,
         file: meta.name,
@@ -2518,7 +2518,7 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
       const rawSplat = String(params[1] ?? '');
       const project = getProject(db, projectId);
       await deleteProjectFile(PROJECTS_DIR, projectId, rawSplat, project?.metadata);
-      /** @type {import('@open-design/contracts').DeleteProjectFileResponse} */
+      /** @type {import('@readable-studio/contracts').DeleteProjectFileResponse} */
       const body = { ok: true };
       res.json(body);
     } catch (err: any) {
@@ -2619,7 +2619,7 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
             uploadProject?.metadata,
           );
           if (req.file.path) fs.promises.unlink(req.file.path).catch(() => {});
-          /** @type {import('@open-design/contracts').ProjectFileResponse} */
+          /** @type {import('@readable-studio/contracts').ProjectFileResponse} */
           const body = { file: meta };
           return res.json(body);
         }
@@ -2676,7 +2676,7 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
               },
               uploadProject?.metadata,
             );
-        /** @type {import('@open-design/contracts').ProjectFileResponse} */
+        /** @type {import('@readable-studio/contracts').ProjectFileResponse} */
         const body = { file: meta };
         res.json(body);
       } catch (err: any) {
@@ -2731,7 +2731,7 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
         to,
         project?.metadata,
       );
-      /** @type {import('@open-design/contracts').RenameProjectFileResponse} */
+      /** @type {import('@readable-studio/contracts').RenameProjectFileResponse} */
       const body = result;
       res.json(body);
     } catch (err: any) {
@@ -2750,7 +2750,7 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
     try {
       const delProject = getProject(db, req.params.id);
       await deleteProjectFile(PROJECTS_DIR, req.params.id, req.params.name, delProject?.metadata);
-      /** @type {import('@open-design/contracts').DeleteProjectFileResponse} */
+      /** @type {import('@readable-studio/contracts').DeleteProjectFileResponse} */
       const body = { ok: true };
       res.json(body);
     } catch (err: any) {
@@ -2799,7 +2799,7 @@ export function registerProjectUploadRoutes(app: Express, ctx: RegisterProjectUp
             // skip files that vanished mid-flight
           }
         }
-        /** @type {import('@open-design/contracts').UploadProjectFilesResponse} */
+        /** @type {import('@readable-studio/contracts').UploadProjectFilesResponse} */
         const body = { files: out };
         res.json(body);
       } catch (err: any) {

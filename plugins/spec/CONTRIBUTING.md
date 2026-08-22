@@ -17,8 +17,8 @@ Plugins that follow this spec can live in this repo as examples, or in their own
 Reviewers should check:
 
 - The plugin has a portable `SKILL.md`.
-- `open-design.json` declares `specVersion` and a plugin `version`.
-- `open-design.json` does not duplicate the skill body.
+- `readable-studio.json` declares `specVersion` and a plugin `version`.
+- `readable-studio.json` does not duplicate the skill body.
 - The plugin lane is clear: import, create, export, share, deploy, refine, or extend.
 - The output mode is clear for create plugins: prototype, deck, report/document, connector-backed dashboard, design-system, template, or other.
 - Capabilities are minimal.

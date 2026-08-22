@@ -15,7 +15,7 @@ import { createSmokeSuite } from '@/smoke-suite';
 const PROMPT = 'Create a deterministic smoke artifact';
 const FILE_NAME = 'real-daemon-smoke.html';
 const HEADING = 'Real Daemon Smoke';
-const STORAGE_KEY = 'open-design:config';
+const STORAGE_KEY = 'readable-studio:config';
 
 type ProjectResponse = {
   conversationId: string;
@@ -183,7 +183,7 @@ function assertAssistantMessage(
 
 async function expectWorkspaceReady(page: Page) {
   await waitForLoadingToClear(page);
-  const privacyDialog = page.getByRole('region', { name: 'Help us improve Open Design' });
+  const privacyDialog = page.getByRole('region', { name: 'Help us improve Readable Studio' });
   if (await privacyDialog.isVisible().catch(() => false)) {
     await privacyDialog.getByRole('button', { name: /don't share|not now/i }).click();
     await playwrightExpect(privacyDialog).toHaveCount(0);
@@ -195,7 +195,7 @@ async function expectWorkspaceReady(page: Page) {
 }
 
 async function waitForLoadingToClear(page: Page) {
-  const loading = page.getByText('Loading Open Design…');
+  const loading = page.locator('.readable-loading-shell');
   await loading.waitFor({ state: 'detached', timeout: 10_000 }).catch(() => {});
 }
 

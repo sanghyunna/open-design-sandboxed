@@ -1,6 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
+import { createRuntimeDescriptor } from "@readable-studio/sidecar-proto";
+
 import type { ToolPackConfig } from "../config.js";
 import { readRuntimeAppVersion } from "../versions.js";
 import { pathExists } from "./fs.js";
@@ -24,11 +26,14 @@ function createPackagedConfig(
   return {
     ...(config.amrProfile == null ? {} : { amrProfile: config.amrProfile }),
     appVersion: packagedVersion,
+    arch: "x64",
+    artifact: "portable-zip",
+    descriptor: createRuntimeDescriptor(packagedVersion),
     ...entrypoints,
     namespace: config.namespace,
-    ...(config.updateMetadataUrl == null ? {} : { updateMetadataUrl: config.updateMetadataUrl }),
+    platform: "win32",
+    portable: true,
     webOutputMode: config.webOutputMode,
-    ...(config.portable ? {} : { namespaceBaseRoot: config.roots.runtime.namespaceBaseRoot }),
   };
 }
 

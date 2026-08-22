@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, Dispatch, KeyboardEvent as ReactKeyboardEvent, SetStateAction } from 'react';
-import { Button } from '@open-design/components';
-import { validateBaseUrl } from '@open-design/contracts/api/connectionTest';
+import { Button } from '@readable-studio/components';
+import { validateBaseUrl } from '@readable-studio/contracts/api/connectionTest';
 import {
   agentIdToTracking,
   byokProtocolToTracking,
   executionModeToTracking,
   settingsSectionToTracking,
   themeIdToTracking,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import { useAnalytics } from '../analytics/provider';
 import {
   trackSettingsAppearanceClick,
@@ -88,7 +88,7 @@ import type {
   ProviderModelsResponse,
   SkillSummary,
 } from '../types';
-import type { AgentCatalogItem } from '@open-design/contracts';
+import type { AgentCatalogItem } from '@readable-studio/contracts';
 import { testAgent, testApiProvider } from '../providers/connection-test';
 import { fetchProviderModels } from '../providers/provider-models';
 import {
@@ -533,7 +533,7 @@ function cleanAgentVersionLabel(
 }
 
 function displayAgentName(agent: Pick<AgentInfo, 'id' | 'name'>): string {
-  return agent.id === 'amr' ? 'Open Design AMR' : agent.name;
+  return agent.id === 'amr' ? 'AMR' : agent.name;
 }
 
 const AGENT_CLI_ENV_FIELDS = [
@@ -627,7 +627,7 @@ export function updateAgentCliEnvValue(
 }
 
 const AMR_PROFILE_AGENT_ID = 'amr';
-const AMR_PROFILE_ENV_KEY = 'OPEN_DESIGN_AMR_PROFILE';
+const AMR_PROFILE_ENV_KEY = 'READABLE_AMR_PROFILE';
 
 function sameAgentModelChoice(
   left: AgentModelChoice | undefined,
@@ -4083,10 +4083,10 @@ export function SettingsDialog({
 //
 // Important: every snippet uses absolute paths to the daemon's current
 // Node-compatible runtime and built cli.js, fetched at runtime. macOS
-// and Linux ship a system /usr/bin/od (octal-dump) that shadows any
-// `od` we might add to PATH, and most Open Design users run from
-// source where `od` is not installed globally. The installer panel
-// must NOT reference bare `od`.
+// and Linux ship a system /usr/bin/readable (octal-dump) that shadows any
+// `readable` we might add to PATH, and most Readable Studio users run from
+// source where `readable` is not installed globally. The installer panel
+// must NOT reference bare `readable`.
 type McpClientId =
   | 'claude'
   | 'codex'
@@ -4178,7 +4178,7 @@ function buildCodexEnvToml(info: McpInstallInfo): string {
   if (entries.length === 0) return '';
   return `
 
-[mcp_servers.open-design.env]
+[mcp_servers.readable-studio.env]
 ${entries.map(([key, value]) => `${key} = ${JSON.stringify(value)}`).join('\n')}`;
 }
 
@@ -4190,13 +4190,13 @@ function buildSharedMcpJson(info: McpInstallInfo): string {
     .join('\n');
   return `{
   "mcpServers": {
-    "open-design": ${innerJson}
+    "readable-studio": ${innerJson}
   }
 }`;
 }
 
 // One-click install toggle for Codex: queries the daemon for whether
-// `codex mcp get open-design` succeeds, and POSTs/DELETEs the install
+// `codex mcp get readable-studio` succeeds, and POSTs/DELETEs the install
 // endpoint to call `codex mcp add/remove` on the user's behalf. The
 // copy-snippet path still works for users who prefer to paste manually
 // or whose Codex CLI is not on PATH (button shows a disabled hint in
@@ -4318,7 +4318,7 @@ function IntegrationsSection() {
       buildInstruction: () => t('settings.mcpInstructionCli'),
       buildSnippet: (info) => {
         const inner = JSON.stringify(buildMcpStdioServerConfig(info));
-        return `claude mcp add-json --scope user open-design '${inner}'`;
+        return `claude mcp add-json --scope user readable-studio '${inner}'`;
       },
       buildSnippetLang: () => 'bash',
     },
@@ -4334,7 +4334,7 @@ function IntegrationsSection() {
         );
         return t('settings.mcpInstructionCodex', { path });
       },
-      buildSnippet: (info) => `[mcp_servers.open-design]\ncommand = ${JSON.stringify(info.command)}\nargs = ${JSON.stringify(info.args)}${buildCodexEnvToml(info)}`,
+      buildSnippet: (info) => `[mcp_servers.readable-studio]\ncommand = ${JSON.stringify(info.command)}\nargs = ${JSON.stringify(info.args)}${buildCodexEnvToml(info)}`,
       buildSnippetLang: () => 'toml',
     },
     {
@@ -4350,7 +4350,7 @@ function IntegrationsSection() {
       buildDeeplink: (info) => {
         const inner = buildMcpStdioServerConfig(info);
         const encoded = utf8Btoa(JSON.stringify(inner));
-        return `cursor://anysphere.cursor-deeplink/mcp/install?name=open-design&config=${encoded}`;
+        return `cursor://anysphere.cursor-deeplink/mcp/install?name=readable-studio&config=${encoded}`;
       },
       deeplinkLabel: () => t('settings.mcpDeeplinkInstallCursor'),
     },
@@ -4362,7 +4362,7 @@ function IntegrationsSection() {
         t('settings.mcpInstructionCopilot', {
           shortcut: commandPaletteShortcut(info.platform),
         }),
-      buildSnippet: (info) => `{\n  "servers": {\n    "open-design": {\n      "type": "stdio",\n      "command": ${JSON.stringify(info.command)},\n      "args": ${JSON.stringify(info.args)}${info.env && Object.keys(info.env).length > 0 ? `,\n      "env": ${JSON.stringify(info.env)}` : ''}\n    }\n  }\n}`,
+      buildSnippet: (info) => `{\n  "servers": {\n    "readable-studio": {\n      "type": "stdio",\n      "command": ${JSON.stringify(info.command)},\n      "args": ${JSON.stringify(info.args)}${info.env && Object.keys(info.env).length > 0 ? `,\n      "env": ${JSON.stringify(info.env)}` : ''}\n    }\n  }\n}`,
       buildSnippetLang: () => 'json',
     },
     {
@@ -4381,7 +4381,7 @@ function IntegrationsSection() {
         t('settings.mcpInstructionZed', {
           shortcut: settingsShortcut(info.platform),
         }),
-      buildSnippet: (info) => `{\n  "context_servers": {\n    "open-design": {\n      "source": "custom",\n      "command": ${JSON.stringify(info.command)},\n      "args": ${JSON.stringify(info.args)}${info.env && Object.keys(info.env).length > 0 ? `,\n      "env": ${JSON.stringify(info.env)}` : ''}\n    }\n  }\n}`,
+      buildSnippet: (info) => `{\n  "context_servers": {\n    "readable-studio": {\n      "source": "custom",\n      "command": ${JSON.stringify(info.command)},\n      "args": ${JSON.stringify(info.args)}${info.env && Object.keys(info.env).length > 0 ? `,\n      "env": ${JSON.stringify(info.env)}` : ''}\n    }\n  }\n}`,
       buildSnippetLang: () => 'json',
     },
     {
@@ -4431,8 +4431,8 @@ function IntegrationsSection() {
   }, [pickerOpen]);
 
   // Pull the absolute paths to node + cli.js from the running daemon
-  // so snippets work even when `od` isn't on PATH (the realistic
-  // case for source clones, plus macOS/Linux ship a /usr/bin/od that
+  // so snippets work even when `readable` isn't on PATH (the realistic
+  // case for source clones, plus macOS/Linux ship a /usr/bin/readable that
   // shadows any global install). Fetched on mount; if the daemon is
   // unreachable we surface a clear error instead of a half-built
   // snippet that would silently fail when pasted.
@@ -4869,7 +4869,7 @@ function AppearanceSection({
  * The toggle has two halves on opposite sides of the HTTP boundary:
  *
  *   * Browser-side: `useCritiqueTheaterEnabled` reads / writes the
- *     `open-design:config` localStorage blob; this is what gates
+ *     `readable-studio:config` localStorage blob; this is what gates
  *     whether `<CritiqueTheaterMount>` actually renders.
  *   * Daemon-side: the rollout resolver in `server.ts` reads
  *     `project.metadata.critiqueTheaterEnabled`, so the daemon only

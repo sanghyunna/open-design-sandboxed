@@ -16,6 +16,7 @@ import {
   resolveHostedSidecarRoute,
   resolveStandaloneBackendOrigin,
   resolveStandaloneServerEntry,
+  resolveWebAppVersion,
 } from '../sidecar/server';
 
 describe('hosted public sidecar boundary', () => {
@@ -42,9 +43,9 @@ describe('hosted public sidecar boundary', () => {
 
   it('requires an exact HTTP public origin', () => {
     expect(resolveHostedPublicOrigin('https://design.example:8443').href).toBe('https://design.example:8443/');
-    expect(() => resolveHostedPublicOrigin(undefined)).toThrow('OD_HOSTED_PUBLIC_ORIGIN');
-    expect(() => resolveHostedPublicOrigin('https://design.example/path')).toThrow('OD_HOSTED_PUBLIC_ORIGIN');
-    expect(() => resolveHostedPublicOrigin('file:///tmp/design')).toThrow('OD_HOSTED_PUBLIC_ORIGIN');
+    expect(() => resolveHostedPublicOrigin(undefined)).toThrow('READABLE_HOSTED_PUBLIC_ORIGIN');
+    expect(() => resolveHostedPublicOrigin('https://design.example/path')).toThrow('READABLE_HOSTED_PUBLIC_ORIGIN');
+    expect(() => resolveHostedPublicOrigin('file:///tmp/design')).toThrow('READABLE_HOSTED_PUBLIC_ORIGIN');
   });
 
   it('forwards one bearer credential carrier and a strict request-header allowlist', () => {
@@ -52,7 +53,7 @@ describe('hosted public sidecar boundary', () => {
       createHostedDaemonProxyHeaders({
         headers: {
           authorization: 'Bearer adapter-token',
-          cookie: '__Host-od-hosted=adapter-cookie; unrelated=drop-me',
+          cookie: '__Host-readable-hosted=adapter-cookie; unrelated=drop-me',
           forwarded: 'for=attacker',
           host: 'design.example:8443',
           origin: 'https://exact-browser-origin.example',
@@ -63,7 +64,7 @@ describe('hosted public sidecar boundary', () => {
           'x-databricks-user': 'attacker',
           'x-forwarded-for': 'attacker',
           'x-forwarded-host': 'attacker',
-          'x-open-design-hosted-user': 'attacker',
+          'x-readable-studio-hosted-user': 'attacker',
           'x-request-id': 'ordinary-header',
         },
         publicOrigin: new URL('https://design.example:8443'),
@@ -85,7 +86,7 @@ describe('hosted public sidecar boundary', () => {
     expect(
       createHostedDaemonProxyHeaders({
         headers: {
-          cookie: 'theme=dark; __Host-od-hosted=adapter-cookie; odpvb_abcdefghijklmnopqrstuv=preview-proof; session=drop-me',
+          cookie: 'theme=dark; __Host-readable-hosted=adapter-cookie; odpvb_abcdefghijklmnopqrstuv=preview-proof; session=drop-me',
           origin: 'https://design.example',
         },
         publicOrigin: new URL('https://design.example'),
@@ -93,7 +94,7 @@ describe('hosted public sidecar boundary', () => {
         targetHost: '127.0.0.1:7456',
       }),
     ).toEqual({
-      cookie: '__Host-od-hosted=adapter-cookie; odpvb_abcdefghijklmnopqrstuv=preview-proof',
+      cookie: '__Host-readable-hosted=adapter-cookie; odpvb_abcdefghijklmnopqrstuv=preview-proof',
       host: '127.0.0.1:7456',
       origin: 'https://design.example',
       'x-forwarded-host': 'design.example',
@@ -105,12 +106,12 @@ describe('hosted public sidecar boundary', () => {
   it('drops malformed or ambiguous preview proof cookies', () => {
     expect(createHostedDaemonProxyHeaders({
       headers: {
-        cookie: '__Host-od-hosted=session; odpvb_short=drop; odpvb_abcdefghijklmnopqrstuv=one; odpvb_ABCDEFGHIJKLMNOPQRSTUV=two',
+        cookie: '__Host-readable-hosted=session; odpvb_short=drop; odpvb_abcdefghijklmnopqrstuv=one; odpvb_ABCDEFGHIJKLMNOPQRSTUV=two',
       },
       publicOrigin: new URL('https://design.example'),
       remoteAddress: undefined,
       targetHost: '127.0.0.1:7456',
-    }).cookie).toBe('__Host-od-hosted=session');
+    }).cookie).toBe('__Host-readable-hosted=session');
   });
 });
 
@@ -135,11 +136,17 @@ describe('resolveDaemonProxyTarget', () => {
   });
 });
 
+describe('packaged standalone metadata', () => {
+  it('uses the baked app version without resolving a web package root', () => {
+    expect(resolveWebAppVersion(null, { NODE_ENV: 'production', READABLE_APP_VERSION: '0.2.2' })).toBe('0.2.2');
+  });
+});
+
 describe('resolveStandaloneServerEntry', () => {
   it('resolves the traced monorepo standalone server entry', async () => {
-    const previousDistDir = process.env.OD_WEB_DIST_DIR;
-    delete process.env.OD_WEB_DIST_DIR;
-    const webRoot = await mkdtemp(join(tmpdir(), 'open-design-web-standalone-'));
+    const previousDistDir = process.env.READABLE_WEB_DIST_DIR;
+    delete process.env.READABLE_WEB_DIST_DIR;
+    const webRoot = await mkdtemp(join(tmpdir(), 'readable-studio-web-standalone-'));
     const nestedRoot = join(webRoot, '.next', 'standalone', 'apps', 'web');
     const fallbackRoot = join(webRoot, '.next', 'standalone');
 
@@ -152,19 +159,19 @@ describe('resolveStandaloneServerEntry', () => {
       expect(resolveStandaloneServerEntry(webRoot)).toBe(join(nestedRoot, 'server.js'));
     } finally {
       if (previousDistDir == null) {
-        delete process.env.OD_WEB_DIST_DIR;
+        delete process.env.READABLE_WEB_DIST_DIR;
       } else {
-        process.env.OD_WEB_DIST_DIR = previousDistDir;
+        process.env.READABLE_WEB_DIST_DIR = previousDistDir;
       }
       await rm(webRoot, { force: true, recursive: true });
     }
   });
 
   it('prefers a copied standalone resource root before package fallback entries', async () => {
-    const previousDistDir = process.env.OD_WEB_DIST_DIR;
-    delete process.env.OD_WEB_DIST_DIR;
-    const webRoot = await mkdtemp(join(tmpdir(), 'open-design-web-package-'));
-    const copiedRoot = await mkdtemp(join(tmpdir(), 'open-design-web-copied-'));
+    const previousDistDir = process.env.READABLE_WEB_DIST_DIR;
+    delete process.env.READABLE_WEB_DIST_DIR;
+    const webRoot = await mkdtemp(join(tmpdir(), 'readable-studio-web-package-'));
+    const copiedRoot = await mkdtemp(join(tmpdir(), 'readable-studio-web-copied-'));
     const copiedWebRoot = join(copiedRoot, 'apps', 'web');
     const packageFallbackRoot = join(webRoot, '.next', 'standalone', 'apps', 'web');
 
@@ -177,9 +184,9 @@ describe('resolveStandaloneServerEntry', () => {
       expect(resolveStandaloneServerEntry(webRoot, copiedRoot)).toBe(join(copiedWebRoot, 'server.js'));
     } finally {
       if (previousDistDir == null) {
-        delete process.env.OD_WEB_DIST_DIR;
+        delete process.env.READABLE_WEB_DIST_DIR;
       } else {
-        process.env.OD_WEB_DIST_DIR = previousDistDir;
+        process.env.READABLE_WEB_DIST_DIR = previousDistDir;
       }
       await rm(webRoot, { force: true, recursive: true });
       await rm(copiedRoot, { force: true, recursive: true });
@@ -187,7 +194,7 @@ describe('resolveStandaloneServerEntry', () => {
   });
 
   it('can resolve a copied standalone resource without a web package root', async () => {
-    const copiedRoot = await mkdtemp(join(tmpdir(), 'open-design-web-copied-only-'));
+    const copiedRoot = await mkdtemp(join(tmpdir(), 'readable-studio-web-copied-only-'));
     const copiedWebRoot = join(copiedRoot, 'apps', 'web');
 
     try {
@@ -203,20 +210,20 @@ describe('resolveStandaloneServerEntry', () => {
 
 describe('createStandaloneServerArgs', () => {
   it('preloads a parent monitor before running the standalone server entry', () => {
-    const args = createStandaloneServerArgs('/tmp/open-design/server.js');
+    const args = createStandaloneServerArgs('/tmp/readable-studio/server.js');
 
     expect(args).toHaveLength(3);
     expect(args[0]).toBe('--import');
     expect(args[1]).toBe(createStandaloneParentMonitorImport());
-    expect(args[2]).toBe('/tmp/open-design/server.js');
+    expect(args[2]).toBe('/tmp/readable-studio/server.js');
   });
 
   it('uses a data import that exits when the recorded parent disappears', () => {
-    const importSpecifier = createStandaloneParentMonitorImport('OD_TEST_PARENT_PID');
+    const importSpecifier = createStandaloneParentMonitorImport('READABLE_TEST_PARENT_PID');
     const source = decodeURIComponent(importSpecifier.replace(/^data:text\/javascript,/, ''));
 
     expect(importSpecifier).toMatch(/^data:text\/javascript,/);
-    expect(source).toContain('process.env["OD_TEST_PARENT_PID"]');
+    expect(source).toContain('process.env["READABLE_TEST_PARENT_PID"]');
     expect(source).toContain('process.ppid === parentPid');
     expect(source).toContain('process.kill(parentPid, 0)');
     expect(source).toContain('process.exit(0)');
@@ -226,7 +233,7 @@ describe('createStandaloneServerArgs', () => {
 describe('standalone backend binding', () => {
   it('keeps the hidden standalone backend on loopback even when the public sidecar host is wider', () => {
     const env = createStandaloneBackendEnv({
-      baseEnv: { ...process.env, OD_HOST: '0.0.0.0' },
+      baseEnv: { ...process.env, READABLE_HOST: '0.0.0.0' },
       parentPid: 1234,
       port: 5876,
     });
@@ -235,7 +242,7 @@ describe('standalone backend binding', () => {
     expect(env.HOSTNAME).toBe('127.0.0.1');
     expect(env.PORT).toBe('5876');
     expect(env.NODE_ENV).toBe('production');
-    expect(env.OD_STANDALONE_PARENT_PID).toBe('1234');
+    expect(env.READABLE_STANDALONE_PARENT_PID).toBe('1234');
   });
 });
 
@@ -283,8 +290,8 @@ describe('normalizeDaemonProxyOriginHeader', () => {
   });
 
   it('normalizes matching wildcard configured dev origins to the daemon origin', () => {
-    const previous = process.env.OD_ALLOWED_DEV_ORIGINS;
-    process.env.OD_ALLOWED_DEV_ORIGINS = '*.local-origin.dev';
+    const previous = process.env.READABLE_ALLOWED_DEV_ORIGINS;
+    process.env.READABLE_ALLOWED_DEV_ORIGINS = '*.local-origin.dev';
     try {
       expect(
         normalizeDaemonProxyOriginHeader({
@@ -295,8 +302,8 @@ describe('normalizeDaemonProxyOriginHeader', () => {
         }),
       ).toBe('http://127.0.0.1:7456');
     } finally {
-      if (previous == null) delete process.env.OD_ALLOWED_DEV_ORIGINS;
-      else process.env.OD_ALLOWED_DEV_ORIGINS = previous;
+      if (previous == null) delete process.env.READABLE_ALLOWED_DEV_ORIGINS;
+      else process.env.READABLE_ALLOWED_DEV_ORIGINS = previous;
     }
   });
 

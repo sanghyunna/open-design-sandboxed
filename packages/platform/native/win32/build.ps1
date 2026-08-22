@@ -4,10 +4,10 @@ if ($env:OS -ne "Windows_NT") {
   throw "build:native:win32 requires Windows"
 }
 
-$source = Join-Path $PSScriptRoot "od-agent-isolator.cpp"
+$source = Join-Path $PSScriptRoot "agent-isolator.cpp"
 $outputDir = Join-Path $PSScriptRoot "..\..\dist\native\win32"
-$output = Join-Path $outputDir "od-agent-isolator.exe"
-$object = Join-Path $outputDir "od-agent-isolator.obj"
+$output = Join-Path $outputDir "agent-isolator.exe"
+$object = Join-Path $outputDir "agent-isolator.obj"
 $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
 
 if (-not (Test-Path -LiteralPath $vswhere)) {

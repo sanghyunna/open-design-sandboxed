@@ -113,9 +113,9 @@ describe('spawn writes external MCP config for Claude Code', () => {
     // The daemon owns its data dir; we discover the on-disk project path by
     // having the daemon return the upload root, then composing path manually.
     // Use the same path the daemon's `ensureProject` uses.
-    const projectsBase = process.env.OD_DATA_DIR
-      ? join(process.env.OD_DATA_DIR, 'projects')
-      : join(process.cwd(), '.od', 'projects');
+    const projectsBase = process.env.READABLE_DATA_DIR
+      ? join(process.env.READABLE_DATA_DIR, 'projects')
+      : join(process.cwd(), '.readable-studio', 'projects');
     return { id, dir: join(projectsBase, id), conversationId: body.conversationId };
   }
 
@@ -125,7 +125,7 @@ describe('spawn writes external MCP config for Claude Code', () => {
     externalDir: string;
     conversationId: string;
   }> {
-    const externalDir = await fsp.mkdtemp(join(tmpdir(), 'od-mcp-import-'));
+    const externalDir = await fsp.mkdtemp(join(tmpdir(), 'readable-mcp-import-'));
     tempDirs.push(externalDir);
     await fsp.writeFile(join(externalDir, 'index.html'), '<!doctype html>');
     const r = await fetch(`${baseUrl}/api/import/folder`, {
@@ -136,9 +136,9 @@ describe('spawn writes external MCP config for Claude Code', () => {
     expect(r.ok).toBe(true);
     const body = (await r.json()) as { project: { id: string }; conversationId: string };
     projectsToClean.push(body.project.id);
-    const projectsBase = process.env.OD_DATA_DIR
-      ? join(process.env.OD_DATA_DIR, 'projects')
-      : join(process.cwd(), '.od', 'projects');
+    const projectsBase = process.env.READABLE_DATA_DIR
+      ? join(process.env.READABLE_DATA_DIR, 'projects')
+      : join(process.cwd(), '.readable-studio', 'projects');
     return {
       id: body.project.id,
       dir: join(projectsBase, body.project.id),
@@ -148,13 +148,13 @@ describe('spawn writes external MCP config for Claude Code', () => {
   }
 
   async function withSandboxMode<T>(run: () => Promise<T>): Promise<T> {
-    const previous = process.env.OD_SANDBOX_MODE;
-    process.env.OD_SANDBOX_MODE = '1';
+    const previous = process.env.READABLE_SANDBOX_MODE;
+    process.env.READABLE_SANDBOX_MODE = '1';
     try {
       return await run();
     } finally {
-      if (previous == null) delete process.env.OD_SANDBOX_MODE;
-      else process.env.OD_SANDBOX_MODE = previous;
+      if (previous == null) delete process.env.READABLE_SANDBOX_MODE;
+      else process.env.READABLE_SANDBOX_MODE = previous;
     }
   }
 
@@ -261,7 +261,7 @@ describe('spawn writes external MCP config for Claude Code', () => {
         });
         expect(chatRes.status).toBe(400);
         const body = (await chatRes.json()) as { error?: { message?: string } };
-        expect(body.error?.message).toMatch(/imported-folder projects.*OD_SANDBOX_MODE/i);
+        expect(body.error?.message).toMatch(/imported-folder projects.*READABLE_SANDBOX_MODE/i);
       });
 
       const managedTarget = join(dir, '.mcp.json');
@@ -313,7 +313,7 @@ describe('spawn writes external MCP config for Claude Code', () => {
         });
         expect(runRoutineRes.status).toBe(500);
         const runRoutineBody = (await runRoutineRes.json()) as { error?: string };
-        expect(runRoutineBody.error).toMatch(/imported-folder projects.*OD_SANDBOX_MODE/i);
+        expect(runRoutineBody.error).toMatch(/imported-folder projects.*READABLE_SANDBOX_MODE/i);
       });
 
       const routineRunsRes = await fetch(`${baseUrl}/api/routines/${routineId}/runs?limit=10`);

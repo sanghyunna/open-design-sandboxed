@@ -11,25 +11,31 @@ import {
 import { listFiles, writeProjectFile } from '../src/projects.js';
 
 const deckManifest = {
+  schema: 'readable-studio.artifact-manifest.v1',
   kind: 'deck',
   renderer: 'deck-html',
   title: 'Pitch deck',
+  entry: 'pitch-deck.html',
   exports: ['html', 'pdf'],
   metadata: { identifier: 'pitch-deck' },
 };
 
 const htmlManifest = {
+  schema: 'readable-studio.artifact-manifest.v1',
   kind: 'html',
   renderer: 'html',
   title: 'Pitch HTML',
+  entry: 'pitch-deck.html',
   exports: ['html'],
   metadata: { identifier: 'pitch-html' },
 };
 
 const markdownManifest = {
+  schema: 'readable-studio.artifact-manifest.v1',
   kind: 'markdown',
   renderer: 'markdown',
   title: 'Notes',
+  entry: 'notes.md',
   exports: ['md'],
   metadata: { identifier: 'pitch-notes' },
 };
@@ -101,7 +107,7 @@ describe('artifact publication guard — placeholder detection', () => {
 
 describe('artifact publication guard — wired into writeProjectFile', () => {
   it('rejects html artifacts that still contain pitch-deck placeholders', async () => {
-    const projectsRoot = await mkdtemp(path.join(tmpdir(), 'od-publication-guard-html-'));
+    const projectsRoot = await mkdtemp(path.join(tmpdir(), 'readable-publication-guard-html-'));
     try {
       await expect(
         writeProjectFile(
@@ -122,7 +128,7 @@ describe('artifact publication guard — wired into writeProjectFile', () => {
   });
 
   it('rejects deck artifacts that still contain pitch-deck placeholders', async () => {
-    const projectsRoot = await mkdtemp(path.join(tmpdir(), 'od-publication-guard-deck-'));
+    const projectsRoot = await mkdtemp(path.join(tmpdir(), 'readable-publication-guard-deck-'));
     try {
       await expect(
         writeProjectFile(
@@ -148,7 +154,7 @@ describe('artifact publication guard — wired into writeProjectFile', () => {
     // Markdown drafts can legitimately call out unresolved fields with the
     // same words; the guard is HTML/deck only. The body here would have
     // tripped the guard if applied to all kinds.
-    const projectsRoot = await mkdtemp(path.join(tmpdir(), 'od-publication-guard-md-'));
+    const projectsRoot = await mkdtemp(path.join(tmpdir(), 'readable-publication-guard-md-'));
     try {
       const meta = await writeProjectFile(
         projectsRoot,
@@ -164,7 +170,7 @@ describe('artifact publication guard — wired into writeProjectFile', () => {
   });
 
   it('passes a clean deck artifact through writeProjectFile', async () => {
-    const projectsRoot = await mkdtemp(path.join(tmpdir(), 'od-publication-guard-clean-'));
+    const projectsRoot = await mkdtemp(path.join(tmpdir(), 'readable-publication-guard-clean-'));
     try {
       const meta = await writeProjectFile(
         projectsRoot,

@@ -13,7 +13,7 @@ function formatLocalProjectTimestamp(iso: string): string {
   return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
 }
 
-import type { DesktopExportPdfInput, DesktopExportPdfResult } from '@open-design/sidecar-proto';
+import type { DesktopExportPdfInput, DesktopExportPdfResult } from '@readable-studio/sidecar-proto';
 import express from 'express';
 import multer from 'multer';
 import { execFile, spawn } from 'node:child_process';
@@ -27,7 +27,11 @@ import net from 'node:net';
 import {
   defaultScenarioPluginIdForProjectMetadata,
   PLUGIN_SHARE_ACTION_PLUGIN_IDS,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
+import {
+  parseManifest,
+  UNSUPPORTED_LEGACY_PRODUCT_V1,
+} from '@readable-studio/plugin-runtime';
 import {
   composeSystemPrompt,
 } from './prompts/system.js';
@@ -52,8 +56,8 @@ import {
   createCommandInvocation,
   probeIsolatedAgentSupport,
   spawnIsolatedAgent,
-} from '@open-design/platform';
-import { SIDECAR_DEFAULTS, SIDECAR_ENV } from '@open-design/sidecar-proto';
+} from '@readable-studio/platform';
+import { SIDECAR_DEFAULTS, SIDECAR_ENV, createRuntimeDescriptor } from '@readable-studio/sidecar-proto';
 import {
   checkPromptArgvBudget,
   checkWindowsCmdShimCommandLineBudget,
@@ -61,7 +65,7 @@ import {
   detectAgents,
   getAgentDef,
   isKnownModel,
-  openDesignAmrTraceEnv,
+  readableStudioAmrTraceEnv,
   applyAgentLaunchEnv,
   resolveAgentLaunch,
   sanitizeCustomModel,
@@ -94,7 +98,6 @@ import {
   fetchVelaPresetModels,
   fetchVelaRemoteModelsWithRetry,
 } from './runtimes/defs/amr.js';
-import { migrateLegacyDataDirSync } from './legacy-data-migrator.js';
 import {
   consumedImportNonces,
   getDesktopAuthSecret,
@@ -297,7 +300,6 @@ import {
   readAnalyticsContext,
   readPublicConfigResponse,
 } from './analytics.js';
-import { observePendingInstallerApplyAttempts } from './update-apply-observations.js';
 import {
   agentIdToTracking,
   deriveConfigureGlobals,
@@ -305,7 +307,7 @@ import {
   projectKindToTracking,
   sessionModeToTracking,
   type ObservabilityEventRequest,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import {
   mergeNoProxyWithLoopbackDefaults,
   redactSecrets,
@@ -367,7 +369,7 @@ import {
 } from './routines.js';
 import { buildMcpInstallPayload } from './mcp-install-info.js';
 import { createDiagnosticsExportHandler } from './diagnostics-export.js';
-import { DIAGNOSTICS_EXPORT_PATH } from '@open-design/diagnostics';
+import { DIAGNOSTICS_EXPORT_PATH } from '@readable-studio/diagnostics';
 import {
   buildProjectArchive,
   buildBatchArchive,
@@ -466,6 +468,8 @@ import { registerDeployRoutes, registerDeploymentCheckRoutes } from './routes/de
 import { registerMediaRoutes } from './media-routes.js';
 import { registerProjectRoutes, registerProjectArtifactRoutes, registerProjectFileRoutes, registerProjectUploadRoutes } from './project-routes.js';
 import { registerFinalizeRoutes, registerImportRoutes, registerProjectExportRoutes } from './import-export-routes.js';
+import { registerStandaloneHtmlRoutes } from './routes/standalone-html.js';
+import { PluginHtmlTooLargeError, resolvePluginHtml } from './plugin-html-source.js';
 import { registerHandoffRoutes } from './routes/handoff.js';
 import { EmptyTranscriptError, synthesizeHandoffPrompt } from './handoff-design.js';
 import { TranscriptExportLockedError } from './transcript-export.js';
@@ -510,19 +514,19 @@ import {
   isLocalSameOrigin,
 } from './origin-validation.js';
 
-/** @typedef {import('@open-design/contracts').ApiErrorCode} ApiErrorCode */
-/** @typedef {import('@open-design/contracts').ApiError} ApiError */
-/** @typedef {import('@open-design/contracts').ApiErrorResponse} ApiErrorResponse */
-/** @typedef {import('@open-design/contracts').ChatRequest} ChatRequest */
-/** @typedef {import('@open-design/contracts').ChatSseEvent} ChatSseEvent */
-/** @typedef {import('@open-design/contracts').ProxyStreamRequest} ProxyStreamRequest */
-/** @typedef {import('@open-design/contracts').ProxySseEvent} ProxySseEvent */
-/** @typedef {import('@open-design/contracts').ProjectConversationCreatedSsePayload} ProjectConversationCreatedSsePayload */
+/** @typedef {import('@readable-studio/contracts').ApiErrorCode} ApiErrorCode */
+/** @typedef {import('@readable-studio/contracts').ApiError} ApiError */
+/** @typedef {import('@readable-studio/contracts').ApiErrorResponse} ApiErrorResponse */
+/** @typedef {import('@readable-studio/contracts').ChatRequest} ChatRequest */
+/** @typedef {import('@readable-studio/contracts').ChatSseEvent} ChatSseEvent */
+/** @typedef {import('@readable-studio/contracts').ProxyStreamRequest} ProxyStreamRequest */
+/** @typedef {import('@readable-studio/contracts').ProxySseEvent} ProxySseEvent */
+/** @typedef {import('@readable-studio/contracts').ProjectConversationCreatedSsePayload} ProjectConversationCreatedSsePayload */
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
-const DAEMON_CLI_PATH_ENV = 'OD_DAEMON_CLI_PATH';
+const DAEMON_CLI_PATH_ENV = SIDECAR_ENV.DAEMON_CLI_PATH;
 function cleanOptionalPath(value: string | undefined): string | null {
   return typeof value === 'string' && value.trim().length > 0
     ? path.resolve(value)
@@ -531,15 +535,15 @@ function cleanOptionalPath(value: string | undefined): string | null {
 
 // @dsp func-2696a5b9
 export function resolveDaemonCliPath(env: NodeJS.ProcessEnv = process.env): string {
-  const configured = cleanOptionalPath(env[DAEMON_CLI_PATH_ENV]) ?? cleanOptionalPath(env.OD_BIN);
+  const configured = cleanOptionalPath(env[DAEMON_CLI_PATH_ENV]) ?? cleanOptionalPath(env.READABLE_BIN);
   if (configured) return configured;
 
-  const packageJsonPath = require.resolve('@open-design/daemon/package.json');
+  const packageJsonPath = require.resolve('@readable-studio/daemon/package.json');
   return path.join(path.dirname(packageJsonPath), 'dist', 'cli.js');
 }
 
 const PROJECT_ROOT = resolveProjectRoot(__dirname);
-const RESOURCE_ROOT_ENV = 'OD_RESOURCE_ROOT';
+const RESOURCE_ROOT_ENV = 'READABLE_RESOURCE_ROOT';
 
 // @dsp func-5f464aba
 export function composeLiveInstructionPrompt({
@@ -1062,7 +1066,7 @@ function resolveProcessResourcesPath() {
 
   const normalizedExecPath = process.execPath.toLowerCase();
   const windowsResourceBinMarker =
-    `${path.sep}resources${path.sep}open-design${path.sep}bin${path.sep}`.toLowerCase();
+    `${path.sep}resources${path.sep}readable-studio${path.sep}bin${path.sep}`.toLowerCase();
   const windowsMarkerIndex = normalizedExecPath.indexOf(
     windowsResourceBinMarker,
   );
@@ -1082,7 +1086,7 @@ export function resolveDaemonResourceRoot({
   safeBases = [
     PROJECT_ROOT,
     resolveProcessResourcesPath(),
-    process.env.OD_INSTALLATION_DIR,
+    process.env.READABLE_INSTALLATION_DIR,
   ],
 } = {}) {
   if (!configured || configured.length === 0) return null;
@@ -1106,17 +1110,17 @@ function resolveDaemonResourceDir(resourceRoot, segment, fallback) {
 }
 
 // Where the daemon reads the baked plugin-preview manifest from. In a packaged
-// build the bundled manifest lives under the resource root (OD_RESOURCE_ROOT,
-// Resources/open-design) like every other resource tree — NOT under PROJECT_ROOT,
+// build the bundled manifest lives under the resource root (READABLE_RESOURCE_ROOT,
+// Resources/readable-studio) like every other resource tree — NOT under PROJECT_ROOT,
 // which for the prebundled daemon resolves to Resources/app (two levels up from
-// the sidecar) and has no data/. An explicit OD_PLUGIN_PREVIEWS_DIR override and
+// the sidecar) and has no data/. An explicit READABLE_PLUGIN_PREVIEWS_DIR override and
 // the dev PROJECT_ROOT layout still win. Exported for regression coverage.
 // @dsp func-f4c68241
 export function resolveDaemonPluginPreviewsDir({ env = process.env, resourceRoot, projectRoot }) {
   // Resolve the override from the injected `env` (absolute passthrough, relative
   // against projectRoot) rather than re-reading process.env, so the helper is
   // pure and the override path is actually testable.
-  const override = env.OD_PLUGIN_PREVIEWS_DIR;
+  const override = env.READABLE_PLUGIN_PREVIEWS_DIR;
   if (override) {
     return path.isAbsolute(override) ? override : path.resolve(projectRoot, override);
   }
@@ -1129,7 +1133,7 @@ export function resolveDaemonPluginPreviewsDir({ env = process.env, resourceRoot
 
 const DAEMON_RESOURCE_ROOT = resolveDaemonResourceRoot();
 const PACKAGED_AGENT_ISOLATOR_PATH = DAEMON_RESOURCE_ROOT
-  ? path.join(DAEMON_RESOURCE_ROOT, 'bin', 'od-agent-isolator.exe')
+  ? path.join(DAEMON_RESOURCE_ROOT, 'bin', 'agent-isolator.exe')
   : undefined;
 // Built web app lives in `out/` — that's where Next.js writes the static
 // export configured in next.config.ts. The folder name used to be `dist/`
@@ -1143,8 +1147,8 @@ const PLUGIN_PREVIEWS_DIR = resolveDaemonPluginPreviewsDir({
   resourceRoot: DAEMON_RESOURCE_ROOT,
   projectRoot: PROJECT_ROOT,
 });
-const OD_BIN = resolveDaemonCliPath();
-const OD_NODE_BIN = process.execPath;
+const READABLE_BIN = resolveDaemonCliPath();
+const READABLE_NODE_BIN = process.execPath;
 const SKILLS_DIR = resolveDaemonResourceDir(
   DAEMON_RESOURCE_ROOT,
   'skills',
@@ -1170,7 +1174,7 @@ const CRAFT_DIR = resolveDaemonResourceDir(
   path.join(PROJECT_ROOT, 'craft'),
 );
 // User-installed skills and design systems live under the runtime data dir
-// so they respect OD_DATA_DIR overrides (test isolation, packaged runs).
+// so they respect READABLE_DATA_DIR overrides (test isolation, packaged runs).
 // Defined after RUNTIME_DATA_DIR is resolved below.
 const FRAMES_DIR = resolveDaemonResourceDir(
   DAEMON_RESOURCE_ROOT,
@@ -1197,7 +1201,7 @@ const PLUGIN_REGISTRY_DIR = resolveDaemonResourceDir(
   path.join(PROJECT_ROOT, 'plugins', 'registry'),
 );
 const OFFICIAL_MARKETPLACE_ID = 'official';
-const OFFICIAL_PLUGIN_SOURCE_REPO = 'github:nexu-io/open-design@main';
+const OFFICIAL_PLUGIN_SOURCE_REPO = 'github:sanghyunna/readable-studio@main';
 
 // @dsp func-7529918d
 export function isStaticSpaFallbackRequest(req) {
@@ -1269,7 +1273,7 @@ function mergeMarketplaceEntries(manifestText, entries) {
 }
 
 async function marketplaceSeedManifestText(id, bundledMarketplaceEntries) {
-  const manifestPath = path.join(PLUGIN_REGISTRY_DIR, id, 'open-design-marketplace.json');
+  const manifestPath = path.join(PLUGIN_REGISTRY_DIR, id, 'readable-studio-marketplace.json');
   if (!fs.existsSync(manifestPath)) return null;
   let manifestText = await fs.promises.readFile(manifestPath, 'utf8');
   if (id === OFFICIAL_MARKETPLACE_ID && bundledMarketplaceEntries.length > 0) {
@@ -1305,14 +1309,14 @@ export function resolveDataDir(raw, projectRoot, options = {}) {
   const value = raw?.trim();
   if (!value) {
     if (options.requireExplicit) {
-      throw new Error('OD_DATA_DIR is required when OD_SANDBOX_MODE is enabled');
+      throw new Error('READABLE_DATA_DIR is required when READABLE_SANDBOX_MODE is enabled');
     }
-    return path.join(projectRoot, '.od');
+    return path.join(projectRoot, '.readable-studio');
   }
-  // expandHomePrefix is shared with media-config.ts so OD_DATA_DIR and
-  // OD_MEDIA_CONFIG_DIR can never split state under a $HOME-style value.
+  // expandHomePrefix is shared with media-config.ts so READABLE_DATA_DIR and
+  // READABLE_MEDIA_CONFIG_DIR can never split state under a $HOME-style value.
   // Some launchers (systemd unit files, NixOS modules, certain Docker
-  // entrypoints, Windows scheduled tasks) pass OD_DATA_DIR with literal
+  // entrypoints, Windows scheduled tasks) pass READABLE_DATA_DIR with literal
   // $HOME or ${HOME} because the variable is never expanded by a shell;
   // expandHomePrefix turns those (and the ~ shorthand, with both / and \
   // separators) into os.homedir() before path.resolve runs so launch
@@ -1333,7 +1337,7 @@ export function resolveDataDir(raw, projectRoot, options = {}) {
     const parentDir = path.dirname(resolved);
     throw new Error(
       [
-        `OD_DATA_DIR "${resolved}" is not writable: ${e.message}`,
+        `READABLE_DATA_DIR "${resolved}" is not writable: ${e.message}`,
         `Current user: ${currentUser}`,
         `Check whether the folder or one of its parents is owned by another user, is a symlink to a protected location, or was previously created with sudo.`,
         `Try: ls -ld "${parentDir}" "${resolved}"`,
@@ -1344,17 +1348,17 @@ export function resolveDataDir(raw, projectRoot, options = {}) {
   return resolved;
 }
 const SANDBOX_MODE_ENABLED = isSandboxModeEnabled(process.env);
-const RUNTIME_DATA_DIR = resolveDataDir(process.env.OD_DATA_DIR, PROJECT_ROOT, {
+const RUNTIME_DATA_DIR = resolveDataDir(process.env.READABLE_DATA_DIR, PROJECT_ROOT, {
   requireExplicit: SANDBOX_MODE_ENABLED,
 });
 const SANDBOX_RUNTIME = resolveSandboxRuntimeConfig(SANDBOX_MODE_ENABLED, RUNTIME_DATA_DIR);
 ensureSandboxRuntimeDirs(SANDBOX_RUNTIME);
-const PLUGIN_LOCKFILE_PATH = path.join(RUNTIME_DATA_DIR, 'od-plugin-lock.json');
+const PLUGIN_LOCKFILE_PATH = path.join(RUNTIME_DATA_DIR, 'readable-plugin-lock.json');
 // Canonical (realpath-resolved) form of RUNTIME_DATA_DIR for the few callers
 // that compare it against a user-supplied realpath() result. On macOS, /var
 // is a symlink to /private/var, so an import realpath lands in /private/var
 // and would never start-with the raw RUNTIME_DATA_DIR. Keep RUNTIME_DATA_DIR
-// itself as the stable, user-shaped path so OD_DATA_DIR resolution stays
+// itself as the stable, user-shaped path so READABLE_DATA_DIR resolution stays
 // predictable; only this canonical alias is used for symlink-aware checks.
 const RUNTIME_DATA_DIR_CANONICAL = (() => {
   try {
@@ -1363,15 +1367,6 @@ const RUNTIME_DATA_DIR_CANONICAL = (() => {
     return RUNTIME_DATA_DIR;
   }
 })();
-// One-shot legacy data migration. When OD_LEGACY_DATA_DIR is set and the
-// new data root is fresh (no app.sqlite), copy the 0.3.x .od/ payload
-// across before SQLite opens. Synchronous on purpose: openDatabase below
-// would race an async copy. See apps/daemon/src/legacy-data-migrator.ts
-// and https://github.com/nexu-io/open-design/issues/710.
-migrateLegacyDataDirSync({
-  legacyDir: process.env.OD_LEGACY_DATA_DIR,
-  dataDir: RUNTIME_DATA_DIR,
-});
 const ARTIFACTS_DIR = path.join(RUNTIME_DATA_DIR, 'artifacts');
 // Critique Theater artifacts intentionally live outside the static
 // `/artifacts` tree. The per-run artifact endpoint is the sanctioned
@@ -1423,7 +1418,7 @@ const mcpPendingAuth = new PendingAuthCache();
  * Resolve the daemon's public base URL — the origin the user's browser
  * (or the OAuth provider) reaches us at. Order of precedence:
  *
- *   1. `OD_PUBLIC_BASE_URL` env var. Cloud and packaged-electron deployments
+ *   1. `READABLE_PUBLIC_BASE_URL` env var. Cloud and packaged-electron deployments
  *      set this to the externally-routable URL (e.g. `https://app.example.com`).
  *   2. `req.protocol://req.get('host')` from the inbound request. Works in
  *      local dev and most reverse-proxy setups (Express respects
@@ -1435,13 +1430,13 @@ const mcpPendingAuth = new PendingAuthCache();
  * will reject `redirect_uri` mismatches.
  */
 function getPublicBaseUrl(req) {
-  const env = process.env.OD_PUBLIC_BASE_URL;
+  const env = process.env.READABLE_PUBLIC_BASE_URL;
   if (env && /^https?:\/\//i.test(env)) {
     return env.replace(/\/+$/u, '');
   }
   const proto = req.protocol || 'http';
   const host = req.get('host');
-  if (!host) return `http://localhost:${process.env.OD_PORT ?? '7456'}`;
+  if (!host) return `http://localhost:${process.env[SIDECAR_ENV.DAEMON_PORT] ?? '7456'}`;
   return `${proto}://${host}`;
 }
 
@@ -1523,14 +1518,14 @@ function emitProjectEvent(projectId, payload) {
 // Windows ENAMETOOLONG mitigation constants
 const CMD_BAT_RE = /\.(cmd|bat)$/i;
 const PROMPT_TEMP_FILE = () =>
-  '.od-prompt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.md';
+  '.readable-studio-prompt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.md';
 const promptFileBootstrap = (fp) =>
   `Your full instructions are stored in the file: ${fp.replace(/\\/g, '/')}. ` +
   'Open that file first and follow every instruction in it exactly — ' +
   'it contains the system prompt, design system, skill workflow, and user request. ' +
   'Do not begin your response until you have read the entire file.';
 
-// Load Critique Theater config once at startup so a bad OD_CRITIQUE_* value
+// Load Critique Theater config once at startup so a bad READABLE_CRITIQUE_* value
 // surfaces immediately as a boot-time RangeError instead of silently at
 // run time. Default: enabled=false (M0 dark launch).
 const critiqueCfg = loadCritiqueConfigFromEnv();
@@ -1557,9 +1552,9 @@ export function createAgentRuntimeEnv(
   const env: NodeJS.ProcessEnv = applySandboxRuntimeEnv(
     {
       ...baseEnv,
-      OD_DATA_DIR: RUNTIME_DATA_DIR,
-      OD_DAEMON_URL: daemonUrl,
-      OD_NODE_BIN: nodeBin,
+      READABLE_DATA_DIR: RUNTIME_DATA_DIR,
+      READABLE_DAEMON_URL: daemonUrl,
+      READABLE_NODE_BIN: nodeBin,
     },
     SANDBOX_RUNTIME,
   );
@@ -1604,9 +1599,9 @@ export function createAgentRuntimeEnv(
   }
 
   if (toolTokenGrant?.token) {
-    env.OD_TOOL_TOKEN = toolTokenGrant.token;
+    env.READABLE_TOOL_TOKEN = toolTokenGrant.token;
   } else {
-    delete env.OD_TOOL_TOKEN;
+    delete env.READABLE_TOOL_TOKEN;
   }
 
   stripDesktopApprovalToken(env);
@@ -1624,24 +1619,24 @@ export function createAgentRuntimeToolPrompt(
     return [
       '## Runtime tool environment',
       '',
-      '- Open Design tools are available only through the run-scoped broker.',
-      '- Run wrappers with `OD_NODE_BIN` + `OD_BIN`; the broker accepts only `tools ...` subcommands and does not expose the daemon URL or bearer tokens.',
-      '- On PowerShell use `& $env:OD_NODE_BIN $env:OD_BIN tools ...`; on cmd.exe use `"%OD_NODE_BIN%" "%OD_BIN%" tools ...`.',
+      '- Readable Studio tools are available only through the run-scoped broker.',
+      '- Run wrappers with `READABLE_NODE_BIN` + `READABLE_BIN`; the broker accepts only `tools ...` subcommands and does not expose the daemon URL or bearer tokens.',
+      '- On PowerShell use `& $env:READABLE_NODE_BIN $env:READABLE_BIN tools ...`; on cmd.exe use `"%READABLE_NODE_BIN%" "%READABLE_BIN%" tools ...`.',
     ].join('\n');
   }
   const tokenLine = toolTokenGrant?.token
-    ? '- `OD_TOOL_TOKEN` is available in your environment for this run. Use it only through project wrapper commands; do not print, persist, or override it.'
-    : '- `OD_TOOL_TOKEN` is not available for this run, so `/api/tools/*` wrapper commands may be unavailable.';
+    ? '- `READABLE_TOOL_TOKEN` is available in your environment for this run. Use it only through project wrapper commands; do not print, persist, or override it.'
+    : '- `READABLE_TOOL_TOKEN` is not available for this run, so `/api/tools/*` wrapper commands may be unavailable.';
 
   return [
     '## Runtime tool environment',
     '',
-    `- Daemon URL: \`${daemonUrl}\` (also available as \`OD_DAEMON_URL\`).`,
-    '- `OD_NODE_BIN` is the absolute path to the Node-compatible runtime that started the daemon; packaged desktop installs provide this even when the user has no system `node` on PATH.',
-    '- `OD_BIN` is the absolute path to the Open Design CLI script. On POSIX shells run wrappers with `"$OD_NODE_BIN" "$OD_BIN" tools ...`; do not call bare `od`, which may resolve to the system octal-dump command on Unix-like systems.',
-    '- On PowerShell use `& $env:OD_NODE_BIN $env:OD_BIN tools ...`; on cmd.exe use `"%OD_NODE_BIN%" "%OD_BIN%" tools ...`.',
+    `- Daemon URL: \`${daemonUrl}\` (also available as \`READABLE_DAEMON_URL\`).`,
+    '- `READABLE_NODE_BIN` is the absolute path to the Node-compatible runtime that started the daemon; packaged desktop installs provide this even when the user has no system `node` on PATH.',
+    '- `READABLE_BIN` is the absolute path to the Readable Studio CLI script. On POSIX shells run wrappers with `"$READABLE_NODE_BIN" "$READABLE_BIN" tools ...`; do not call obsolete `readable`, which is not an alias and may resolve to the system octal-dump command on Unix-like systems.',
+    '- On PowerShell use `& $env:READABLE_NODE_BIN $env:READABLE_BIN tools ...`; on cmd.exe use `"%READABLE_NODE_BIN%" "%READABLE_BIN%" tools ...`.',
     tokenLine,
-    '- Prefer project wrapper commands through `OD_NODE_BIN` + `OD_BIN` over raw HTTP. The wrappers read these environment values automatically.',
+    '- Prefer project wrapper commands through `READABLE_NODE_BIN` + `READABLE_BIN` over raw HTTP. The wrappers read these environment values automatically.',
   ].join('\n');
 }
 
@@ -1825,7 +1820,7 @@ function renderRunContextPrompt(selection, metadata) {
   if (Array.isArray(context.workspaceItems) && context.workspaceItems.length > 0) {
     lines.push('### Active workspace context');
     lines.push(
-      'The user did not manually choose this context; Open Design selected the currently focused workspace tab. Use it as the default target for phrases like "this", "current", "the browser", "the terminal", or "that file" unless the user says otherwise. Use project-relative paths exactly when reading or editing project files.',
+      'The user did not manually choose this context; Readable Studio selected the currently focused workspace tab. Use it as the default target for phrases like "this", "current", "the browser", "the terminal", or "that file" unless the user says otherwise. Use project-relative paths exactly when reading or editing project files.',
     );
     lines.push(formatWorkspaceContextList(context.workspaceItems));
     const toolHints = renderWorkspaceContextToolHints(context.workspaceItems);
@@ -1988,20 +1983,22 @@ function execCommandViaLoginShell(command, args, opts = {}) {
 }
 
 async function readProjectPluginManifest(folder) {
-  const raw = await fs.promises.readFile(path.join(folder, 'open-design.json'), 'utf8');
-  const manifest = JSON.parse(raw);
-  const name = typeof manifest.name === 'string' && manifest.name.trim()
-    ? manifest.name.trim()
-    : path.basename(folder);
+  const raw = await fs.promises.readFile(path.join(folder, 'readable-studio.json'), 'utf8');
+  const parsed = parseManifest(raw);
+  if (!parsed.ok) {
+    throw Object.assign(new Error(parsed.errors.join('; ')), { code: parsed.code });
+  }
+  const manifest = parsed.manifest;
+  const name = manifest.name.trim();
   if (/[/\\]/.test(name) || /^\.+$/.test(name)) {
     throw new Error(
-      `open-design.json in ${folder}: name "${name}" must not contain path separators or consist only of dots`,
+      `readable-studio.json in ${folder}: name "${name}" must not contain path separators or consist only of dots`,
     );
   }
   return {
     name,
-    title: typeof manifest.title === 'string' ? manifest.title : name,
-    version: typeof manifest.version === 'string' ? manifest.version : '0.1.0',
+    title: manifest.title ?? name,
+    version: manifest.version,
     manifest,
   };
 }
@@ -2106,12 +2103,12 @@ function githubRepoNameFromPluginName(name) {
     .toLowerCase()
     .replace(/[^a-z0-9._-]+/g, '-')
     .replace(/(^[-._]+|[-._]+$)/g, '');
-  return slug || 'open-design-plugin';
+  return slug || 'readable-studio-plugin';
 }
 
 const PLUGIN_SHARE_ACTION_LABELS = {
   'publish-github': 'Publish to GitHub',
-  'contribute-open-design': 'Contribute to Open Design',
+  'contribute-readable-studio': 'Contribute to Readable Studio',
 };
 
 const USER_PLUGIN_SOURCE_KINDS = new Set([
@@ -2127,7 +2124,7 @@ const PLUGIN_CONTEXT_SKIP_DIRS = new Set([
   '.git',
   '.next',
   '.nuxt',
-  '.od',
+  '.readable-studio',
   '.output',
   '.tmp',
   '.turbo',
@@ -2158,13 +2155,13 @@ function renderPluginSharePrompt({ action, sourcePlugin, stagedPath }) {
   const title = sourcePlugin.title || sourcePlugin.id;
   if (action === 'publish-github') {
     return [
-      `Publish the local Open Design plugin "${title}" as a new public GitHub repository.`,
+      `Publish the local Readable Studio plugin "${title}" as a new public GitHub repository.`,
       '',
       `The plugin source files have been copied into this project at \`${stagedPath}\`.`,
-      'Use the local daemon share endpoint so the publish flow runs through Open Design\'s validated GitHub path:',
+      'Use the local daemon share endpoint so the publish flow runs through Readable Studio\'s validated GitHub path:',
       '',
       '```bash',
-      `curl -sS -X POST "$OD_DAEMON_URL/api/projects/$OD_PROJECT_ID/plugins/publish-github" \\`,
+      `curl -sS -X POST "$READABLE_DAEMON_URL/api/projects/$READABLE_PROJECT_ID/plugins/publish-github" \\`,
       `  -H 'content-type: application/json' \\`,
       `  -d '${JSON.stringify({ path: stagedPath })}'`,
       '```',
@@ -2175,13 +2172,13 @@ function renderPluginSharePrompt({ action, sourcePlugin, stagedPath }) {
     ].join('\n');
   }
   return [
-    `Open a pull request to add the local Open Design plugin "${title}" to the Open Design repository.`,
+    `Open a pull request to add the local Readable Studio plugin "${title}" to the Readable Studio repository.`,
     '',
     `The plugin source files have been copied into this project at \`${stagedPath}\`.`,
-    'Use the local daemon share endpoint so the contribution flow runs through Open Design\'s validated GitHub path:',
+    'Use the local daemon share endpoint so the contribution flow runs through Readable Studio\'s validated GitHub path:',
     '',
     '```bash',
-    `curl -sS -X POST "$OD_DAEMON_URL/api/projects/$OD_PROJECT_ID/plugins/contribute-open-design" \\`,
+    `curl -sS -X POST "$READABLE_DAEMON_URL/api/projects/$READABLE_PROJECT_ID/plugins/contribute-readable-studio" \\`,
     `  -H 'content-type: application/json' \\`,
     `  -d '${JSON.stringify({ path: stagedPath })}'`,
     '```',
@@ -2319,13 +2316,13 @@ async function prepareCheckpointedRunStart({
 
 
 function isPluginAuthoringRun(db, run) {
-  if (run?.pluginId === 'od-plugin-authoring') return true;
+  if (run?.pluginId === 'readable-plugin-authoring') return true;
   if (
     typeof run?.appliedPluginSnapshotId === 'string'
     && run.appliedPluginSnapshotId.length > 0
   ) {
     const snapshot = getSnapshot(db, run.appliedPluginSnapshotId);
-    return snapshot?.pluginId === 'od-plugin-authoring';
+    return snapshot?.pluginId === 'readable-plugin-authoring';
   }
   return false;
 }
@@ -2333,7 +2330,7 @@ function isPluginAuthoringRun(db, run) {
 async function hasGeneratedPluginArtifacts(projectRoot) {
   if (!projectRoot || typeof projectRoot !== 'string') return false;
   const required = [
-    path.join(projectRoot, 'generated-plugin', 'open-design.json'),
+    path.join(projectRoot, 'generated-plugin', 'readable-studio.json'),
     path.join(projectRoot, 'generated-plugin', 'SKILL.md'),
   ];
   try {
@@ -3105,7 +3102,7 @@ function renderOAuthResultPage(opts) {
   const title = ok ? 'Connected' : 'Authorization failed';
   const heading = ok ? '✅ Connected' : '⚠️ Authorization failed';
   const body = ok
-    ? `Your MCP server <code>${escapeHtml(opts.serverId ?? '')}</code> is now connected. You can close this tab and return to Open Design.`
+    ? `Your MCP server <code>${escapeHtml(opts.serverId ?? '')}</code> is now connected. You can close this tab and return to Readable Studio.`
     : escapeHtml(opts.message ?? 'Authorization could not be completed.');
   const accent = ok ? '#1a7f37' : '#cf222e';
   const payload = ok
@@ -3115,7 +3112,7 @@ function renderOAuthResultPage(opts) {
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>${escapeHtml(title)} — Open Design</title>
+<title>${escapeHtml(title)} — Readable Studio</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
   :root { color-scheme: light dark; }
@@ -3162,7 +3159,7 @@ function renderOAuthResultPage(opts) {
         window.opener.postMessage(payload, '*');
       }
       if (window.BroadcastChannel) {
-        var bc = new BroadcastChannel('open-design-mcp-oauth');
+        var bc = new BroadcastChannel('readable-studio-mcp-oauth');
         bc.postMessage(payload);
         bc.close();
       }
@@ -3302,7 +3299,7 @@ function createAmrModelUnavailablePayload(model, init = {}) {
   );
 }
 
-const UPLOAD_DIR = path.join(os.tmpdir(), 'od-uploads');
+const UPLOAD_DIR = path.join(os.tmpdir(), 'readable-uploads');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 fs.mkdirSync(ARTIFACTS_DIR, { recursive: true });
 
@@ -3374,7 +3371,7 @@ const projectUpload = multer({
         // the user's files so the agent can read them via the same path
         // it sees. projectMetadataLookup is populated at startServer() boot
         // and keyed by project id; null fallback gives the standard
-        // .od/projects/<id>/ behavior for non-imported projects.
+        // .readable-studio/projects/<id>/ behavior for non-imported projects.
         const meta = projectMetadataLookup?.(req.params.id) ?? null;
         // Optional `dir` form field (sent BEFORE the file parts by the web
         // client) routes uploads into a subfolder, so files dropped/picked
@@ -3529,17 +3526,17 @@ function pluginShareActionToCli(action) {
     return {
       argv: ['plugin', 'publish-repo'],
       title: 'Publish repo',
-      command: 'od plugin publish-repo',
+      command: 'readable plugin publish-repo',
       successMessage: 'Published plugin to GitHub.',
       failureCode: 'publish-repo-failed',
     };
   }
   return {
-    argv: ['plugin', 'open-design-pr'],
-    title: 'Open Design PR',
-    command: 'od plugin open-design-pr',
-    successMessage: 'Opened Open Design PR flow.',
-    failureCode: 'open-design-pr-failed',
+    argv: ['plugin', 'readable-studio-pr'],
+    title: 'Readable Studio PR',
+    command: 'readable plugin readable-studio-pr',
+    successMessage: 'Opened Readable Studio PR flow.',
+    failureCode: 'readable-studio-pr-failed',
   };
 }
 
@@ -3553,7 +3550,7 @@ function pluginShareProgressPlan(action) {
     ];
   }
   return [
-    'Ensure the Open Design fork exists',
+    'Ensure the Readable Studio fork exists',
     'Clone the fork and prepare a branch',
     'Copy the plugin into plugins/community',
     'Push the branch and open the PR form',
@@ -3567,8 +3564,8 @@ async function runPluginShareTask(task, folder) {
   for (const step of pluginShareProgressPlan(task.action)) {
     appendPluginShareTaskProgress(task, `- ${step}`);
   }
-  const result = await execCommandViaLoginShell(OD_NODE_BIN, [
-    OD_BIN,
+  const result = await execCommandViaLoginShell(READABLE_NODE_BIN, [
+    READABLE_BIN,
     ...share.argv,
     folder,
     '--json',
@@ -3601,7 +3598,7 @@ async function runPluginShareTask(task, folder) {
     message: url
       ? (task.action === 'publish-github'
           ? `Published plugin to ${url}.`
-          : `Opened Open Design PR flow at ${url}.`)
+          : `Opened Readable Studio PR flow at ${url}.`)
       : share.successMessage,
     ...(url ? { url } : {}),
     log: stepLog,
@@ -3700,10 +3697,10 @@ const DEFAULT_CHAT_RUN_INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000;
 const MAX_CHAT_RUN_INACTIVITY_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 // Reserved post-artifact quiet-period window. No producer currently flips the
 // matching run-watchdog flag, so runs use the standard inactivity timeout.
-const DEFAULT_CHAT_RUN_ARTIFACT_QUIET_PERIOD_MS = 60 * 1000;
+const DEFAULT_CHAT_RUN_ARTIFACT_QUIET_PERIREADABLE_MS = 60 * 1000;
 
 function resolveChatRunInactivityTimeoutMs() {
-  const raw = Number(process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS);
+  const raw = Number(process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS);
   // This watchdog observes child stdout/stderr/SSE activity, not real CPU or
   // filesystem progress. Keep the default long enough for agents that spend
   // several minutes silently writing large artifacts.
@@ -3720,15 +3717,15 @@ function resolveChatRunInactivityTimeoutMs() {
 // reaching into chat-run internals.
 // @dsp func-04612bf8
 export function resolveChatRunArtifactQuietPeriodMs() {
-  const raw = Number(process.env.OD_CHAT_RUN_ARTIFACT_QUIET_PERIOD_MS);
-  if (!Number.isFinite(raw)) return DEFAULT_CHAT_RUN_ARTIFACT_QUIET_PERIOD_MS;
+  const raw = Number(process.env.READABLE_CHAT_RUN_ARTIFACT_QUIET_PERIREADABLE_MS);
+  if (!Number.isFinite(raw)) return DEFAULT_CHAT_RUN_ARTIFACT_QUIET_PERIREADABLE_MS;
   return Math.min(MAX_CHAT_RUN_INACTIVITY_TIMEOUT_MS, Math.max(0, Math.floor(raw)));
 }
 
 // Pure resolver for the chat run's *currently active* inactivity
 // ceiling. Used by both `noteAgentActivity` and `noteArtifactRegistered`
 // to pick between the pre-artifact watchdog and the shortened quiet
-// period. Extracted so the `OD_CHAT_RUN_ARTIFACT_QUIET_PERIOD_MS=0`
+// period. Extracted so the `READABLE_CHAT_RUN_ARTIFACT_QUIET_PERIREADABLE_MS=0`
 // "disable the quiet period" semantics can be pinned with focused unit
 // tests (#1451 review: a 0-value override must not strand the pre-artifact
 // timer or stop further reschedules — it has to fall back to the
@@ -3869,7 +3866,7 @@ export function applyClaudeStreamJsonRunBookkeeping(
 }
 
 function resolveChatRunShutdownGraceMs() {
-  const raw = Number(process.env.OD_CHAT_RUN_SHUTDOWN_GRACE_MS);
+  const raw = Number(process.env.READABLE_CHAT_RUN_SHUTDOWN_GRACE_MS);
   if (!Number.isFinite(raw)) return 3_000;
   return Math.max(0, Math.floor(raw));
 }
@@ -3877,10 +3874,10 @@ function resolveChatRunShutdownGraceMs() {
 function resolveAcpStageTimeoutMs(): number | undefined {
   // Per-stage silence watchdog for ACP chat sessions. Defaults are owned by
   // `attachAcpSession` in acp.ts; this resolver only applies when an operator
-  // sets `OD_ACP_STAGE_TIMEOUT_MS`. Bounded to the same 24h ceiling as the
+  // sets `READABLE_ACP_STAGE_TIMEOUT_MS`. Bounded to the same 24h ceiling as the
   // outer chat inactivity watchdog so an oversized override doesn't get
   // clamped to 1ms by Node's signed-32-bit delay limit.
-  const raw = Number(process.env.OD_ACP_STAGE_TIMEOUT_MS);
+  const raw = Number(process.env.READABLE_ACP_STAGE_TIMEOUT_MS);
   if (!Number.isFinite(raw)) return undefined;
   return Math.min(MAX_CHAT_RUN_INACTIVITY_TIMEOUT_MS, Math.max(0, Math.floor(raw)));
 }
@@ -3888,7 +3885,7 @@ function resolveAcpStageTimeoutMs(): number | undefined {
 // @dsp func-a4b7141c
 export async function startServer({
   port = 7456,
-  host = process.env.OD_BIND_HOST || '127.0.0.1',
+  host = process.env.READABLE_BIND_HOST || '127.0.0.1',
   returnServer = false,
   desktopPdfExporter = null,
   runtime = null,
@@ -3915,19 +3912,19 @@ export async function startServer({
   // Plan §3.K1 / spec §15.7 — bound-API-token guard.
   //
   // The daemon refuses to bind to a public interface unless an
-  // OD_API_TOKEN is set. This is the spec §16 Phase 5 safety floor:
+  // READABLE_API_TOKEN is set. This is the spec §16 Phase 5 safety floor:
   // a hosted operator can no longer accidentally publish an unsecured
-  // daemon by setting OD_BIND_HOST=0.0.0.0 without a token.
+  // daemon by setting READABLE_BIND_HOST=0.0.0.0 without a token.
   //
   // Loopback hosts (127.0.0.1 / ::1 / localhost) are always allowed —
-  // the desktop / dev flow remains unchanged. Setting OD_API_TOKEN is
+  // the desktop / dev flow remains unchanged. Setting READABLE_API_TOKEN is
   // purely additive: when present, every /api/* request must carry a
   // matching `Authorization: Bearer <token>` header (loopback origins
   // are exempted so the desktop UI keeps working).
-  const apiToken = (process.env.OD_API_TOKEN ?? '').trim();
+  const apiToken = (process.env.READABLE_API_TOKEN ?? '').trim();
   if (!isLoopbackHostname(host) && apiToken.length === 0) {
     throw new Error(
-      `OD_BIND_HOST=${host} requires OD_API_TOKEN to be set. ` +
+      `READABLE_BIND_HOST=${host} requires READABLE_API_TOKEN to be set. ` +
       `Generate one with \`openssl rand -hex 32\` and re-launch. ` +
       `(Loopback hosts 127.0.0.1 / ::1 / localhost do not need a token.)`,
     );
@@ -3957,10 +3954,10 @@ export async function startServer({
 
   // Plan §3.K1 — bearer-token middleware.
   //
-  // Active only when OD_API_TOKEN is set. Loopback origins skip the
+  // Active only when READABLE_API_TOKEN is set. Loopback origins skip the
   // check (the desktop UI / local CLI never carry a bearer); every
   // other request must present `Authorization: Bearer <token>` with a
-  // value matching `OD_API_TOKEN`. Health / readiness / version remain
+  // value matching `READABLE_API_TOKEN`. Health / readiness / version remain
   // open so monitoring probes don't need the token. Server-minted
   // project preview asset scopes are also accepted for GETs so sandboxed
   // browser iframes can load HTML/CSS/JS without privileged headers.
@@ -3995,7 +3992,7 @@ export async function startServer({
       const match = /^Bearer\s+(\S+)\s*$/i.exec(auth);
       if (!match || match[1] !== apiToken) {
         return res.status(401).json({
-          error: { code: 'API_TOKEN_REQUIRED', message: 'Authorization: Bearer <OD_API_TOKEN> required' },
+          error: { code: 'API_TOKEN_REQUIRED', message: 'Authorization: Bearer <READABLE_API_TOKEN> required' },
         });
       }
       return next();
@@ -4209,7 +4206,7 @@ export async function startServer({
     if (!Buffer.isBuffer(buffer)) return false;
     const text = buffer.toString('utf8');
     if (/^ui_kits\/app\/components\/.+\.(jsx|tsx|js|ts|css|html)$/u.test(filePath)) {
-      return buffer.length < 700 && /od-ui-kit-[a-z-]+/u.test(text);
+      return buffer.length < 700 && /readable-ui-kit-[a-z-]+/u.test(text);
     }
     if (!/^(DESIGN\.md|README\.md|SKILL\.md|ui_kits\/app\/README\.md)$/u.test(filePath)) {
       return false;
@@ -4356,8 +4353,8 @@ export async function startServer({
     console.warn(`[critique] reconcileStaleRuns flipped ${reconciledStaleRuns} stale running row(s) to interrupted`);
   }
 
-  if (process.env.OD_CODEX_DISABLE_PLUGINS === '1') {
-    console.log('[od] Codex plugins disabled via OD_CODEX_DISABLE_PLUGINS=1');
+  if (process.env.READABLE_CODEX_DISABLE_PLUGINS === '1') {
+    console.log('[readable] Codex plugins disabled via READABLE_CODEX_DISABLE_PLUGINS=1');
   }
 
   let bundledMarketplaceEntries = [];
@@ -4374,23 +4371,23 @@ export async function startServer({
       marketplaceProvenance: {
         sourceMarketplaceId: OFFICIAL_MARKETPLACE_ID,
         marketplaceTrust:    'official',
-        entryNamePrefix:     'open-design',
+        entryNamePrefix:     'readable-studio',
       },
     });
     bundledMarketplaceEntries = result.registered.map((plugin) => ({
-      name:        `open-design/${plugin.id}`,
+      name:        `readable-studio/${plugin.id}`,
       title:       plugin.title,
       title_i18n:  plugin.manifest.title_i18n,
       description: plugin.manifest.description,
       description_i18n: plugin.manifest.description_i18n,
       version:     plugin.version,
       source:      bundledPluginRegistrySource(plugin.source),
-      publisher:   { id: 'open-design', url: 'https://open-design.ai' },
+      publisher:   { id: 'readable-studio', url: 'https://github.com/sanghyunna/readable-studio' },
       homepage:    plugin.manifest.homepage,
       license:     plugin.manifest.license,
       tags:        plugin.manifest.tags,
-      capabilitiesSummary: Array.isArray(plugin.manifest.od?.capabilities)
-        ? plugin.manifest.od.capabilities
+      capabilitiesSummary: Array.isArray(plugin.manifest.readable?.capabilities)
+        ? plugin.manifest.readable.capabilities
         : undefined,
     }));
     if (result.registered.length > 0) {
@@ -4404,7 +4401,7 @@ export async function startServer({
   }
 
   // Plan §3.A5 / spec §16 Phase 5 / PB2: periodic snapshot GC. Disabled
-  // when OD_SNAPSHOT_GC_INTERVAL_MS is 0. The function returns a
+  // when READABLE_SNAPSHOT_GC_INTERVAL_MS is 0. The function returns a
   // NOOP_HANDLE when disabled so we don't have to branch on the result.
   const snapshotGc = startSnapshotGc({ db });
   const runSnapshotGcStartupSweep = () => {
@@ -4436,13 +4433,18 @@ export async function startServer({
 
   app.get('/api/health', async (_req, res) => {
     const versionInfo = await readCurrentAppVersionInfo();
-    res.json({ ok: true, version: versionInfo.version });
+    res.json({
+      descriptor: createRuntimeDescriptor(versionInfo.version),
+      ok: true,
+      version: versionInfo.version,
+    });
   });
 
   app.get('/api/ready', async (_req, res) => {
     const versionInfo = await readCurrentAppVersionInfo();
     const ready = !daemonShuttingDown;
     res.status(ready ? 200 : 503).json({
+      descriptor: createRuntimeDescriptor(versionInfo.version),
       ok: ready,
       ready,
       version: versionInfo.version,
@@ -4451,22 +4453,23 @@ export async function startServer({
 
   app.get('/api/version', async (_req, res) => {
     const version = await readCurrentAppVersionInfo();
-    res.json({ version });
+    res.json({ descriptor: createRuntimeDescriptor(version.version), version });
   });
 
   // Plan §3.F2 / spec §11.7 — daemon lifecycle status. Returns the
   // host / port the server is bound to plus the data dir,
-  // so `od daemon status --json` can render a one-shot health snapshot
+  // so `readable daemon status --json` can render a one-shot health snapshot
   // without depending on /api/version's content shape.
   app.get('/api/daemon/status', async (_req, res) => {
     const versionInfo = await readCurrentAppVersionInfo();
     res.json({
+      descriptor: createRuntimeDescriptor(versionInfo.version),
       ok: true,
       version: versionInfo.version,
       bindHost: host,
       port: resolvedPort,
       dataDir: RUNTIME_DATA_DIR,
-      mediaConfigDir: process.env.OD_MEDIA_CONFIG_DIR ?? null,
+      mediaConfigDir: process.env.READABLE_MEDIA_CONFIG_DIR ?? null,
       sandboxMode: SANDBOX_RUNTIME.enabled,
       sandbox: SANDBOX_RUNTIME.enabled
         ? { enabled: true, roots: SANDBOX_RUNTIME.roots }
@@ -4483,7 +4486,7 @@ export async function startServer({
     });
   });
 
-  // Plan §3.GG1 — `od daemon db status`. Inventory of the SQLite
+  // Plan §3.GG1 — `readable daemon db status`. Inventory of the SQLite
   // backend: file path, size on disk (primary + WAL + SHM), schema
   // version (the user_version PRAGMA we use for migrations), and
   // per-table row counts. Useful for ops sanity-checking
@@ -4500,7 +4503,7 @@ export async function startServer({
   });
 
   // Plan §3.KK1 — non-SSE one-shot read of the event ring buffer.
-  // Useful for dashboards + the `od plugin events snapshot` CLI
+  // Useful for dashboards + the `readable plugin events snapshot` CLI
   // command that doesn't need a live tail.
   app.get('/api/plugins/events/snapshot', async (req, res) => {
     const since = Number(typeof req.query.since === 'string' ? req.query.since : 0);
@@ -4519,7 +4522,7 @@ export async function startServer({
     });
   });
 
-  // Plan §3.NN1 — `od plugin events purge`. Operator escape
+  // Plan §3.NN1 — `readable plugin events purge`. Operator escape
   // hatch for resetting the in-memory ring buffer. Loopback-only
   // because clearing the buffer drops audit history; an operator
   // with shell access to the daemon machine should be the only
@@ -4528,7 +4531,7 @@ export async function startServer({
   // PR #3157: surface the Antigravity OAuth flow as a one-click action
   // in the chat's AGENT_AUTH_REQUIRED banner. agy's `-p` print mode
   // can't complete the Google Sign-In flow on its own (no input field
-  // for the auth code), so OD opens a system Terminal running `agy`
+  // for the auth code), so Readable Studio opens a system Terminal running `agy`
   // for the user; they finish OAuth there, then retry the chat. The
   // endpoint is loopback-gated and only supports antigravity because
   // (a) we hardcode `agy` as the command, and (b) opening a new
@@ -4571,7 +4574,7 @@ export async function startServer({
     }
   });
 
-  // Plan §3.II1 — `od plugin events tail`. SSE-backed live event
+  // Plan §3.II1 — `readable plugin events tail`. SSE-backed live event
   // stream of plugin lifecycle events from the in-memory ring
   // buffer. On open: emits the buffered backlog as 'event: backlog'
   // entries (capped at the buffer's MAX), then forwards every
@@ -4598,7 +4601,7 @@ export async function startServer({
     req.on('close', () => { unsubscribe(); });
   });
 
-  // Plan §3.LL1 — `od daemon db verify`. Runs SQLite
+  // Plan §3.LL1 — `readable daemon db verify`. Runs SQLite
   // PRAGMA integrity_check (or quick_check when ?quick=1) +
   // PRAGMA foreign_key_check, returns a structured issues[]
   // report. Loopback-only via requireLocalDaemonRequest because
@@ -4614,7 +4617,7 @@ export async function startServer({
     }
   });
 
-  // Plan §3.HH2 — `od daemon db vacuum`. Runs SQLite VACUUM to
+  // Plan §3.HH2 — `readable daemon db vacuum`. Runs SQLite VACUUM to
   // reclaim space after large delete batches (snapshot prune,
   // plugin uninstall, etc.). Reports before / after sizes so the
   // operator sees the reclamation, plus elapsed ms so a slow
@@ -4643,7 +4646,7 @@ export async function startServer({
   });
 
   // Plan §3.F2 — graceful shutdown. The CLI calls this from
-  // `od daemon stop`; the actual close path goes through the same
+  // `readable daemon stop`; the actual close path goes through the same
   // SIGTERM-equivalent flow as a parent-process kill (the boot wrapper
   // in cli.ts wires the process listeners). 202 Accepted because the
   // shutdown completes after the response flush.
@@ -4663,9 +4666,9 @@ export async function startServer({
   // format string. Operators put this behind their existing auth proxy;
   // there is no built-in authn on the daemon HTTP server. To disable
   // the endpoint entirely (air-gapped installs, regulatory contexts),
-  // set `OD_METRICS_ENDPOINT=disabled`; the route is registered only
+  // set `READABLE_METRICS_ENDPOINT=disabled`; the route is registered only
   // when that env value is not the literal string 'disabled'.
-  if (process.env.OD_METRICS_ENDPOINT !== 'disabled') {
+  if (process.env.READABLE_METRICS_ENDPOINT !== 'disabled') {
     app.get('/api/metrics', async (_req, res) => {
       res.setHeader('Content-Type', register.contentType);
       res.send(await getCritiqueMetrics());
@@ -4674,7 +4677,7 @@ export async function startServer({
 
   // Phase 16 ratchet endpoint. Returns the rolling conformance window
   // and the ratchet's current recommendation. Operator-driven by
-  // design: the recommendation does not flip OD_CRITIQUE_ROLLOUT_PHASE
+  // design: the recommendation does not flip READABLE_CRITIQUE_ROLLOUT_PHASE
   // automatically, it surfaces so a deploy-pipeline follow-up can
   // consume it. Tunables come from query string; defaults are the
   // spec values (14 days, 0.90 shipped, 0.95 clean-parse).
@@ -4701,7 +4704,7 @@ export async function startServer({
       const cleanParseThreshold = parseRate(req.query.cleanParseThreshold, 0.95);
       const history = await readConformanceHistory(RUNTIME_DATA_DIR, windowDays);
       const decision = evaluateRollout({
-        current: parseRolloutPhase(process.env.OD_CRITIQUE_ROLLOUT_PHASE),
+        current: parseRolloutPhase(process.env.READABLE_CRITIQUE_ROLLOUT_PHASE),
         history,
         windowDays,
         shippedThreshold,
@@ -4905,7 +4908,7 @@ export async function startServer({
   // when a listener is present (the `--unhandled-rejections=throw` mode
   // only fires when nothing has subscribed). We bounded-flush posthog-
   // node and then call `process.exit(1)` explicitly so the supervisor
-  // (pm2, packaged updater, dev `tools-dev`) gets a fresh process and
+  // (pm2, packaged runtime, dev `tools-dev`) gets a fresh process and
   // we don't leave a half-broken daemon answering requests with state
   // corruption. See codex review on PR #2527 (Siri-Ray).
   const FATAL_FLUSH_TIMEOUT_MS = 1000;
@@ -4974,15 +4977,6 @@ export async function startServer({
   void (async () => {
     try {
       cachedAppVersion = await readCurrentAppVersionInfo();
-      await observePendingInstallerApplyAttempts({
-        analytics: analyticsService,
-        appVersion: cachedAppVersion.version,
-        currentChannel: cachedAppVersion.channel,
-        currentVersion: cachedAppVersion.version,
-        dataRoot: RUNTIME_DATA_DIR,
-        logger: console,
-        namespace: process.env[SIDECAR_ENV.NAMESPACE] ?? SIDECAR_DEFAULTS.namespace,
-      });
     } catch {
       // Telemetry is best-effort; appVersion is omitted when unavailable.
     }
@@ -5054,7 +5048,7 @@ export async function startServer({
     SKILLS_DIR,
     USER_SKILLS_DIR,
     BUNDLED_PETS_DIR,
-    OD_BIN,
+    READABLE_BIN,
   };
   const nodeDeps = { fs, path };
   const idDeps = { randomUUID };
@@ -5252,6 +5246,14 @@ export async function startServer({
     projectFiles: projectFileDeps,
     validation: validationDeps,
   });
+  registerStandaloneHtmlRoutes(app, {
+    db,
+    http: httpDeps,
+    paths: pathDeps,
+    projectStore: projectStoreDeps,
+    projectFiles: projectFileDeps,
+    designSystems: { read: readAvailableDesignSystem },
+  });
 
   // Resource catalog
   registerStaticResourceRoutes(app, {
@@ -5367,7 +5369,7 @@ export async function startServer({
     try {
       dbDeleteProject(db, req.params.id);
       await removeProjectDir(PROJECTS_DIR, req.params.id).catch(() => {});
-      /** @type {import('@open-design/contracts').OkResponse} */
+      /** @type {import('@readable-studio/contracts').OkResponse} */
       const body = { ok: true };
       res.json(body);
     } catch (err) {
@@ -5720,7 +5722,7 @@ export async function startServer({
 
   // AMR (vela) login integration — see `apps/daemon/src/integrations/vela.ts`.
   // The vela CLI owns the device-authorization UX (URL + code + browser open);
-  // these routes only surface enough state for Open Design's Settings card to
+  // these routes only surface enough state for Readable Studio's Settings card to
   // show login status and trigger a login from a button.
   async function resolveAmrModelProbe() {
     const appConfig = await readAppConfig(RUNTIME_DATA_DIR);
@@ -5746,7 +5748,7 @@ export async function startServer({
     const cacheKey = JSON.stringify({
       launchPath,
       home: env.HOME ?? env.USERPROFILE ?? '',
-      openDesignAmrProfile: env.OPEN_DESIGN_AMR_PROFILE ?? '',
+      readableStudioAmrProfile: env.READABLE_AMR_PROFILE ?? '',
       velaProfile: env.VELA_PROFILE ?? '',
       velaLinkUrl: env.VELA_LINK_URL ?? '',
       velaRuntimeKey: env.VELA_RUNTIME_KEY ?? '',
@@ -6183,7 +6185,7 @@ export async function startServer({
   }
 
   async function folderLooksLikePlugin(folder) {
-    const names = ['open-design.json', 'SKILL.md', path.join('.claude-plugin', 'plugin.json')];
+    const names = ['readable-studio.json', 'SKILL.md', path.join('.claude-plugin', 'plugin.json')];
     for (const name of names) {
       if (fs.existsSync(path.join(folder, name))) return true;
     }
@@ -6237,7 +6239,7 @@ export async function startServer({
         if (!file || !file.buffer) {
           return res.status(400).json({ error: 'file is required' });
         }
-        const stagedFolder = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'od-plugin-zip-'));
+        const stagedFolder = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'readable-plugin-zip-'));
         await extractPluginZipToFolder(file.buffer, stagedFolder);
         const result = await finishUploadedPluginInstall(
           stagedFolder,
@@ -6258,7 +6260,7 @@ export async function startServer({
   app.post('/api/plugins/upload-folder', (req, res) => {
     pluginUpload.array('files', 500)(req, res, async (err) => {
       if (err) return sendMulterError(res, err);
-      const stagedFolder = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'od-plugin-folder-'));
+      const stagedFolder = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'readable-plugin-folder-'));
       try {
         const files = Array.isArray(req.files) ? req.files : [];
         if (files.length === 0) {
@@ -6339,7 +6341,7 @@ export async function startServer({
         return res.status(404).json({
           error: {
             code: 'plugin-not-found',
-            message: `No marketplace plugin named "${source}". Add a marketplace via 'od marketplace add <url>' or pass a github: / https:// / local source.`,
+            message: `No marketplace plugin named "${source}". Add a marketplace via 'readable marketplace add <url>' or pass a github: / https:// / local source.`,
             data: { name: source },
           },
         });
@@ -6393,7 +6395,7 @@ export async function startServer({
     }
   });
 
-  // Plan §3.Z2 — `od plugin upgrade <id>` re-installs a plugin from
+  // Plan §3.Z2 — `readable plugin upgrade <id>` re-installs a plugin from
   // its recorded source. Streams the same SSE shape as
   // POST /api/plugins/install so CLIs and the web composer reuse
   // the existing event handler.
@@ -6444,7 +6446,7 @@ export async function startServer({
       return res.status(409).json({
         error: {
           code: 'missing-source',
-          message: `Plugin "${id}" has no recorded install source — cannot upgrade. Reinstall via 'od plugin install --source <...>' to set one.`,
+          message: `Plugin "${id}" has no recorded install source — cannot upgrade. Reinstall via 'readable plugin install --source <...>' to set one.`,
           data: { id },
         },
       });
@@ -6497,7 +6499,7 @@ export async function startServer({
     ]);
     // Spec §23.3.3: surface the bundled scenario plugins so apply()
     // can fall back to the matching scenario's pipeline when the
-    // consumer plugin omits od.pipeline. Each scenario carries a
+    // consumer plugin omits readable.pipeline. Each scenario carries a
     // `taskKind` that picks the match.
     const scenarios = collectBundledScenarios();
     return {
@@ -6510,7 +6512,7 @@ export async function startServer({
   }
 
   // Pure read off `installed_plugins`: rows whose source_kind='bundled'
-  // AND od.kind='scenario' AND od.pipeline is non-empty become entries
+  // AND readable.kind='scenario' AND readable.pipeline is non-empty become entries
   // the apply path can fall back to. Scenario plugins from third-party
   // sources are intentionally NOT trusted as defaults — the bundled
   // boot walker (apps/daemon/src/plugins/bundled.ts) is the only writer
@@ -6520,30 +6522,30 @@ export async function startServer({
   // Plan §3.O1 / §C-stage of plugin-driven-flow-plan: more than one
   // bundled scenario may share a `taskKind`. The pipeline-fallback
   // resolver expects ONE scenario per taskKind, so this function
-  // dedupes and prefers the canonical id `od-<taskKind>` as the
+  // dedupes and prefers the canonical id `readable-<taskKind>` as the
   // pipeline-fallback winner. Non-canonical scenarios still install
   // and run through their explicit pluginId path; they just don't get
-  // to hijack a consumer plugin that omitted `od.pipeline`.
+  // to hijack a consumer plugin that omitted `readable.pipeline`.
   function collectBundledScenarios() {
     type ScenarioEntry = {
       id: string;
       taskKind: 'new-generation' | 'figma-migration' | 'code-migration' | 'tune-collab';
-      pipeline: NonNullable<NonNullable<import('@open-design/contracts').PluginManifest['od']>['pipeline']>;
+      pipeline: NonNullable<NonNullable<import('@readable-studio/contracts').PluginManifest['readable']>['pipeline']>;
     };
     const byTaskKind = new Map<ScenarioEntry['taskKind'], ScenarioEntry>();
     try {
       const all = listInstalledPlugins(db);
       for (const row of all) {
         if (row.sourceKind !== 'bundled') continue;
-        const od = row.manifest.od;
-        if (!od || od.kind !== 'scenario') continue;
-        if (!od.pipeline || !Array.isArray(od.pipeline.stages) || od.pipeline.stages.length === 0) continue;
-        const taskKind = (od.taskKind ?? 'new-generation') as ScenarioEntry['taskKind'];
+        const readable = row.manifest.readable;
+        if (!readable || readable.kind !== 'scenario') continue;
+        if (!readable.pipeline || !Array.isArray(readable.pipeline.stages) || readable.pipeline.stages.length === 0) continue;
+        const taskKind = (readable.taskKind ?? 'new-generation') as ScenarioEntry['taskKind'];
         if (taskKind !== 'new-generation' && taskKind !== 'figma-migration' &&
             taskKind !== 'code-migration' && taskKind !== 'tune-collab') continue;
-        const entry: ScenarioEntry = { id: row.id, taskKind, pipeline: od.pipeline };
+        const entry: ScenarioEntry = { id: row.id, taskKind, pipeline: readable.pipeline };
         const existing = byTaskKind.get(taskKind);
-        if (!existing || entry.id === `od-${taskKind}`) {
+        if (!existing || entry.id === `readable-${taskKind}`) {
           byTaskKind.set(taskKind, entry);
         }
       }
@@ -6605,7 +6607,7 @@ export async function startServer({
       const body = req.body && typeof req.body === 'object' ? req.body : {};
       const action = normalizePluginShareAction(body.action);
       if (!action) {
-        sendApiError(res, 400, 'BAD_REQUEST', 'action must be publish-github or contribute-open-design');
+        sendApiError(res, 400, 'BAD_REQUEST', 'action must be publish-github or contribute-readable-studio');
         return;
       }
       const actionPluginId = PLUGIN_SHARE_ACTION_PLUGIN_IDS[action];
@@ -6772,7 +6774,7 @@ export async function startServer({
     res.json({ atoms: FIRST_PARTY_ATOMS.map((a) => ({ ...a, taskKinds: a.taskKinds.slice() })) });
   });
 
-  // Plan §3.AA2 — `od atoms info <id>`. Returns the catalog row +
+  // Plan §3.AA2 — `readable atoms info <id>`. Returns the catalog row +
   // the bundled SKILL.md body (when one exists at
   // plugins/_official/atoms/<id>/SKILL.md) so the caller can render
   // a single page describing what the atom does + the prompt
@@ -7047,9 +7049,9 @@ export async function startServer({
   //
   // Two flavours wrap the same sandboxed-HTML envelope as `/asset/*`:
   //   - `/preview` serves the plugin's preview entry (declared via
-  //     `od.preview.entry`, with fallbacks that walk the plugin's
+  //     `readable.preview.entry`, with fallbacks that walk the plugin's
   //     own context.assets[] HTMLs, examples/*.html and assets/*.html).
-  //   - `/example/:name` serves an entry from `od.useCase.exampleOutputs[]`,
+  //   - `/example/:name` serves an entry from `readable.useCase.exampleOutputs[]`,
   //     matched by basename or by index. Both reuse the same
   //     traversal / containment guards as the asset route.
   //
@@ -7059,7 +7061,7 @@ export async function startServer({
   // try to fetch.
   //
   // Some bundled plugins (`example-guizang-ppt`, `example-html-ppt`,
-  // …) declare `od.preview.entry: "./index.html"` but actually ship
+  // …) declare `readable.preview.entry: "./index.html"` but actually ship
   // the renderable HTML under `assets/example-slides.html` or
   // `assets/template.html`. Returning 404 in that case lit up white
   // tiles in the home gallery, so the candidates list always extends
@@ -7083,19 +7085,19 @@ export async function startServer({
 
     const manifest =
       ((plugin as { manifest?: unknown }).manifest ?? {}) as Record<string, unknown>;
-    const od = (manifest.od ?? {}) as Record<string, unknown>;
-    const preview = (od.preview ?? {}) as Record<string, unknown>;
+    const readable = (manifest.readable ?? {}) as Record<string, unknown>;
+    const preview = (readable.preview ?? {}) as Record<string, unknown>;
 
     push(preview.entry);
 
-    const ctx = (od.context ?? {}) as Record<string, unknown>;
+    const ctx = (readable.context ?? {}) as Record<string, unknown>;
     const assets = Array.isArray(ctx.assets) ? ctx.assets : [];
     for (const a of assets) {
       const rel = typeof a === 'string' ? a : null;
       if (rel && /\.html?$/i.test(rel)) push(rel);
     }
 
-    const useCase = (od.useCase ?? {}) as Record<string, unknown>;
+    const useCase = (readable.useCase ?? {}) as Record<string, unknown>;
     const exampleOutputs = Array.isArray(useCase.exampleOutputs)
       ? useCase.exampleOutputs
       : [];
@@ -7146,17 +7148,18 @@ export async function startServer({
   }
 
   app.get('/api/plugins/:id/preview', async (req, res) => {
-    await servePluginSandboxedHtml(req, res, async (plugin) => {
-      const curated = collectPluginPreviewCandidates(plugin);
-      const fsPath = (plugin as { fsPath?: unknown }).fsPath;
-      if (typeof fsPath !== 'string') return curated;
-      const discovered = await discoverPluginHtmlAssets(fsPath);
-      const seen = new Set(curated);
-      for (const rel of discovered) {
-        if (!seen.has(rel)) curated.push(rel);
-      }
-      return curated;
-    });
+    try {
+      const plugin = getInstalledPlugin(db, req.params.id);
+      if (!plugin) return res.status(404).json({ error: 'plugin not found' });
+      const resolved = await resolvePluginHtml(plugin);
+      if (!resolved) return res.status(404).json({ error: 'preview not found' });
+      res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self' data: blob:; media-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'none'; frame-ancestors 'self'");
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.type('text/html').send(rewritePluginAssetUrls(resolved.html, req.params.id, path.posix.dirname(resolved.entryPath)));
+    } catch (error) {
+      if (error instanceof PluginHtmlTooLargeError) return res.status(413).json({ error: 'preview asset too large' });
+      res.status(500).json({ error: String(error) });
+    }
   });
 
   app.get('/api/plugins/:id/example/:name', async (req, res) => {
@@ -7164,30 +7167,18 @@ export async function startServer({
     if (!name || /[\\/\0]|\.\./.test(name)) {
       return res.status(400).json({ error: 'invalid example name' });
     }
-    await servePluginSandboxedHtml(req, res, async (plugin) => {
-      const examples = ((plugin as { manifest?: { od?: { useCase?: { exampleOutputs?: Array<{ path?: unknown; title?: unknown }> } } } })
-        .manifest?.od?.useCase?.exampleOutputs ?? []) as Array<{ path?: unknown; title?: unknown }>;
-      const match = examples.find((e) => {
-        if (!e || typeof e.path !== 'string') return false;
-        const segments = e.path.split(/[\\/]/).filter(Boolean);
-        const base = segments[segments.length - 1] ?? '';
-        const baseStem = base.replace(/\.[^.]+$/, '');
-        // For `examples/<folder>/index.html` the conceptual "name"
-        // is the folder, not the inner basename.
-        const parent = segments.length >= 2 ? segments[segments.length - 2] : null;
-        const candidates = [base, baseStem, parent].filter((s): s is string => !!s);
-        if (typeof e.title === 'string') candidates.push(e.title);
-        return candidates.includes(name);
-      });
-      if (match && typeof match.path === 'string') return [match.path];
-      // Allow `examples/<name>/index.html` and `examples/<name>.html`
-      // so plugin authors can ship example folders without enumerating
-      // them in the manifest.
-      return [
-        `examples/${name}/index.html`,
-        `examples/${name}.html`,
-      ];
-    });
+    try {
+      const plugin = getInstalledPlugin(db, req.params.id);
+      if (!plugin) return res.status(404).json({ error: 'plugin not found' });
+      const resolved = await resolvePluginHtml(plugin, name);
+      if (!resolved) return res.status(404).json({ error: 'preview not found' });
+      res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self' data: blob:; media-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'none'; frame-ancestors 'self'");
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.type('text/html').send(rewritePluginAssetUrls(resolved.html, req.params.id, path.posix.dirname(resolved.entryPath)));
+    } catch (error) {
+      if (error instanceof PluginHtmlTooLargeError) return res.status(413).json({ error: 'preview asset too large' });
+      res.status(500).json({ error: String(error) });
+    }
   });
 
   app.get('/api/plugins/:id/asset/*splat', async (req, res) => {
@@ -7298,7 +7289,7 @@ export async function startServer({
 
   // Plan §3.H2 / spec §12.2 — craft list endpoint.
   // Mirrors the daemon's existing /api/skills + /api/design-systems
-  // discovery surface so `od craft list` is a thin wrapper over a
+  // discovery surface so `readable craft list` is a thin wrapper over a
   // single HTTP call. Each entry returns a slug + size + first
   // markdown header so a code agent can browse without a separate
   // /api/craft/:id read.
@@ -7368,7 +7359,7 @@ export async function startServer({
     }
   });
 
-  // Plan §3.DD1 — `od plugin stats`. Aggregates the installed-
+  // Plan §3.DD1 — `readable plugin stats`. Aggregates the installed-
   // plugin roster + the applied_plugin_snapshots roster into one
   // health/inventory report. Pure helpers in plugins/stats.ts;
   // the route wires the SQLite reads + merges on the way out.
@@ -7389,7 +7380,7 @@ export async function startServer({
     }
   });
 
-  // Plan §3.CC1 — `od plugin canon <snapshotId>`. Returns the
+  // Plan §3.CC1 — `readable plugin canon <snapshotId>`. Returns the
   // canonical `## Active plugin` block the agent will see when
   // this snapshot is spliced into the system prompt. Powered by
   // the same renderPluginBlock() composeSystemPrompt() uses, so
@@ -7416,7 +7407,7 @@ export async function startServer({
   });
 
   // Plan §3.B4 / spec §6: marketplace registry minimum verbs.
-  // Phase 3 layers in `od plugin install <name>` resolution + the trust
+  // Phase 3 layers in `readable plugin install <name>` resolution + the trust
   // UI on top; this route set is the storage half.
   app.get('/api/marketplaces', async (_req, res) => {
     try {
@@ -7478,7 +7469,7 @@ export async function startServer({
     }
   });
 
-  // Plan §3.A5: list all applied snapshots; useful for `od plugin
+  // Plan §3.A5: list all applied snapshots; useful for `readable plugin
   // snapshots list` and the audit dashboard.
   app.get('/api/applied-plugins', (_req, res) => {
     try {
@@ -7513,11 +7504,11 @@ export async function startServer({
   app.post('/api/applied-plugins/export', requireLocalDaemonRequest, async (req, res) => {
     try {
       const body = req.body && typeof req.body === 'object' ? req.body : {};
-      const target = body.target === 'od' || body.target === 'claude-plugin' || body.target === 'agent-skill'
+      const target = body.target === 'readable-studio' || body.target === 'claude-plugin' || body.target === 'agent-skill'
         ? body.target
         : null;
       if (!target) {
-        return res.status(400).json({ error: 'target must be one of: od, claude-plugin, agent-skill' });
+        return res.status(400).json({ error: 'target must be one of: readable-studio, claude-plugin, agent-skill' });
       }
       const outDir = typeof body.outDir === 'string' && body.outDir.length > 0
         ? body.outDir
@@ -7715,9 +7706,9 @@ export async function startServer({
       if (!surface) return res.status(404).json({ error: 'surface not found' });
       // Plan §6 Phase 2A.5 — enrich the response with the surface
       // spec (incl. schema, prompt, persist tier) pulled out of the
-      // pinned AppliedPluginSnapshot. This is what `od ui show`
+      // pinned AppliedPluginSnapshot. This is what `readable ui show`
       // returns to headless callers so a code agent can inspect the
-      // JSON Schema before responding via `od ui respond --value-json`.
+      // JSON Schema before responding via `readable ui respond --value-json`.
       // The store only persists `schemaDigest` (for the cross-conv
       // cache); the canonical schema lives on the snapshot.
       let spec = null;
@@ -8059,7 +8050,7 @@ export async function startServer({
       if (!isDeployProviderId(providerId)) {
         return sendApiError(res, 400, 'BAD_REQUEST', 'unsupported deploy provider');
       }
-      /** @type {import('@open-design/contracts').DeployConfigResponse} */
+      /** @type {import('@readable-studio/contracts').DeployConfigResponse} */
       const body = publicDeployConfigForProvider(providerId, await readDeployConfig(providerId));
       res.json(body);
     } catch (err) {
@@ -8075,7 +8066,7 @@ export async function startServer({
       if (!isDeployProviderId(providerId)) {
         return sendApiError(res, 400, 'BAD_REQUEST', 'unsupported deploy provider');
       }
-      /** @type {import('@open-design/contracts').DeployConfigResponse} */
+      /** @type {import('@readable-studio/contracts').DeployConfigResponse} */
       const body = await writeDeployConfig(providerId, input);
       res.json(body);
     } catch (err) {
@@ -8085,7 +8076,7 @@ export async function startServer({
 
   app.get('/api/deploy/cloudflare-pages/zones', async (_req, res) => {
     try {
-      /** @type {import('@open-design/contracts').CloudflarePagesZonesResponse} */
+      /** @type {import('@readable-studio/contracts').CloudflarePagesZonesResponse} */
       const body = await listCloudflarePagesZones(await readDeployConfig(CLOUDFLARE_PAGES_PROVIDER_ID));
       res.json(body);
     } catch (err) {
@@ -8100,7 +8091,7 @@ export async function startServer({
 
   app.get('/api/projects/:id/deployments', (req, res) => {
     try {
-      /** @type {import('@open-design/contracts').ProjectDeploymentsResponse} */
+      /** @type {import('@readable-studio/contracts').ProjectDeploymentsResponse} */
       const body = { deployments: publicDeployments(listDeployments(db, req.params.id)) };
       res.json(body);
     } catch (err) {
@@ -8153,7 +8144,7 @@ export async function startServer({
             projectId: req.params.id,
           });
       const now = Date.now();
-      /** @type {import('@open-design/contracts').DeployProjectFileResponse} */
+      /** @type {import('@readable-studio/contracts').DeployProjectFileResponse} */
       const body = upsertDeployment(db, {
         id: prior?.id ?? randomUUID(),
         projectId: req.params.id,
@@ -8206,7 +8197,7 @@ export async function startServer({
         return sendApiError(res, 400, 'BAD_REQUEST', 'fileName required');
       }
       const preflightProject = getProject(db, req.params.id);
-      /** @type {import('@open-design/contracts').DeployPreflightResponse} */
+      /** @type {import('@readable-studio/contracts').DeployPreflightResponse} */
       const body = await prepareDeployPreflight(
         PROJECTS_DIR,
         req.params.id,
@@ -8351,7 +8342,7 @@ export async function startServer({
         if (existing.providerId === CLOUDFLARE_PAGES_PROVIDER_ID && existing.cloudflarePages?.pagesDev?.url) {
           const checked = await checkCloudflarePagesDeploymentLinks(existing);
           const now = Date.now();
-          /** @type {import('@open-design/contracts').CheckDeploymentLinkResponse} */
+          /** @type {import('@readable-studio/contracts').CheckDeploymentLinkResponse} */
           const body = upsertDeployment(db, {
             ...existing,
             ...checked,
@@ -8365,7 +8356,7 @@ export async function startServer({
           : existing.url;
         const result = await checkDeploymentUrl(checkUrl);
         const now = Date.now();
-        /** @type {import('@open-design/contracts').CheckDeploymentLinkResponse} */
+        /** @type {import('@readable-studio/contracts').CheckDeploymentLinkResponse} */
         const body = upsertDeployment(db, {
           ...existing,
           url: checkUrl || existing.url,
@@ -8390,7 +8381,7 @@ export async function startServer({
   // No mtime-based caching — frames are static and small.
   app.use('/frames', express.static(FRAMES_DIR));
 
-  // Project files. Each project owns a flat folder under .od/projects/<id>/
+  // Project files. Each project owns a flat folder under .readable-studio/projects/<id>/
   // containing every file the user has uploaded, pasted, sketched, or that
   // the agent has generated. Names are sanitized; paths are confined to the
   // project's own folder (see apps/daemon/src/projects.ts).
@@ -8402,7 +8393,7 @@ export async function startServer({
         since: Number.isFinite(since) ? since : undefined,
         metadata: project?.metadata,
       });
-      /** @type {import('@open-design/contracts').ProjectFilesResponse} */
+      /** @type {import('@readable-studio/contracts').ProjectFilesResponse} */
       const body = { files };
       res.json(body);
     } catch (err) {
@@ -8462,8 +8453,8 @@ export async function startServer({
       const relativePath = normalizeProjectPluginFolderPath(body.path);
       const projectRoot = resolveProjectDir(PROJECTS_DIR, req.params.id, project.metadata);
       const folder = await resolveProjectChildDirectory(projectRoot, relativePath);
-      const result = await execCommandViaLoginShell(OD_NODE_BIN, [
-        OD_BIN,
+      const result = await execCommandViaLoginShell(READABLE_NODE_BIN, [
+        READABLE_BIN,
         'plugin',
         'publish-repo',
         folder,
@@ -8490,7 +8481,7 @@ export async function startServer({
     }
   });
 
-  app.post('/api/projects/:id/plugins/contribute-open-design', async (req, res) => {
+  app.post('/api/projects/:id/plugins/contribute-readable-studio', async (req, res) => {
     try {
       const project = getProject(db, req.params.id);
       if (!project) {
@@ -8501,10 +8492,10 @@ export async function startServer({
       const relativePath = normalizeProjectPluginFolderPath(body.path);
       const projectRoot = resolveProjectDir(PROJECTS_DIR, req.params.id, project.metadata);
       const folder = await resolveProjectChildDirectory(projectRoot, relativePath);
-      const result = await execCommandViaLoginShell(OD_NODE_BIN, [
-        OD_BIN,
+      const result = await execCommandViaLoginShell(READABLE_NODE_BIN, [
+        READABLE_BIN,
         'plugin',
-        'open-design-pr',
+        'readable-studio-pr',
         folder,
         '--json',
       ], { timeout: 300_000 });
@@ -8512,15 +8503,15 @@ export async function startServer({
       if (!result.ok || !payload?.ok) {
         res.status(500).json({
           ok: false,
-          code: payload?.error?.label || 'open-design-pr-failed',
-          message: payload?.error?.stderr || payload?.error?.stdout || 'Open Design PR creation failed.',
-          log: payload?.steps?.map((step) => step.stderr || step.stdout || step.command).filter(Boolean) ?? [result.stderr || result.stdout || 'open-design-pr failed'],
+          code: payload?.error?.label || 'readable-studio-pr-failed',
+          message: payload?.error?.stderr || payload?.error?.stdout || 'Readable Studio PR creation failed.',
+          log: payload?.steps?.map((step) => step.stderr || step.stdout || step.command).filter(Boolean) ?? [result.stderr || result.stdout || 'readable-studio-pr failed'],
         });
         return;
       }
       res.json({
         ok: true,
-        message: payload.prUrl ? `Opened Open Design PR flow at ${payload.prUrl}.` : 'Opened Open Design PR flow.',
+        message: payload.prUrl ? `Opened Readable Studio PR flow at ${payload.prUrl}.` : 'Opened Readable Studio PR flow.',
         ...(payload.prUrl ? { url: payload.prUrl } : {}),
         log: payload.steps?.map((step) => step.stderr || step.stdout || step.command).filter(Boolean) ?? [],
       });
@@ -8540,7 +8531,7 @@ export async function startServer({
         return;
       }
       const body = req.body && typeof req.body === 'object' ? req.body : {};
-      const action = body.action === 'publish-github' || body.action === 'contribute-open-design'
+      const action = body.action === 'publish-github' || body.action === 'contribute-readable-studio'
         ? body.action
         : null;
       if (!action) {
@@ -8764,7 +8755,7 @@ export async function startServer({
       const rawSplat = String(req.params[1] ?? '');
       const project = getProject(db, projectId);
       await deleteProjectFile(PROJECTS_DIR, projectId, rawSplat, project?.metadata);
-      /** @type {import('@open-design/contracts').DeleteProjectFileResponse} */
+      /** @type {import('@readable-studio/contracts').DeleteProjectFileResponse} */
       const body = { ok: true };
       res.json(body);
     } catch (err) {
@@ -8857,7 +8848,7 @@ export async function startServer({
             uploadProject?.metadata,
           );
           fs.promises.unlink(req.file.path).catch(() => {});
-          /** @type {import('@open-design/contracts').ProjectFileResponse} */
+          /** @type {import('@readable-studio/contracts').ProjectFileResponse} */
           const body = { file: meta };
           return res.json(body);
         }
@@ -8896,7 +8887,7 @@ export async function startServer({
           { artifactManifest },
           uploadProject?.metadata,
         );
-        /** @type {import('@open-design/contracts').ProjectFileResponse} */
+        /** @type {import('@readable-studio/contracts').ProjectFileResponse} */
         const body = { file: meta };
         res.json(body);
       } catch (err) {
@@ -8914,7 +8905,7 @@ export async function startServer({
     try {
       const delProject = getProject(db, req.params.id);
       await deleteProjectFile(PROJECTS_DIR, req.params.id, req.params.name, delProject?.metadata);
-      /** @type {import('@open-design/contracts').DeleteProjectFileResponse} */
+      /** @type {import('@readable-studio/contracts').DeleteProjectFileResponse} */
       const body = { ok: true };
       res.json(body);
     } catch (err) {
@@ -9061,7 +9052,7 @@ export async function startServer({
             // skip files that vanished mid-flight
           }
         }
-        /** @type {import('@open-design/contracts').UploadProjectFilesResponse} */
+        /** @type {import('@readable-studio/contracts').UploadProjectFilesResponse} */
         const body = { files: out };
         res.json(body);
       } catch (err) {
@@ -9133,7 +9124,7 @@ export async function startServer({
     let activeSkillDir = null;
     const activeSkillDirs: string[] = [];
     // Per-skill Critique Theater override sourced from
-    // `od.critique.policy` in the resolved skill's SKILL.md frontmatter.
+    // `readable.critique.policy` in the resolved skill's SKILL.md frontmatter.
     // `null` means the skill has no opinion and the lower-priority tiers
     // (project override, env override, rollout phase default) decide.
     let skillCritiquePolicy: SkillCritiquePolicy = null;
@@ -9233,7 +9224,7 @@ export async function startServer({
 
     // Stage A of plugin-driven-flow-plan: when the run is bound to a
     // plugin snapshot, prefer the plugin's local SKILL.md (declared via
-    // `od.context.skills[{ path: './SKILL.md' }]`) over the global
+    // `readable.context.skills[{ path: './SKILL.md' }]`) over the global
     // skill. Without this override the agent loses the plugin's
     // template / token / layout rules and falls back to generic prompt
     // behaviour even though the user explicitly applied the plugin.
@@ -9300,7 +9291,7 @@ export async function startServer({
     // files are absent) gets the structured token contract appended to
     // the system prompt automatically.
     //
-    // `OD_DESIGN_TOKEN_CHANNEL=0` is the kill switch: it forces the
+    // `READABLE_DESIGN_TOKEN_CHANNEL=0` is the kill switch: it forces the
     // daemon back to the pre-PR-C DESIGN.md-only path for every brand,
     // including the structured ones. Any other value (unset, `1`,
     // `true`, etc.) keeps the new default. Drift on prose-only brands
@@ -9375,12 +9366,12 @@ export async function startServer({
     // Top-line gate (post-Phase-15 wireup): the daemon now routes every
     // candidate run through the rollout resolver instead of reading the
     // env-var flag directly. The resolver carries the full priority
-    // matrix: skill `od.critique.policy` veto > project override > env
+    // matrix: skill `readable.critique.policy` veto > project override > env
     // override > rollout phase default. On a fresh install with M0
     // dark-launch defaults the resolver returns `false`, so prod traffic
     // is unchanged until an operator flips the env var or a project
     // opts in. The skill-policy input is sourced from
-    // `od.critique.policy` in the active skill's SKILL.md frontmatter
+    // `readable.critique.policy` in the active skill's SKILL.md frontmatter
     // (parsed in `skills.ts:normalizeCritiquePolicy`). The project
     // override input is sourced from the `critiqueTheaterEnabled`
     // field on the project's metadata blob, which is what the M1
@@ -9396,10 +9387,10 @@ export async function startServer({
     // the way it did when the toggle had never been touched.
     const projectCritiqueOverride = narrowProjectCritiqueOverride(metadata);
     const critiqueEnabledForRun = isCritiqueEnabled({
-      phase: parseRolloutPhase(process.env.OD_CRITIQUE_ROLLOUT_PHASE),
+      phase: parseRolloutPhase(process.env.READABLE_CRITIQUE_ROLLOUT_PHASE),
       skillPolicy: skillCritiquePolicy,
       projectOverride: projectCritiqueOverride,
-      envOverride: parseEnvEnabled(process.env.OD_CRITIQUE_ENABLED),
+      envOverride: parseEnvEnabled(process.env.READABLE_CRITIQUE_ENABLED),
     });
     const critiqueBrand = critiqueEnabledForRun
       && typeof designSystemTitle === 'string'
@@ -9450,11 +9441,11 @@ export async function startServer({
     // into `## Active stage` blocks via the contracts helper when
     // the run carries a snapshot with a pipeline. Default is now ON
     // (flipped in §3.V1 once the bundled SKILL.md fragments covered
-    // every Phase 6/7/8 atom); set OD_BUNDLED_ATOM_PROMPTS=0 to opt
+    // every Phase 6/7/8 atom); set READABLE_BUNDLED_ATOM_PROMPTS=0 to opt
     // out (the runs that need pre-§3.V1 byte-equal prompts: snapshot
     // replay against an older daemon, regression-bisects).
     let activeStageBlocks;
-    const bundledAtomPromptsEnabled = process.env.OD_BUNDLED_ATOM_PROMPTS !== '0';
+    const bundledAtomPromptsEnabled = process.env.READABLE_BUNDLED_ATOM_PROMPTS !== '0';
     if (
       bundledAtomPromptsEnabled
       && typeof appliedPluginSnapshotId === 'string'
@@ -9465,7 +9456,7 @@ export async function startServer({
         const stages = snap?.pipeline?.stages ?? [];
         if (stages.length > 0) {
           const { loadAtomBodies } = await import('./plugins/atom-bodies.js');
-          const { renderActiveStageBlock } = await import('@open-design/contracts');
+          const { renderActiveStageBlock } = await import('@readable-studio/contracts');
           const blocks = [];
           for (const stage of stages) {
             const bodies = await loadAtomBodies(db, stage.atoms ?? []);
@@ -9498,7 +9489,7 @@ export async function startServer({
       memoryBody,
       metadata,
       template,
-      // critiqueCfg.enabled is loaded from OD_CRITIQUE_ENABLED only, so a
+      // critiqueCfg.enabled is loaded from READABLE_CRITIQUE_ENABLED only, so a
       // run that the resolver enabled via phase / project / skill (env
       // unset) would have critiqueShouldRun = true while critiqueCfg.enabled
       // remains false. Without this override the composer's own gate
@@ -9546,7 +9537,7 @@ export async function startServer({
   // run's SSE stream. Synchronous first emit (the first
   // pipeline_stage_started event lands before the agent process
   // starts) + async tail. Stage D wires the atom-worker registry as
-  // the default stage runner; set OD_PIPELINE_RUNNER=stub to fall
+  // the default stage runner; set READABLE_PIPELINE_RUNNER=stub to fall
   // back to the canned v1 stub for diagnostic bisection or replay
   // of pre-Stage-D runs. Errors are swallowed (logged) so a bad
   // pipeline never blocks the agent run.
@@ -9563,7 +9554,7 @@ export async function startServer({
     const projectIdForRun = run.projectId
       ?? snapshot.resolvedContext?.items?.[0]?.id
       ?? 'project-unknown';
-    const runnerMode = process.env.OD_PIPELINE_RUNNER === 'stub'
+    const runnerMode = process.env.READABLE_PIPELINE_RUNNER === 'stub'
       ? 'stub'
       : 'registry';
     let runStage;
@@ -9810,7 +9801,7 @@ export async function startServer({
       && def.id === 'codex'
       && toolTokenGrant?.token
       && cwd
-      && isolatedBrokerHostPathsAreProtected({ cwd, hostNodeBin: OD_NODE_BIN, hostOdBin: OD_BIN })
+      && isolatedBrokerHostPathsAreProtected({ cwd, hostNodeBin: READABLE_NODE_BIN, hostOdBin: READABLE_BIN })
       && typeof projectId === 'string'
       && projectId
       && typeof conversationId === 'string'
@@ -9830,7 +9821,7 @@ export async function startServer({
           '## Hosted Pi tool environment',
           '',
           '- Generic shell, process, filesystem, environment, extension, resource, package, and update tools are unavailable.',
-          '- Use only the daemon-owned `od_hosted_broker` project-file tool for the current run.',
+          '- Use only the daemon-owned `readable_hosted_broker` project-file tool for the current run.',
           '- The broker grant is fixed by the server and cannot be widened by the request or model.',
         ].join('\n')
       : createAgentRuntimeToolPrompt(
@@ -9935,7 +9926,7 @@ export async function startServer({
         connectedExternalMcp,
         // Plan §3.M2 / §3.V1 — forward the run's snapshot id so the
         // prompt composer can splice in `## Active stage` blocks.
-        // Default ON; set OD_BUNDLED_ATOM_PROMPTS=0 to opt out.
+        // Default ON; set READABLE_BUNDLED_ATOM_PROMPTS=0 to opt out.
         appliedPluginSnapshotId: run?.appliedPluginSnapshotId ?? null,
         agentRollbackEnabled: agentRollbackIsolationEnabled,
       });
@@ -9946,7 +9937,7 @@ export async function startServer({
     // (2/3) so the agent can pick whichever works.
     //
     //   1. CWD-relative copy. Stage every active/composed skill into
-    //      `<cwd>/.od-skills/<folder>/` so any agent CLI — not just the
+    //      `<cwd>/.readable-studio-skills/<folder>/` so any agent CLI — not just the
     //      ones that honour `--add-dir` — can reach those files via a
     //      path inside its working directory. We copy (not symlink) so
     //      each staged directory is a true write barrier — agents cannot
@@ -9977,7 +9968,7 @@ export async function startServer({
         );
         if (!result.staged) {
           console.warn(
-            `[od] skill-stage skipped: ${result.reason ?? 'unknown reason'}; falling back to absolute paths`,
+            `[readable] skill-stage skipped: ${result.reason ?? 'unknown reason'}; falling back to absolute paths`,
           );
         }
       }
@@ -10172,7 +10163,7 @@ export async function startServer({
     const agentOptions = { model: safeModel, reasoning: safeReasoning };
     // Accumulates the agent's visible text this run so the close handler can
     // tell whether the turn ended on a clarifying question form. The
-    // `od-plugin-authoring` plugin's turn-1 flow is to emit a
+    // `readable-plugin-authoring` plugin's turn-1 flow is to emit a
     // `<question-form>` collecting the plugin brief, then STOP and wait for
     // the user to answer (see the `discovery-question-form` atom in
     // `plugins/scaffold.ts`). That turn legitimately closes with `code === 0`
@@ -10478,7 +10469,7 @@ export async function startServer({
     const mcpServers: AcpMcpServer[] = [];
 
     // External MCP servers configured by the user in Settings → External MCP.
-    // Open Design relays them to the agent so the model can call those tools.
+    // Readable Studio relays them to the agent so the model can call those tools.
     // Two delivery shapes today:
     //   - Claude Code: write a `.mcp.json` into the project cwd. Claude Code
     //     auto-loads that file at spawn (same format the CLI accepts via
@@ -10833,7 +10824,7 @@ export async function startServer({
     // this field.
     const agentLogFilePath =
       def.id === 'antigravity'
-        ? path.join(os.tmpdir(), `od-agy-${run.id}.log`)
+        ? path.join(os.tmpdir(), `readable-agy-${run.id}.log`)
         : undefined;
     const promptFile = await preparePromptFileForAgent(def, composed, run.id);
     const cleanupPromptFile = () => {
@@ -11128,8 +11119,8 @@ export async function startServer({
       // immediately so we don't have to wait for the next agent event
       // before the new ceiling takes effect. Call unconditionally:
       // an earlier `if (inactivityTimer)` gate left the run in limbo
-      // when `OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS=0` but
-      // `OD_CHAT_RUN_ARTIFACT_QUIET_PERIOD_MS>0` — noteAgentActivity()
+      // when `READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS=0` but
+      // `READABLE_CHAT_RUN_ARTIFACT_QUIET_PERIREADABLE_MS>0` — noteAgentActivity()
       // had returned early at run start (pre-artifact delay = 0,
       // no timer set), so the guard then skipped the re-arm and the
       // newly-positive quiet-period delay never armed a timer at all.
@@ -11195,13 +11186,13 @@ export async function startServer({
       }
     }
     const odMediaEnv = {
-      OD_BIN: isolatedPaths?.clientPath ?? OD_BIN,
-      OD_NODE_BIN,
-      ...(agentRollbackIsolationEnabled ? {} : { OD_DAEMON_URL: daemonUrl }),
+      READABLE_BIN: isolatedPaths?.clientPath ?? READABLE_BIN,
+      READABLE_NODE_BIN,
+      ...(agentRollbackIsolationEnabled ? {} : { READABLE_DAEMON_URL: daemonUrl }),
       ...(typeof projectId === 'string' && projectId && cwd
         ? {
-            OD_PROJECT_ID: projectId,
-            OD_PROJECT_DIR: cwd,
+            READABLE_PROJECT_ID: projectId,
+            READABLE_PROJECT_DIR: cwd,
           }
         : {}),
     };
@@ -11222,8 +11213,8 @@ export async function startServer({
           cwd: effectiveCwd,
           daemonUrl,
           hostEnv: process.env,
-          hostNodeBin: OD_NODE_BIN,
-          hostOdBin: OD_BIN,
+          hostNodeBin: READABLE_NODE_BIN,
+          hostOdBin: READABLE_BIN,
           projectDir: cwd,
           projectId,
           runId: `${run.id}-${run.retryAttemptCount ?? 0}`,
@@ -11287,7 +11278,7 @@ export async function startServer({
         ...agentSpawnEnv,
         ...(mmdRouteLaunchEnv || {}),
         ...odMediaEnv,
-        ...openDesignAmrTraceEnv({
+        ...readableStudioAmrTraceEnv({
           agentId: def.id,
           runId: run.id,
           conversationId: run.conversationId,
@@ -11794,7 +11785,7 @@ export async function startServer({
           'ROLE_MARKER_HALLUCINATION',
           `Run terminated: model emitted fabricated role marker (\`${marker}\`). ` +
             'No further tokens or tool calls accepted from this turn. ' +
-            'See https://github.com/nexu-io/open-design/issues/3247.',
+            'See https://github.com/sanghyunna/readable-studio/issues/3247.',
           { retryable: true },
         ),
       );
@@ -12689,10 +12680,10 @@ export async function startServer({
     }
     // MCP / SDK callers POST /api/runs with just a projectId — no
     // conversationId, no pre-created assistantMessageId — because they
-    // don't know about OD's chat-row lifecycle. The web flow
+    // don't know about Readable Studio's chat-row lifecycle. The web flow
     // (POST /api/chat) on the other hand creates both client-side and
     // passes them in. Without binding the run to a conversation and
-    // pre-pinning an assistant message row, the OD studio page for
+    // pre-pinning an assistant message row, the Readable Studio studio page for
     // the project shows an empty chat panel — the user has no way to
     // see what the outer agent asked or what the inner agent replied,
     // even though the run finished and produced files.
@@ -12762,11 +12753,11 @@ export async function startServer({
     }
     // Capture clientType for downstream telemetry (Langfuse uses it on
     // run-completed metadata; PostHog gets it via the request header
-    // bridge). Prefer the explicit `x-od-client` header from desktop /
+    // bridge). Prefer the explicit `x-readable-studio-client` header from desktop /
     // web sidecars, fall back to user-agent detection. Without this the
     // run object's `clientType` stays undefined and Langfuse traces lose
     // the surface dimension.
-    const declaredClient = String(req.get('x-od-client') ?? '').toLowerCase();
+    const declaredClient = String(req.get('x-readable-studio-client') ?? '').toLowerCase();
     if (declaredClient === 'desktop' || declaredClient === 'web') {
       run.clientType = declaredClient;
     } else {
@@ -12797,7 +12788,7 @@ export async function startServer({
         err instanceof Error ? err.message : String(err),
       );
     }
-    /** @type {import('@open-design/contracts').ChatRunCreateResponse} */
+    /** @type {import('@readable-studio/contracts').ChatRunCreateResponse} */
     const body = {
       runId: run.id,
       // Surface the bound conversation/message so MCP / SDK callers
@@ -13261,7 +13252,7 @@ export async function startServer({
   app.get('/api/runs', (req, res) => {
     const { projectId, conversationId, status } = req.query;
     const runs = design.runs.list({ projectId, conversationId, status });
-    /** @type {import('@open-design/contracts').ChatRunListResponse} */
+    /** @type {import('@readable-studio/contracts').ChatRunListResponse} */
     const body = { runs: runs.map(design.runs.statusBody) };
     res.json(body);
   });
@@ -13284,11 +13275,11 @@ export async function startServer({
   // through `encodeOdEventForAgui` first so an external CopilotKit /
   // AG-UI client can consume the run unmodified. Events the encoder
   // can't map are dropped; the SSE stream stays canonical even when
-  // OD adds internal-only events later.
+  // Readable Studio adds internal-only events later.
   app.get('/api/runs/:id/agui', async (req, res) => {
     const run = design.runs.get(req.params.id);
     if (!run) return sendApiError(res, 404, 'NOT_FOUND', 'run not found');
-    const { encodeOdEventForAgui } = await import('@open-design/agui-adapter');
+    const { encodeOdEventForAgui } = await import('@readable-studio/agui-adapter');
     const sse = createSseResponse(res);
     const lastEventId = Number(req.get('Last-Event-ID') || req.query.after || 0);
     const emitMapped = (record) => {
@@ -13331,7 +13322,7 @@ export async function startServer({
     const run = design.runs.get(req.params.id);
     if (!run) return sendApiError(res, 404, 'NOT_FOUND', 'run not found');
     design.runs.cancel(run);
-    /** @type {import('@open-design/contracts').ChatRunCancelResponse} */
+    /** @type {import('@readable-studio/contracts').ChatRunCancelResponse} */
     const body = { ok: true };
     res.json(body);
   });
@@ -13900,7 +13891,7 @@ export async function startServer({
         if (!boundPort) {
           reject(
             new Error(
-              `[od] daemon failed to resolve listening port (address=${JSON.stringify(address)})`,
+              `[readable] daemon failed to resolve listening port (address=${JSON.stringify(address)})`,
             ),
           );
           return;
@@ -13912,7 +13903,7 @@ export async function startServer({
         const reportHost = host === '0.0.0.0' || host === '::' ? '127.0.0.1' : host;
         const url = `http://${reportHost}:${resolvedPort}`;
         if (!returnServer) {
-          console.log(`[od] daemon listening on ${url}`);
+          console.log(`[readable] daemon listening on ${url}`);
         }
         daemonUrl = url;
         resolve(returnServer ? { url, server, shutdown: shutdownDaemonRuns } : url);
@@ -13951,7 +13942,7 @@ function assembleExample(templateHtml, slidesHtml, title) {
     .replace('<!-- SLIDES_HERE -->', slidesHtml)
     .replace(
       /<title>.*?<\/title>/,
-      `<title>${title} | Open Design Example</title>`,
+      `<title>${title} | Readable Studio Example</title>`,
     );
 }
 

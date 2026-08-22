@@ -18,6 +18,7 @@ import { mkdir, readdir, readFile, realpath, stat, symlink, writeFile } from 'no
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { READABLE_STUDIO_PROJECT_LOCATION_ID } from '@readable-studio/contracts';
 
 import { startServer } from '../src/server.js';
 
@@ -46,7 +47,7 @@ describe('GET /api/projects/:id resolvedDir', () => {
   });
 
   function makeFolder(): string {
-    const d = mkdtempSync(path.join(tmpdir(), 'od-projects-routes-'));
+    const d = mkdtempSync(path.join(tmpdir(), 'readable-projects-routes-'));
     tempDirs.push(d);
     return d;
   }
@@ -129,8 +130,8 @@ describe('GET /api/projects/:id resolvedDir', () => {
     };
     expect(detail.project.metadata?.baseDir).toBeUndefined();
 
-    const dataDir = process.env.OD_DATA_DIR;
-    if (!dataDir) throw new Error('OD_DATA_DIR is required for daemon route tests');
+    const dataDir = process.env.READABLE_DATA_DIR;
+    if (!dataDir) throw new Error('READABLE_DATA_DIR is required for daemon route tests');
     const expected = path.join(dataDir, 'projects', projectId);
     expect(detail.resolvedDir).toBe(expected);
     expect(path.isAbsolute(detail.resolvedDir)).toBe(true);
@@ -517,7 +518,7 @@ describe('GET /api/projects/:id resolvedDir', () => {
 
   // Folder routes (#3516) must refuse to touch the filesystem for an unknown
   // project id. Without the guard, POST reaches createProjectFolder ->
-  // ensureProject and would materialize a `.od/projects/<id>/...` directory
+  // ensureProject and would materialize a `.readable-studio/projects/<id>/...` directory
   // with no DB row, leaving orphaned state and breaking the invariant the
   // neighboring project-file routes rely on.
   it('returns 404 for unknown project folder routes without creating project files', async () => {
@@ -542,8 +543,8 @@ describe('GET /api/projects/:id resolvedDir', () => {
       expect(body.error?.code).toBe('PROJECT_NOT_FOUND');
     }
 
-    const dataDir = process.env.OD_DATA_DIR;
-    if (!dataDir) throw new Error('OD_DATA_DIR is required for daemon route tests');
+    const dataDir = process.env.READABLE_DATA_DIR;
+    if (!dataDir) throw new Error('READABLE_DATA_DIR is required for daemon route tests');
     await expect(stat(path.join(dataDir, 'projects', missingProjectId))).rejects.toMatchObject({
       code: 'ENOENT',
     });
@@ -672,7 +673,7 @@ describe('project locations routes', () => {
   });
 
   function makeTempDir(): string {
-    const d = mkdtempSync(path.join(tmpdir(), 'od-proj-loc-routes-'));
+    const d = mkdtempSync(path.join(tmpdir(), 'readable-proj-loc-routes-'));
     tempDirs.push(d);
     return d;
   }
@@ -701,9 +702,9 @@ describe('project locations routes', () => {
     const body = (await resp.json()) as { locations: Array<{ id: string; name: string; builtIn?: boolean; path: string }> };
     expect(body.locations).toHaveLength(1); // only default on fresh start
     const loc0 = body.locations[0]!;
-    expect(loc0.id).toBe('default');
+    expect(loc0.id).toBe(READABLE_STUDIO_PROJECT_LOCATION_ID);
     expect(loc0.builtIn).toBe(true);
-    expect(loc0.name).toBe('Open Design projects');
+    expect(loc0.name).toBe('Readable Studio projects');
   });
 
   it('PUT /api/project-locations creates external roots and GET returns them alongside default', async () => {
@@ -716,7 +717,7 @@ describe('project locations routes', () => {
     expect(putBody.locations).toHaveLength(2);
     const putLoc0 = putBody.locations[0]!;
     const putLoc1 = putBody.locations[1]!;
-    expect(putLoc0.id).toBe('default');
+    expect(putLoc0.id).toBe(READABLE_STUDIO_PROJECT_LOCATION_ID);
     expect(putLoc1.id).toBe('ext-root');
     expect(putLoc1.path).toBe(await realpath(extDir));
 
@@ -727,7 +728,7 @@ describe('project locations routes', () => {
     expect(getBody.locations).toHaveLength(2);
     const getLoc0 = getBody.locations[0]!;
     const getLoc1 = getBody.locations[1]!;
-    expect(getLoc0.id).toBe('default');
+    expect(getLoc0.id).toBe(READABLE_STUDIO_PROJECT_LOCATION_ID);
     expect(getLoc1.id).toBe('ext-root');
   });
 
@@ -754,7 +755,7 @@ describe('project locations routes', () => {
     const extDir = makeTempDir();
     // Create a project directory with a valid manifest
     const projectDir = path.join(extDir, 'scan-test-proj');
-    const odDir = path.join(projectDir, '.open-design');
+    const odDir = path.join(projectDir, '.readable-studio');
     await mkdir(odDir, { recursive: true });
     const manifest = {
       schemaVersion: 1 as const,
@@ -766,7 +767,7 @@ describe('project locations routes', () => {
       designSystemId: null,
     };
     await writeFile(
-      path.join(projectDir, '.open-design', 'project.json'),
+      path.join(projectDir, '.readable-studio', 'project.json'),
       JSON.stringify(manifest, null, 2),
       'utf8',
     );
@@ -812,7 +813,7 @@ describe('project locations routes', () => {
     expect(body2.existing).toEqual(['scan-test-proj']);
   });
 
-  it('POST /api/projects with projectLocationId creates project under external root and writes .open-design/project.json', async () => {
+  it('POST /api/projects with projectLocationId creates project under external root and writes .readable-studio/project.json', async () => {
     const extDir = makeTempDir();
     // Register an external location
     await putProjectLocations([{ id: 'create-ext', name: 'Create External', path: extDir }]);
@@ -841,8 +842,8 @@ describe('project locations routes', () => {
     const expectedProjectDir = await realpath(path.join(extDir, projectId));
     expect(createBody.project.metadata?.baseDir).toBe(expectedProjectDir);
 
-    // Verify .open-design/project.json was written
-    const manifestPath = path.join(expectedProjectDir, '.open-design', 'project.json');
+    // Verify .readable-studio/project.json was written
+    const manifestPath = path.join(expectedProjectDir, '.readable-studio', 'project.json');
     const manifestRaw = await import('node:fs/promises').then((m) => m.readFile(manifestPath, 'utf8'));
     const manifest = JSON.parse(manifestRaw);
     expect(manifest.schemaVersion).toBe(1);
@@ -1065,8 +1066,8 @@ describe('project locations routes', () => {
   });
 
   it('PUT /api/project-locations rejects a root overlapping the daemon projects dir', async () => {
-    const dataDir = process.env.OD_DATA_DIR;
-    if (!dataDir) throw new Error('OD_DATA_DIR required for daemon route tests');
+    const dataDir = process.env.READABLE_DATA_DIR;
+    if (!dataDir) throw new Error('READABLE_DATA_DIR required for daemon route tests');
     const projectsDir = path.join(dataDir, 'projects');
 
     const canonicalProjectsDir = await realpath(projectsDir);
@@ -1125,7 +1126,7 @@ describe('project locations routes', () => {
       locations: Array<{ id: string }>;
     };
     const ids = locBody.locations.map((l) => l.id);
-    expect(ids).toContain('default'); // built-in always present
+    expect(ids).toContain(READABLE_STUDIO_PROJECT_LOCATION_ID); // built-in always present
     // The invalid location must not appear
     expect(ids).not.toContain('bad-root');
 
@@ -1220,7 +1221,7 @@ describe('project locations routes', () => {
 
     // The project directory and manifest should exist on disk
     const expectedProjectDir = await realpath(path.join(extDir, projectId));
-    const manifestPath = path.join(expectedProjectDir, '.open-design', 'project.json');
+    const manifestPath = path.join(expectedProjectDir, '.readable-studio', 'project.json');
     const manifestBefore = await readFile(manifestPath, 'utf8');
     expect(JSON.parse(manifestBefore).id).toBe(projectId);
 
@@ -1237,7 +1238,7 @@ describe('project locations routes', () => {
     expect(removeBody.removedProjectIds).toContain(projectId);
     // Only the built-in default location should remain
     expect(removeBody.locations).toHaveLength(1);
-    expect(removeBody.locations[0]!.id).toBe('default');
+    expect(removeBody.locations[0]!.id).toBe(READABLE_STUDIO_PROJECT_LOCATION_ID);
 
     // The project should no longer appear in GET /api/projects
     const listAfter = await fetch(`${baseUrl}/api/projects`);
@@ -1282,12 +1283,12 @@ describe('project locations routes', () => {
 });
 
 async function withSandboxMode<T>(run: () => Promise<T>): Promise<T> {
-  const previous = process.env.OD_SANDBOX_MODE;
-  process.env.OD_SANDBOX_MODE = '1';
+  const previous = process.env.READABLE_SANDBOX_MODE;
+  process.env.READABLE_SANDBOX_MODE = '1';
   try {
     return await run();
   } finally {
-    if (previous == null) delete process.env.OD_SANDBOX_MODE;
-    else process.env.OD_SANDBOX_MODE = previous;
+    if (previous == null) delete process.env.READABLE_SANDBOX_MODE;
+    else process.env.READABLE_SANDBOX_MODE = previous;
   }
 }

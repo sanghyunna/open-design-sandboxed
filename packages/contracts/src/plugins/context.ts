@@ -17,7 +17,7 @@ export type ContextItem = z.infer<typeof ContextItemSchema>;
 
 export type ContextItemKind = ContextItem['kind'];
 
-// Resolved context — the apply-time materialization of od.context.* refs.
+// Resolved context — the apply-time materialization of readable.context.* refs.
 // Lives on the AppliedPluginSnapshot so prompt reconstruction is not coupled
 // to the live registry state.
 export const ResolvedContextSchema = z.object({

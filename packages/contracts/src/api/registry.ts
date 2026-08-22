@@ -19,7 +19,7 @@ export interface AgentCatalogResponse {
  * concrete handler (open a URL, re-run detection, write an env override,
  * launch the OAuth terminal flow). Keeping the intent typed — rather than a
  * pre-baked button label + URL — means the Settings card, the unavailable
- * grid, and (PR-B) the `od agent healthcheck` CLI / health-check panel all
+ * grid, and (PR-B) the `readable agent healthcheck` CLI / health-check panel all
  * render the same fix affordances from one source of truth instead of each
  * re-deriving copy and wiring.
  */
@@ -31,7 +31,7 @@ export type AgentFixIntent =
   /** Re-run agent detection (the Settings "Rescan" affordance). */
   | { kind: 'rescan' }
   /**
-   * Prompt the user to point Open Design at an explicit binary by writing
+   * Prompt the user to point Readable Studio at an explicit binary by writing
    * `envKey` (e.g. `CURSOR_AGENT_BIN`) into `agentCliEnv`. Used when the CLI
    * is installed somewhere PATH detection can't reach.
    */
@@ -101,7 +101,7 @@ export interface AgentInfo {
    */
   diagnostics?: AgentDiagnostic[];
   models?: AgentModelOption[];
-  /** Whether models came from the installed CLI or Open Design's static fallback. */
+  /** Whether models came from the installed CLI or Readable Studio's static fallback. */
   modelsSource?: 'live' | 'fallback';
   reasoningOptions?: AgentModelOption[];
   /** HTTPS URL to install or download the CLI (vendor docs, GitHub README, npm). */
@@ -109,7 +109,7 @@ export interface AgentInfo {
   /** Optional HTTPS URL for configuration / auth / usage docs. */
   docsUrl?: string;
   /**
-   * How the daemon forwards the user's `.od/mcp-config.json` external MCP
+   * How the daemon forwards the user's `.readable-studio/mcp-config.json` external MCP
    * servers to this runtime at spawn time. Mirrors the field on
    * `RuntimeAgentDef` in the daemon. Undefined means the runtime has no
    * native MCP transport wired yet, in which case the settings UI surfaces

@@ -18,7 +18,7 @@ example_tagline: "Inspired by @trq212's tweet"
 example_desc: "An extended commentary on 'in the AI era, HTML > Markdown', with annotations on the original tweet and clickable links"
 example_source_url: "https://x.com/trq212/status/2052809885763747935"
 example_source_label: "@trq212 / x.com"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

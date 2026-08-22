@@ -4,8 +4,8 @@
 
 - [ ] `assets/template.html` exists and opens directly from disk.
 - [ ] `example.html` exists and is a complete hand-built sample.
-- [ ] Frontmatter is `od.mode: template`, `od.scenario: live-artifacts`,
-      `od.preview.type: html`, and `od.outputs.primary: index.html`.
+- [ ] Frontmatter is `readable.mode: template`, `readable.scenario: live-artifacts`,
+      `readable.preview.type: html`, and `readable.outputs.primary: index.html`.
 - [ ] Layout includes 3 scenes:
   - [ ] hero / title scene
   - [ ] four-step process scene

@@ -12,7 +12,7 @@ triggers:
   - "sre doc"
   - "service runbook"
   - "operations manual"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: engineering

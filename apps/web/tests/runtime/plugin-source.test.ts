@@ -4,7 +4,7 @@ import {
   authorInitials,
   derivePluginSourceLinks,
 } from '../../src/runtime/plugin-source';
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 
 type Record = Parameters<typeof derivePluginSourceLinks>[0];
 
@@ -26,13 +26,13 @@ describe('derivePluginSourceLinks · github sources', () => {
     const out = derivePluginSourceLinks(
       makeRecord({
         sourceKind: 'github',
-        source:     'github:open-design/plugins@v1.2.0/make-a-deck',
+        source:     'github:readable-studio/plugins@v1.2.0/make-a-deck',
       }),
     );
-    expect(out.sourceUrl).toBe('https://github.com/open-design/plugins/tree/v1.2.0/make-a-deck');
-    expect(out.sourceLabel).toBe('open-design/plugins @v1.2.0/make-a-deck');
+    expect(out.sourceUrl).toBe('https://github.com/readable-studio/plugins/tree/v1.2.0/make-a-deck');
+    expect(out.sourceLabel).toBe('readable-studio/plugins @v1.2.0/make-a-deck');
     expect(out.sourceKindLabel).toBe('GitHub');
-    expect(out.contributeUrl).toBe('https://github.com/open-design/plugins/issues/new');
+    expect(out.contributeUrl).toBe('https://github.com/readable-studio/plugins/issues/new');
     expect(out.contributeOnGithub).toBe(true);
   });
 
@@ -40,45 +40,45 @@ describe('derivePluginSourceLinks · github sources', () => {
     const out = derivePluginSourceLinks(
       makeRecord({
         sourceKind: 'github',
-        source:     'github:open-design/plugins',
+        source:     'github:readable-studio/plugins',
       }),
     );
-    expect(out.sourceUrl).toBe('https://github.com/open-design/plugins');
-    expect(out.sourceLabel).toBe('open-design/plugins');
+    expect(out.sourceUrl).toBe('https://github.com/readable-studio/plugins');
+    expect(out.sourceLabel).toBe('readable-studio/plugins');
   });
 
   it('uses pinnedRef when source has no inline ref', () => {
     const out = derivePluginSourceLinks(
       makeRecord({
         sourceKind: 'github',
-        source:     'github:open-design/plugins',
+        source:     'github:readable-studio/plugins',
         pinnedRef:  'a1b2c3d4',
       }),
     );
-    expect(out.sourceUrl).toBe('https://github.com/open-design/plugins/tree/a1b2c3d4');
-    expect(out.sourceLabel).toBe('open-design/plugins @a1b2c3d4');
+    expect(out.sourceUrl).toBe('https://github.com/readable-studio/plugins/tree/a1b2c3d4');
+    expect(out.sourceLabel).toBe('readable-studio/plugins @a1b2c3d4');
   });
 
   it('preserves slash-separated branch refs (release/1.0)', () => {
     const out = derivePluginSourceLinks(
       makeRecord({
         sourceKind: 'github',
-        source:     'github:open-design/plugins',
+        source:     'github:readable-studio/plugins',
         pinnedRef:  'release/1.0',
       }),
     );
-    expect(out.sourceUrl).toBe('https://github.com/open-design/plugins/tree/release/1.0');
+    expect(out.sourceUrl).toBe('https://github.com/readable-studio/plugins/tree/release/1.0');
   });
 
   it('treats HEAD pinnedRef as no ref', () => {
     const out = derivePluginSourceLinks(
       makeRecord({
         sourceKind: 'github',
-        source:     'github:open-design/plugins',
+        source:     'github:readable-studio/plugins',
         pinnedRef:  'HEAD',
       }),
     );
-    expect(out.sourceUrl).toBe('https://github.com/open-design/plugins');
+    expect(out.sourceUrl).toBe('https://github.com/readable-studio/plugins');
   });
 
   it('falls back gracefully on a malformed github source', () => {
@@ -129,18 +129,22 @@ describe('derivePluginSourceLinks · url + local + bundled sources', () => {
     expect(out.sourceKindLabel).toBe('Local');
   });
 
-  it('routes bundled official sources to the Open Design repo', () => {
+  it('routes bundled official sources to the canonical repository', () => {
+    // Given: a bundled first-party plugin.
     const out = derivePluginSourceLinks(
       makeRecord({
         sourceKind: 'bundled',
-        source:     'plugins/_official/scenarios/od-code-migration',
+        source:     'plugins/_official/scenarios/readable-code-migration',
       }),
     );
-    expect(out.sourceUrl).toBe('https://github.com/nexu-io/open-design');
+
+    // When: its source links are derived.
+    // Then: every repository-bearing field uses the canonical repository contract.
+    expect(out.sourceUrl).toBe('https://github.com/sanghyunna/readable-studio');
     expect(out.sourceKindLabel).toBe('Official');
-    expect(out.sourceLabel).toBe('nexu-io/open-design');
-    expect(out.authorProfileUrl).toBe('https://github.com/nexu-io/open-design');
-    expect(out.homepageUrl).toBe('https://github.com/nexu-io/open-design');
+    expect(out.sourceLabel).toBe('sanghyunna/readable-studio');
+    expect(out.authorProfileUrl).toBe('https://github.com/sanghyunna/readable-studio');
+    expect(out.homepageUrl).toBe('https://github.com/sanghyunna/readable-studio');
   });
 });
 
@@ -151,11 +155,11 @@ describe('derivePluginSourceLinks · author + contribute', () => {
         manifest: {
           name:    'p',
           version: '1.0.0',
-          author:  { name: 'Open Design', url: 'https://github.com/nexu-io' },
+          author:  { name: 'Readable Studio', url: 'https://github.com/nexu-io' },
         } as InstalledPluginRecord['manifest'],
       }),
     );
-    expect(out.authorName).toBe('Open Design');
+    expect(out.authorName).toBe('Readable Studio');
     expect(out.authorProfileUrl).toBe('https://github.com/nexu-io');
     expect(out.authorAvatarUrl).toBe('https://github.com/nexu-io.png?size=80');
   });
@@ -191,17 +195,17 @@ describe('derivePluginSourceLinks · author + contribute', () => {
     const out = derivePluginSourceLinks(
       makeRecord({
         sourceKind: 'bundled',
-        source:     'plugins/_official/scenarios/od-code-migration',
+        source:     'plugins/_official/scenarios/readable-code-migration',
         manifest: {
           name:    'p',
           version: '1.0.0',
-          homepage: 'https://github.com/nexu-io/open-design',
+          homepage: 'https://github.com/nexu-io/readable-studio',
         } as InstalledPluginRecord['manifest'],
       }),
     );
-    expect(out.contributeUrl).toBe('https://github.com/nexu-io/open-design/issues/new');
+    expect(out.contributeUrl).toBe('https://github.com/sanghyunna/readable-studio/issues/new');
     expect(out.contributeOnGithub).toBe(true);
-    expect(out.homepageUrl).toBe('https://github.com/nexu-io/open-design');
+    expect(out.homepageUrl).toBe('https://github.com/sanghyunna/readable-studio');
   });
 
   it('drops malformed homepage values', () => {
@@ -229,7 +233,7 @@ describe('derivePluginSourceLinks · author + contribute', () => {
 
 describe('authorInitials', () => {
   it('builds two-letter monograms', () => {
-    expect(authorInitials('Open Design')).toBe('OD');
+    expect(authorInitials('Readable Studio')).toBe('RS');
     expect(authorInitials('jane')).toBe('J');
     expect(authorInitials('Long Multi Word Name')).toBe('LM');
   });

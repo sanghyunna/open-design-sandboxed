@@ -21,7 +21,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import type { ArtifactManifest } from '@open-design/contracts';
+import type { ArtifactManifest } from '@readable-studio/contracts';
 import { runFigmaExtract } from '../src/plugins/atoms/figma-extract.js';
 import { runTokenMap, type DesignSystemTokenBag } from '../src/plugins/atoms/token-map.js';
 import { runDiffReview } from '../src/plugins/atoms/diff-review.js';
@@ -70,7 +70,7 @@ const stubFetch = (response: { ok?: boolean; body?: unknown }) =>
   } as unknown as Response));
 
 beforeEach(async () => {
-  cwd = await mkdtemp(path.join(os.tmpdir(), 'od-figma-pipeline-e2e-'));
+  cwd = await mkdtemp(path.join(os.tmpdir(), 'readable-figma-pipeline-e2e-'));
 });
 
 afterEach(async () => {
@@ -112,7 +112,7 @@ describe('figma-migration pipeline — full atom chain', () => {
     // 4. handoff. Without build-test the rung tops out at
     //    'implementation-plan'.
     const seed: ArtifactManifest = {
-      version:  1,
+      schema: 'readable-studio.artifact-manifest.v1',
       kind:     'html',
       title:    'Hero from Figma',
       entry:    'index.html',
@@ -148,7 +148,7 @@ describe('figma-migration pipeline — full atom chain', () => {
     await runTokenMap({ cwd, designSystem });
     await runDiffReview({ cwd, decision: { decision: 'reject', reviewer: 'user' } });
     const seed: ArtifactManifest = {
-      version: 1, kind: 'html', title: 'X', entry: 'x.html',
+      schema: 'readable-studio.artifact-manifest.v1', kind: 'html', title: 'X', entry: 'x.html',
       renderer: 'html', exports: [],
     };
     const handoff = await runAndPersistHandoff({ cwd, manifestSeed: seed });
@@ -159,13 +159,13 @@ describe('figma-migration pipeline — full atom chain', () => {
     // This is a property assertion; no atoms run here. The
     // bundled-scenario fallback resolver (O1) wires the canonical
     // figma-migration pipeline whenever a consumer plugin omits
-    // od.pipeline + has taskKind='figma-migration'. The smoke test
+    // readable.pipeline + has taskKind='figma-migration'. The smoke test
     // for the resolver lives in plugins-scenario-fallback; this
     // case just locks the scenario folder still ships the canonical
     // stage list so the resolver has something to copy.
-    const scenariosRoot = path.resolve(__dirname, '../../..', 'plugins', '_official', 'scenarios', 'od-figma-migration', 'open-design.json');
+    const scenariosRoot = path.resolve(__dirname, '../../..', 'plugins', '_official', 'scenarios', 'readable-figma-migration', 'readable-studio.json');
     const manifest = JSON.parse(await readFile(scenariosRoot, 'utf8'));
-    expect(manifest.od.pipeline.stages.map((s: { id: string }) => s.id)).toEqual([
+    expect(manifest.readable.pipeline.stages.map((s: { id: string }) => s.id)).toEqual([
       'extract', 'tokens', 'generate', 'critique',
     ]);
   });

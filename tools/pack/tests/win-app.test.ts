@@ -22,19 +22,15 @@ async function writeWorkspace(root: string): Promise<void> {
 
 function createConfig(root: string, webOutputMode: ToolPackConfig["webOutputMode"]): ToolPackConfig {
   return {
-    containerized: false,
     electronBuilderCliPath: "electron-builder",
     electronDistPath: "electron-dist",
     electronVersion: "41.3.0",
-    macCompression: "normal",
     namespace: "test",
     platform: "win",
-    portable: false,
     removeData: false,
     removeLogs: false,
     removeProductUserData: false,
     removeSidecars: false,
-    requireVelaCli: false,
     roots: {
       cacheRoot: join(root, ".cache"),
       output: {
@@ -51,7 +47,6 @@ function createConfig(root: string, webOutputMode: ToolPackConfig["webOutputMode
     },
     signed: false,
     silent: true,
-    to: "dir",
     webOutputMode,
     workspaceRoot: root,
   };
@@ -59,7 +54,7 @@ function createConfig(root: string, webOutputMode: ToolPackConfig["webOutputMode
 
 describe("createWorkspaceTarballsCacheKey", () => {
   it("invalidates when the web output mode changes", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-win-app-"));
+    const root = await mkdtemp(join(tmpdir(), "readable-studio-win-app-"));
 
     try {
       await writeWorkspace(root);

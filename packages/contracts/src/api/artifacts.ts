@@ -1,5 +1,7 @@
 import type { JsonValue } from '../common.js';
 
+export const ARTIFACT_MANIFEST_SCHEMA = 'readable-studio.artifact-manifest.v1' as const;
+
 export type ArtifactKind =
   | 'html'
   | 'deck'
@@ -92,7 +94,7 @@ export interface ArtifactDeployTarget {
 }
 
 export interface ArtifactManifest {
-  version: 1;
+  schema: typeof ARTIFACT_MANIFEST_SCHEMA;
   kind: ArtifactKind;
   title: string;
   entry: string;

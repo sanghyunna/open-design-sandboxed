@@ -4,99 +4,19 @@ Follow the root `AGENTS.md` and `tools/AGENTS.md` first. This tool owns the repo
 
 ## Owns
 
-- Local packaging orchestration for packaged Open Design artifacts.
-- mac build/install/start/stop/logs/uninstall/cleanup smoke commands.
-- Windows NSIS build/install/start/stop/logs/uninstall/cleanup/list/reset smoke commands.
-- Windows registry observation/cleanup must go through `reg.exe` and stay scoped to entries matching the namespace install/uninstaller paths.
-- Windows lifecycle logs must expose NSIS automation logs/markers/timings in addition to app runtime logs.
-- Linux AppImage build/install/start/stop/logs/uninstall/cleanup smoke commands.
-- Linux headless (no-Electron) install/start/stop via `--headless` flag on `install`, `start`, and `stop`.
-- Linux containerized builds via `electronuserland/builder` Docker image for distro-agnostic glibc compat.
-- Consuming sidecar/process/path primitives from `@open-design/sidecar-proto`, `@open-design/sidecar`, and `@open-design/platform`.
+- Local packaging orchestration for packaged Readable Studio artifacts.
+- Windows portable ZIP build/start/stop/logs/cleanup/list/inspect smoke commands.
+- Consuming sidecar/process/path primitives from `@readable-studio/sidecar-proto`, `@readable-studio/sidecar`, and `@readable-studio/platform`.
 
 ## Does not own
 
 - Product business logic.
 - Sidecar protocol definitions.
 - A second process identity model.
-- Product/business update runtime integration.
 
 ## Rules
 
-- Do not hand-build `--od-stamp-*` args; use `createProcessStampArgs` with `OPEN_DESIGN_SIDECAR_CONTRACT`.
+- Do not hand-build `--readable-studio-stamp-*` args; use `createProcessStampArgs` with `SIDECAR_CONTRACT`.
 - Do not use port numbers in data/log/runtime/cache path decisions. Namespace decides paths; ports are only transient transports.
-- Do not let namespace-named `.app` installs change data/log/runtime/cache path conventions.
-- Use `--portable` for artifacts that leave the local build workspace so packaged config does not bake local tools-pack runtime roots from the build machine.
+- Windows x64 portable ZIP is the only artifact. Do not add target selectors, installers, updaters, or compatibility aliases.
 - Pack resource files used by electron-builder belong under `tools/pack/resources/`; do not point pack logic at Downloads, web public assets, docs assets, or other app-owned resource paths.
-- For ordinary Windows NSIS smoke tests, use short namespaces such as `rg`, `smoke`, or `nsis-a`. NSIS extracts deeply nested Next.js standalone files under the namespace-scoped install directory; long namespaces can push installed paths past the traditional Windows 260-character limit even when builder `win-unpacked` output is correct. During merge regression, namespace `regression-merge-nsis` produced an installed path length of 264 characters and missed `next/dist/server/route-matcher-providers/helpers/cached-route-matcher-provider.js` in the installed directory, while the same NSIS smoke passed with namespace `rg`. Use long namespaces only when intentionally testing installer path-length behavior.
-
-## Packaged auto-update architecture and harness
-
-Read this section before changing packaged auto-update behavior. The updater crosses package, desktop, web UI, release-feed, and installer surfaces, so bugs often hide between otherwise-green package tests.
-
-### Architecture map
-
-- `apps/desktop/src/main/updater.ts` owns updater state, release metadata parsing, artifact selection, checksum verification, download-store ownership, progress events, and opening the downloaded installer. It is pure main-process logic and is tested under `apps/desktop/tests/main/updater.test.ts`.
-- `apps/desktop/src/main/runtime.ts` exposes updater IPC to the renderer through `od:update:status|check|download|install|quit` and emits `od:update:status-changed`. Keep installer launch separate from process shutdown; quit is an explicit post-installer action.
-- `apps/desktop/src/main/index.ts` wires the scheduler. Native menu update actions are intentionally not the user-facing surface; the web updater UI owns discovery and action prompts.
-- `apps/web/src/lib/updater.ts` normalizes host updater snapshots into UI-ready state.
-- `apps/web/src/components/UpdaterPopup.tsx` is the visible updater surface in the left rail. All visible copy must go through `apps/web/src/i18n`.
-- `apps/packaged/src/index.ts` passes packaged `appVersion` and namespace-scoped `updateRoot` into desktop main.
-- `tools/serve` owns deterministic local updater fixtures only. It must not contain product updater runtime logic.
-- `tools/pack` owns packaged build/install/start/inspect/logs/uninstall/cleanup and the platform installer harness, including Windows NSIS registry observation and cleanup.
-
-### Release metadata shape
-
-The runtime updater reads `https://releases.open-design.ai/<channel>/latest/metadata.json` unless `OD_UPDATE_METADATA_URL` overrides it. For package-launcher updates:
-
-- mac selects `platforms.mac.artifacts.dmg`.
-- Windows selects `platforms.win.artifacts.installer`.
-- The artifact must have a checksum, preferably `sha256Url`; the updater verifies bytes before exposing an install action.
-- `OD_UPDATE_CURRENT_VERSION` may override the packaged version for tests, but user-flow package validation should prefer building the package with the intended `--app-version`.
-
-### Channel identity rules
-
-Channel identity must be stable across install, update install, shortcuts, registry entries, and app data:
-
-- Stable: `Open Design`, namespace `default` or stable release namespace.
-- Beta Windows: `Open Design Beta`, namespace `release-beta-win`, uninstall key `Open Design-release-beta-win`.
-- Preview Windows: `Open Design Preview`, namespace `release-preview-win`, uninstall key `Open Design-release-preview-win`.
-- Beta-like ad hoc namespaces such as `beta-local-flow` are test namespaces, not the beta channel. They must not be used for user-flow beta validation because they create a different registry key while sharing a confusing display name/path.
-
-### Deterministic fixture harness
-
-Use `tools-serve start updater` for fast, deterministic tests and e2e automation where network release state is not the thing under test. Fixture flow:
-
-```bash
-pnpm tools-serve start updater --json --channel beta --version 99.0.0-beta.1 --platform win
-```
-
-Then launch packaged desktop with:
-
-```bash
-OD_UPDATE_ENABLED=1
-OD_UPDATE_METADATA_URL=<fixture metadataUrl>
-OD_UPDATE_CURRENT_VERSION=99.0.0-beta.0
-OD_UPDATE_OPEN_DRY_RUN=1
-OD_UPDATE_AUTO_CHECK=1
-```
-
-This harness is appropriate for asserting IPC, popup rendering, progress, checksum/download-store behavior, and dry-run installer opening without depending on an external release feed.
-
-### Validation matrix for updater changes
-
-Run the narrow tests that match the surface you touched, then the repo checks:
-
-```bash
-pnpm --filter @open-design/desktop test -- tests/main/updater.test.ts tests/main/updater-host-boundary.test.ts tests/main/preload-host-boundary.test.ts
-pnpm --filter @open-design/web test -- tests/components/UpdaterPopup.test.tsx tests/lib/updater.test.ts
-pnpm --filter @open-design/tools-serve test
-pnpm --filter @open-design/tools-pack test -- tests/win-identity.test.ts tests/win-app.test.ts tests/win-builder.test.ts
-pnpm --filter @open-design/desktop typecheck
-pnpm --filter @open-design/web typecheck
-pnpm --filter @open-design/tools-pack typecheck
-pnpm --filter @open-design/tools-serve typecheck
-git diff --check
-pnpm guard
-pnpm typecheck
-```

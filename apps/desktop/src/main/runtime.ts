@@ -9,19 +9,15 @@ import { promisify } from "node:util";
 
 import { BrowserWindow, app, dialog, ipcMain, nativeImage, screen, session, shell } from "electron";
 import {
-  DESKTOP_UPDATE_CHANNELS,
-  DESKTOP_UPDATE_MODES,
-  DESKTOP_UPDATE_STATES,
   type DesktopExportPdfInput,
   type DesktopExportPdfResult,
-  type DesktopUpdateStatusSnapshot,
-} from "@open-design/sidecar-proto";
-import type { OpenDesignHostActionResult, OpenDesignHostCaptureResult, OpenDesignHostUpdaterActionOptions } from "@open-design/host";
+} from "@readable-studio/sidecar-proto";
+import type { ReadableStudioHostActionResult, ReadableStudioHostCaptureResult } from "@readable-studio/host";
 
 import { openValidatedDirectory } from "./open-path.js";
 import { createElectronPdfTarget, exportPdfFromHtml, savePrintReadyDocumentAsPdf } from "./pdf-export.js";
 import type { PrintReadyPdfOptions } from "./pdf-export.js";
-import type { DesktopUpdater } from "./updater.js";
+import { remainingSplashHoldMs, shouldFinishSplashPolling } from "./splash-reveal.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -205,7 +201,7 @@ export async function fetchResolvedProjectDir(
 const DESKTOP_IMPORT_TOKEN_FIELD_SEP = "~";
 
 /**
- * Pure-function HMAC mint for the `X-OD-Desktop-Import-Token` header.
+ * Pure-function HMAC mint for the `X-Readable-Studio-Desktop-Import-Token` header.
  * Mirrors `signDesktopImportToken` on the daemon side (PR #974). Kept in
  * a small exported helper so the packaged workspace's vitest suite can
  * pin token-shape contract drift without booting Electron.
@@ -233,8 +229,8 @@ const RUNNING_POLL_MS = 2000;
 const MIN_SPLASH_MS = 6800;
 // While the splash is up, the real web app loads in a hidden main window. We
 // reveal it only once the web bundle reports it has actually mounted (it sets
-// `data-od-app-mounted="1"` on first paint of the real UI), so the user never
-// sees the web's own "Loading Open Design…" shell flash between the splash and
+// `data-readable-app-mounted="1"` on first paint of the real UI), so the user never
+// sees the web's own "Loading Readable Studio…" shell flash between the splash and
 // the app. Poll cadence + a hard ceiling so a missing mount signal can never
 // strand the user on the splash forever.
 const WEB_MOUNT_POLL_MS = 80;
@@ -245,15 +241,7 @@ const MAX_CONSOLE_ENTRIES = 200;
 const DESKTOP_PET_WINDOW_WIDTH = 360;
 const DESKTOP_PET_WINDOW_HEIGHT = 300;
 const DESKTOP_PET_WINDOW_MARGIN = 24;
-const UPDATER_STATUS_EVENT = "od:update:status-changed";
-const DESIGN_BROWSER_PARTITION = "persist:open-design-design-browser";
-const UPDATER_IPC_CHANNELS = [
-  "od:update:status",
-  "od:update:check",
-  "od:update:download",
-  "od:update:install",
-  "od:update:quit",
-] as const;
+const DESIGN_BROWSER_PARTITION = "persist:readable-studio-design-browser";
 
 export type DesktopEvalInput = {
   expression: string;
@@ -335,7 +323,7 @@ export type DesktopRuntimeOptions = {
   discoverUrl(): Promise<string | null>;
   /**
    * Round-7 (lefarcen P2 @ runtime.ts:336): packaged desktop loads the
-   * renderer from `od://app/`, which only resolves through Electron's
+   * renderer from `readable-studio://app/`, which only resolves through Electron's
    * registered protocol handler in the renderer context. Main-process
    * `globalThis.fetch` (Node/undici) ignores that handler, so any
    * `fetch(webUrl + '/api/...')` from main fails in packaged builds.
@@ -349,7 +337,7 @@ export type DesktopRuntimeOptions = {
   /**
    * BCP-47 locale string read from the OS by main process, forwarded
    * to the preload via `webPreferences.additionalArguments` so the
-   * renderer can mirror it onto `__od__.client.osLocale`. Optional;
+   * renderer can mirror it onto `__readableStudio__.client.osLocale`. Optional;
    * when omitted the renderer falls back to navigator/localStorage.
    */
   osLocale?: string;
@@ -388,10 +376,9 @@ export type DesktopRuntimeOptions = {
    * `splashWindow` is omitted (the runtime stamps its own splash at creation).
    */
   splashStartedAt?: number;
-  updater?: DesktopUpdater;
 };
 
-const DESKTOP_IMPORT_TOKEN_HEADER = "X-OD-Desktop-Import-Token";
+const DESKTOP_IMPORT_TOKEN_HEADER = "X-Readable-Studio-Desktop-Import-Token";
 const DESKTOP_IMPORT_TOKEN_TTL_MS = 60_000;
 
 // @dsp func-8caf710f
@@ -424,7 +411,7 @@ export type PickAndImportFolderDeps = {
   /**
    * Round-7 (lefarcen P2 @ runtime.ts:336): the helper now POSTs to the
    * sidecar daemon's real `http://127.0.0.1:<port>` URL rather than the
-   * renderer-only `od://app/` webUrl. Renamed from `webUrl` to make the
+   * renderer-only `readable-studio://app/` webUrl. Renamed from `webUrl` to make the
    * boundary explicit — main-process Node fetch must hit a real http
    * URL, never a custom Electron protocol scheme. tools-dev callers
    * pass the same value they used to pass for `webUrl` (its web URL is
@@ -855,7 +842,7 @@ export function createSplashWindow(): SplashWindowHandle {
     height: 450,
     resizable: false,
     show: true,
-    title: "Open Design",
+    title: "Readable Studio",
     width: 640,
     webPreferences: {
       contextIsolation: true,
@@ -921,14 +908,14 @@ export function isAllowedChildWindowUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
     // `blob:` covers in-renderer generated downloads / object URLs.
-    // `od:` is the packaged Electron entry's privileged scheme
+    // `readable-studio:` is the packaged Electron entry's privileged scheme
     // registered by `apps/packaged/src/protocol.ts` and proxied to the
     // local web sidecar. Without this branch, any in-app
-    // `<a target="_blank" href="/api/...">` resolves to `od://app/...`
+    // `<a target="_blank" href="/api/...">` resolves to `readable-studio://app/...`
     // in packaged builds, falls through `setWindowOpenHandler` to
     // `{ action: "deny" }`, and the click is silently dropped — that
     // was the "Open artifact" no-op reported in #911. Allowing
-    // `od:` here lets Electron open the link in a child BrowserWindow
+    // `readable-studio:` here lets Electron open the link in a child BrowserWindow
     // that inherits the same protocol registration + preload, so the
     // live artifact preview renders normally. Dev mode is unaffected:
     // its links resolve to `http://127.0.0.1:.../...`, which is gated
@@ -940,7 +927,7 @@ export function isAllowedChildWindowUrl(url: string): boolean {
     // and the user sees a "Popup blocked" alert.
     return (
       parsed.protocol === "blob:" ||
-      parsed.protocol === "od:" ||
+      parsed.protocol === "readable-studio:" ||
       (parsed.protocol === "about:" && parsed.pathname === "blank")
     );
   } catch {
@@ -994,7 +981,7 @@ function desktopPetUrl(baseUrl: string): string {
 // — BCP-47 region tags shouldn't contain `;` or `=`, but the renderer's
 // `process.argv` parser is happier if we never have to worry about it.
 function osLocaleAdditionalArguments(osLocale: string | undefined): string[] | undefined {
-  return osLocale ? [`--od-os-locale=${encodeURIComponent(osLocale)}`] : undefined;
+  return osLocale ? [`--readable-studio-os-locale=${encodeURIComponent(osLocale)}`] : undefined;
 }
 
 function createDesktopPetWindow(preloadPath: string, osLocale: string | undefined): BrowserWindow {
@@ -1209,36 +1196,6 @@ function parseCaptureClip(value: unknown): Electron.Rectangle | undefined {
   };
 }
 
-function unavailableUpdaterStatus(): DesktopUpdateStatusSnapshot {
-  return {
-    arch: process.arch,
-    capabilities: {
-      canApplyInPlace: false,
-      canDownload: false,
-      canOpenInstaller: false,
-      requiresManualInstall: false,
-    },
-    channel: DESKTOP_UPDATE_CHANNELS.BETA,
-    currentVersion: "0.0.0",
-    enabled: false,
-    error: {
-      code: "updater-unavailable",
-      message: "Desktop updater is not available.",
-    },
-    mode: DESKTOP_UPDATE_MODES.PACKAGE_LAUNCHER,
-    platform: process.platform,
-    state: DESKTOP_UPDATE_STATES.UNSUPPORTED,
-    supported: false,
-  };
-}
-
-function checkOptionsFromHost(options: unknown): { autoDownload?: boolean } | undefined {
-  const input = options as OpenDesignHostUpdaterActionOptions | null | undefined;
-  const payload = input?.payload;
-  if (payload == null || typeof payload.autoDownload !== "boolean") return undefined;
-  return { autoDownload: payload.autoDownload };
-}
-
 async function reportRendererCrash(
   options: DesktopRuntimeOptions,
   properties: { reason: string; exit_code: number | null },
@@ -1247,7 +1204,7 @@ async function reportRendererCrash(
     // discoverDaemonUrl returns the real http://127.0.0.1:<port> URL the
     // sidecar daemon listens on. In tools-dev callers omit it and fall back
     // to discoverUrl (which is also http in dev). In packaged builds it's
-    // mandatory because the renderer-only `od://app/` scheme isn't
+    // mandatory because the renderer-only `readable-studio://app/` scheme isn't
     // reachable from main-process Node fetch.
     const baseUrl = (await (options.discoverDaemonUrl?.() ?? options.discoverUrl())) ?? null;
     if (!baseUrl) return;
@@ -1286,9 +1243,6 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
   ipcMain.removeHandler("shell:open-external");
   ipcMain.removeHandler("shell:open-path");
   ipcMain.removeHandler("browser:clear-data");
-  for (const channel of UPDATER_IPC_CHANNELS) {
-    ipcMain.removeHandler(channel);
-  }
   ipcMain.handle("shell:open-external", async (_event, url: string) => {
     if (!isHttpUrl(url)) return false;
     try {
@@ -1326,7 +1280,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
         return { ok: false, reason: "desktop auth secret not registered" };
       }
       // Round-7 (lefarcen P2): packaged builds report the renderer URL
-      // (`od://app/`) over `discoverUrl`, but Node-side fetch can't
+      // (`readable-studio://app/`) over `discoverUrl`, but Node-side fetch can't
       // resolve a custom Electron protocol scheme. Prefer the daemon
       // sidecar's real http URL when packaged exposes it; tools-dev
       // omits `discoverDaemonUrl` and we fall back to the web URL
@@ -1442,7 +1396,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
   // openPath(projectId) for projects whose resolvedDir came from that
   // trusted flow."
   ipcMain.handle("shell:open-path", async (_event, projectId: string) => {
-    // Round-7 (lefarcen P2): same packaged od:// → daemon URL pivot as
+    // Round-7 (lefarcen P2): same packaged readable-studio:// → daemon URL pivot as
     // the dialog:pick-and-import handler above.
     const apiBaseUrl =
       (options.discoverDaemonUrl ? await options.discoverDaemonUrl() : null) ??
@@ -1484,9 +1438,9 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     // Starts hidden: the splash window is what the user sees while the real web
     // app loads in here. We reveal this window only once the app has actually
     // mounted (see `revealWhenReady` below), so there is never a flash of the
-    // web's own "Loading Open Design…" shell.
+    // web's own "Loading Readable Studio…" shell.
     show: false,
-    title: "Open Design",
+    title: "Readable Studio",
     autoHideMenuBar: true,
     ...MAC_WINDOW_CHROME,
     webPreferences: {
@@ -1518,14 +1472,9 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     });
   });
 
-  const sendUpdaterStatus = (status = options.updater?.snapshot() ?? unavailableUpdaterStatus()) => {
-    if (window.isDestroyed()) return;
-    window.webContents.send(UPDATER_STATUS_EVENT, status);
-  };
-  const unsubscribeUpdater = options.updater?.subscribe(() => sendUpdaterStatus()) ?? (() => undefined);
   const requireMainWindowSender = (event: Electron.IpcMainInvokeEvent): void => {
     if (event.sender !== window.webContents) {
-      throw new Error("host IPC is only available to the main Open Design window");
+      throw new Error("host IPC is only available to the main Readable Studio window");
     }
   };
   window.webContents.on("will-attach-webview", (event, webPreferences, params) => {
@@ -1556,7 +1505,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     guestWebContents.on("will-redirect", blockDisallowed);
     guestWebContents.setWindowOpenHandler(() => ({ action: "deny" }));
   });
-  ipcMain.handle("browser:clear-data", async (event, rawOptions: unknown): Promise<OpenDesignHostActionResult> => {
+  ipcMain.handle("browser:clear-data", async (event, rawOptions: unknown): Promise<ReadableStudioHostActionResult> => {
     requireMainWindowSender(event);
     const optionsRecord = rawOptions != null && typeof rawOptions === "object"
       ? rawOptions as { cookies?: unknown; storage?: unknown }
@@ -1588,43 +1537,6 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
       };
     }
   });
-  ipcMain.handle("od:update:status", async (event) => {
-    requireMainWindowSender(event);
-    const status = await (options.updater?.status() ?? unavailableUpdaterStatus());
-    sendUpdaterStatus(status);
-    return status;
-  });
-  ipcMain.handle("od:update:check", async (event, updaterOptions: unknown) => {
-    requireMainWindowSender(event);
-    const status = await (options.updater?.checkForUpdates(checkOptionsFromHost(updaterOptions)) ?? unavailableUpdaterStatus());
-    sendUpdaterStatus(status);
-    return status;
-  });
-  ipcMain.handle("od:update:download", async (event) => {
-    requireMainWindowSender(event);
-    const status = await (options.updater?.downloadUpdate() ?? unavailableUpdaterStatus());
-    sendUpdaterStatus(status);
-    return status;
-  });
-  ipcMain.handle("od:update:install", async (event) => {
-    requireMainWindowSender(event);
-    const status = await (options.updater?.installUpdate() ?? unavailableUpdaterStatus());
-    sendUpdaterStatus(status);
-    return status;
-  });
-  ipcMain.handle("od:update:quit", async (event): Promise<OpenDesignHostActionResult> => {
-    requireMainWindowSender(event);
-    const status = await (options.updater?.status() ?? unavailableUpdaterStatus());
-    if (status.installResult == null) {
-      return { ok: false, reason: "installer has not been opened" };
-    }
-    if (options.requestQuit == null) {
-      return { ok: false, reason: "desktop quit is not available" };
-    }
-    setTimeout(() => options.requestQuit?.(), 0);
-    return { ok: true };
-  });
-
   let currentUrl: string | null = null;
   let currentPetUrl: string | null = null;
   let pendingUrl: string | null = null;
@@ -1650,7 +1562,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     const enabled = await window.webContents.executeJavaScript(
       `(() => {
         try {
-          const raw = localStorage.getItem("open-design:config");
+          const raw = localStorage.getItem("readable-studio:config");
           if (!raw) return false;
           return JSON.parse(raw)?.pet?.enabled === true;
         } catch {
@@ -1675,8 +1587,8 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     }
   });
 
-  ipcMain.removeHandler('od:print-pdf');
-  ipcMain.handle('od:print-pdf', async (_event, html: unknown, nonce: unknown, options: unknown): Promise<void> => {
+  ipcMain.removeHandler('readable-studio:print-pdf');
+  ipcMain.handle('readable-studio:print-pdf', async (_event, html: unknown, nonce: unknown, options: unknown): Promise<void> => {
     if (typeof html !== 'string') {
       throw new Error('Invalid print payload: expected HTML string');
     }
@@ -1700,8 +1612,8 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     }
   });
 
-  ipcMain.removeHandler('od:capture-page');
-  ipcMain.handle('od:capture-page', async (event, rawOptions: unknown): Promise<OpenDesignHostCaptureResult> => {
+  ipcMain.removeHandler('readable-studio:capture-page');
+  ipcMain.handle('readable-studio:capture-page', async (event, rawOptions: unknown): Promise<ReadableStudioHostCaptureResult> => {
     if (event.sender !== window.webContents) {
       return { ok: false, reason: 'capture sender not allowed' };
     }
@@ -1847,28 +1759,59 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     if (splash != null && !splash.isDestroyed()) splash.close();
   };
 
-  // Hold the splash until BOTH (a) the web bundle reports it has mounted — it
-  // sets `data-od-app-mounted="1"` on first paint of the real UI — so we never
-  // reveal the web's own dark "Loading Open Design…" shell, and (b) the splash
-  // has been up at least MIN_SPLASH_MS so the brand clip plays through. A hard
-  // ceiling guarantees the user is never stranded on the splash if the mount
-  // signal never arrives.
+  // Hold the splash until BOTH (a) the web bundle reports it has mounted and
+  // (b) the video reports ended/error through its persistent document marker.
+  // The marker matters because the minimum-hold clock starts when the window is
+  // created, before file loading and the first decoded video frame. A hard
+  // ceiling guarantees the user is never stranded if either signal never
+  // arrives; MIN_SPLASH_MS remains the visual floor on every exit path.
   const revealWhenReady = async (): Promise<void> => {
     if (revealing || revealed) return;
     revealing = true;
     const deadline = Date.now() + WEB_MOUNT_REVEAL_TIMEOUT_MS;
-    while (!stopped && !window.isDestroyed() && Date.now() < deadline) {
-      const mounted = await window.webContents
-        .executeJavaScript(`document.documentElement.getAttribute("data-od-app-mounted") === "1"`, true)
-        .catch(() => false);
-      if (mounted === true) {
-        // Reveal is additionally floored by MIN_SPLASH_MS; this timestamp is the perf-relevant signal.
-        console.info("web app mounted", { elapsedMs: Date.now() - splashStartedAt, uptimeMs: Math.round(process.uptime() * 1000) });
+    while (!stopped && !window.isDestroyed()) {
+      const deadlineReached = Date.now() >= deadline;
+      const [mounted, splashFinished] = deadlineReached
+        ? [false, false]
+        : await Promise.all([
+            window.webContents
+              .executeJavaScript(
+                `document.documentElement.getAttribute("data-readable-app-mounted") === "1"`,
+                true,
+              )
+              .catch(() => false),
+            splash != null &&
+            !splash.isDestroyed() &&
+            !splash.webContents.isDestroyed()
+              ? splash.webContents
+                  .executeJavaScript(
+                    `document.documentElement.getAttribute("data-readable-splash-finished") === "1"`,
+                    true,
+                  )
+                  .catch(() => false)
+              : Promise.resolve(false),
+          ]);
+      if (
+        shouldFinishSplashPolling({
+          appMounted: mounted === true,
+          deadlineReached,
+          splashFinished: splashFinished === true,
+        })
+      ) {
+        const timing = {
+          elapsedMs: Date.now() - splashStartedAt,
+          uptimeMs: Math.round(process.uptime() * 1000),
+        };
+        if (deadlineReached) {
+          console.warn("splash reveal deadline reached", timing);
+        } else {
+          console.info("web app and splash ready", timing);
+        }
         break;
       }
       await delay(WEB_MOUNT_POLL_MS);
     }
-    const remaining = MIN_SPLASH_MS - (Date.now() - splashStartedAt);
+    const remaining = remainingSplashHoldMs(splashStartedAt, Date.now(), MIN_SPLASH_MS);
     if (remaining > 0) await delay(remaining);
     revealMainWindow();
   };
@@ -1942,11 +1885,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
         clearTimeout(timer);
         timer = null;
       }
-      unsubscribeUpdater();
       ipcMain.removeAllListeners("desktop-pet:set-visible");
-      for (const channel of UPDATER_IPC_CHANNELS) {
-        ipcMain.removeHandler(channel);
-      }
       ipcMain.removeHandler("browser:clear-data");
       if (splash != null && !splash.isDestroyed()) splash.close();
       if (petWindow != null && !petWindow.isDestroyed()) petWindow.close();

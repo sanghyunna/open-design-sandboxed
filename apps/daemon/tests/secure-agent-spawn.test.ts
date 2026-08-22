@@ -3,13 +3,13 @@ import { randomUUID } from 'node:crypto';
 import type http from 'node:http';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createCommandInvocation } from '@open-design/platform';
+import { createCommandInvocation } from '@readable-studio/platform';
 import { closeHttpServer } from '../src/daemon-startup.js';
 import { closeDatabase } from '../src/db.js';
 import { startServer } from '../src/server.js';
 import { withFakeAgent } from './helpers/fake-agent.js';
 
-const TOKEN_ENV = 'OD_DESKTOP_APPROVAL_TOKEN';
+const TOKEN_ENV = 'READABLE_DESKTOP_APPROVAL_TOKEN';
 const servers: http.Server[] = [];
 
 afterEach(async () => {
@@ -23,8 +23,8 @@ if (process.argv.includes('--version')) { console.log('qwen 1.0.0'); process.exi
 let prompt = '';
 process.stdin.on('data', (chunk) => { prompt += chunk; });
 process.stdin.on('end', () => {
-  process.stdout.write('CAPABILITY:' + (prompt.includes('<od-rollback-request') ? 'yes' : 'no') + '\\n');
-  process.stdout.write('<od-rollback-request mode="files_only" reason="undo the edit" />\\n');
+  process.stdout.write('CAPABILITY:' + (prompt.includes('<readable-rollback-request') ? 'yes' : 'no') + '\\n');
+  process.stdout.write('<readable-rollback-request mode="files_only" reason="undo the edit" />\\n');
 });
 `;
 
@@ -33,8 +33,8 @@ if (process.argv.includes('--version')) { console.log('codex 1.0.0'); process.ex
 let prompt = '';
 process.stdin.on('data', (chunk) => { prompt += chunk; });
 process.stdin.on('end', () => {
-  const text = 'CAPABILITY:' + (prompt.includes('<od-rollback-request') ? 'yes' : 'no') + '\\n' +
-    '<od-rollback-request mode="files_only" reason="undo the edit" />';
+  const text = 'CAPABILITY:' + (prompt.includes('<readable-rollback-request') ? 'yes' : 'no') + '\\n' +
+    '<readable-rollback-request mode="files_only" reason="undo the edit" />';
   console.log(JSON.stringify({ type: 'item.completed', item: { id: 'item-1', type: 'agent_message', text } }));
   console.log(JSON.stringify({ type: 'turn.completed', usage: { input_tokens: 1, output_tokens: 1, cached_input_tokens: 0 } }));
 });
@@ -113,21 +113,21 @@ describe('secure rollback agent spawn selection', () => {
 
       expect(events).toContain('CAPABILITY:yes');
       expect(events).toContain('"type":"rollback_request"');
-      expect(events).not.toContain('od-rollback-request mode');
+      expect(events).not.toContain('readable-rollback-request mode');
       expect(isolatedAgentSpawn).toHaveBeenCalledTimes(1);
       const options = spawnCalls[0];
       const envKeys = Object.keys(options.env).map((key) => key.toUpperCase());
       for (const key of [
-        'OD_DAEMON_URL',
-        'OD_DATA_DIR',
-        'OD_DESKTOP_APPROVAL_TOKEN',
-        'OD_SIDECAR_IPC_PATH',
-        'OD_TOOL_TOKEN',
+        'READABLE_DAEMON_URL',
+        'READABLE_DATA_DIR',
+        'READABLE_DESKTOP_APPROVAL_TOKEN',
+        'READABLE_SIDECAR_IPC_PATH',
+        'READABLE_TOOL_TOKEN',
       ]) expect(envKeys).not.toContain(key);
-      expect(options.env.OD_BIN).toMatch(/od-tool-broker-client\.mjs$/);
-      expect(options.env.HOME).toContain('open-design-isolated-agents');
+      expect(options.env.READABLE_BIN).toMatch(/readable-tool-broker-client\.mjs$/);
+      expect(options.env.HOME).toContain('readable-studio-isolated-agents');
       expect(options.writablePaths).toContain(options.cwd);
-      expect(options.readExecutePaths.some((candidate: string) => candidate.includes('od-fake-agent-'))).toBe(true);
+      expect(options.readExecutePaths.some((candidate: string) => candidate.includes('readable-fake-agent-'))).toBe(true);
     });
   }, 20_000);
 
@@ -145,7 +145,7 @@ describe('secure rollback agent spawn selection', () => {
       const events = await runAgent(started.url, await createProject(started.url));
 
       expect(events).toContain('CAPABILITY:no');
-      expect(events).toContain('od-rollback-request');
+      expect(events).toContain('readable-rollback-request');
       expect(events).not.toContain('"type":"rollback_request"');
       expect(isolatedAgentSpawn).not.toHaveBeenCalled();
     });
@@ -173,7 +173,7 @@ describe('secure rollback agent spawn selection', () => {
       servers.push(started.server);
       const events = await runAgent(started.url, await createProject(started.url), 'qwen');
       expect(events).toContain('CAPABILITY:no');
-      expect(events).toContain('od-rollback-request');
+      expect(events).toContain('readable-rollback-request');
       expect(events).not.toContain('"type":"rollback_request"');
       expect(isolatedAgentSpawn).not.toHaveBeenCalled();
     });

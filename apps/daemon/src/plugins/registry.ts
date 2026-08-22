@@ -1,8 +1,8 @@
 // Plugin registry. Phase 1 scope:
 //
-// - Scans `<daemonDataDir>/plugins/<id>/` (the OD-canonical install root) for
+// - Scans `<daemonDataDir>/plugins/<id>/` (the Readable Studio-canonical install root) for
 //   manifest folders.
-// - Resolves a plugin folder into either an `open-design.json`-anchored
+// - Resolves a plugin folder into either an `readable-studio.json`-anchored
 //   manifest or a synthesized one derived from `SKILL.md` /
 //   `.claude-plugin/plugin.json` (per spec §3 compatibility matrix).
 // - Persists discovered records into the `installed_plugins` SQLite row so
@@ -21,16 +21,17 @@ import {
   adaptClaudePlugin,
   mergeManifests,
   parseManifest,
+  UNSUPPORTED_LEGACY_PRODUCT_V1,
   validateSafe,
   type ManifestParseResult,
-} from '@open-design/plugin-runtime';
+} from '@readable-studio/plugin-runtime';
 import type {
   InstalledPluginRecord,
   MarketplaceTrust,
   PluginManifest,
   PluginSourceKind,
   TrustTier,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { defaultTrustForRecord, resolveCapabilitiesGranted } from './trust.js';
 import type Database from 'better-sqlite3';
 
@@ -50,7 +51,7 @@ export function registryRootsForDataDir(dataDir: string): RegistryRoots {
 }
 
 export function defaultRegistryRoots(): RegistryRoots {
-  return registryRootsForDataDir(path.resolve(process.env.OD_DATA_DIR ?? path.join(process.cwd(), '.od')));
+  return registryRootsForDataDir(path.resolve(process.env.READABLE_DATA_DIR ?? path.join(process.cwd(), '.readable-studio')));
 }
 
 export interface ScannedPlugin {
@@ -109,7 +110,27 @@ export async function resolvePluginFolder(opts: ResolveOptions): Promise<Resolve
     return { ok: false, errors: [`Plugin path is not a directory: ${folder}`], warnings };
   }
 
-  const sidecarPath = path.join(folder, 'open-design.json');
+  const sidecarName = 'readable-studio.json';
+  const sidecarPath = path.join(folder, sidecarName);
+  if (!fs.existsSync(sidecarPath)) {
+    const alternateJsonFiles = (await fsp.readdir(folder, { withFileTypes: true }))
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.json') && entry.name !== sidecarName && entry.name !== 'package.json');
+    for (const entry of alternateJsonFiles) {
+      try {
+        const candidate = JSON.parse(await fsp.readFile(path.join(folder, entry.name), 'utf8')) as unknown;
+        if (
+          candidate !== null
+          && typeof candidate === 'object'
+          && 'name' in candidate
+          && 'version' in candidate
+        ) {
+          return { ok: false, errors: [UNSUPPORTED_LEGACY_PRODUCT_V1], warnings };
+        }
+      } catch {
+        // Unrelated JSON files are validated by their owning tool, not the plugin registry.
+      }
+    }
+  }
   const skillPath = path.join(folder, 'SKILL.md');
   const claudePath = path.join(folder, '.claude-plugin', 'plugin.json');
 
@@ -118,7 +139,7 @@ export async function resolvePluginFolder(opts: ResolveOptions): Promise<Resolve
     const rawSidecar = await fsp.readFile(sidecarPath, 'utf8');
     const parsed: ManifestParseResult = parseManifest(rawSidecar);
     if (!parsed.ok) {
-      errors.push(...parsed.errors.map((e) => `open-design.json: ${e}`));
+      errors.push(...parsed.errors.map((e) => `readable-studio.json: ${e}`));
     } else {
       sidecar = parsed.manifest;
       warnings.push(...parsed.warnings);
@@ -142,7 +163,7 @@ export async function resolvePluginFolder(opts: ResolveOptions): Promise<Resolve
   if (!sidecar && adapters.length === 0) {
     return {
       ok: false,
-      errors: [...errors, `Plugin folder contains no SKILL.md, no .claude-plugin/plugin.json, and no open-design.json: ${folder}`],
+      errors: [...errors, `Plugin folder contains no SKILL.md, no .claude-plugin/plugin.json, and no readable-studio.json: ${folder}`],
       warnings,
     };
   }
@@ -166,7 +187,7 @@ export async function resolvePluginFolder(opts: ResolveOptions): Promise<Resolve
   const sourceKind = opts.sourceKind ?? 'local';
   // Spec §5.3 / trust.ts: a `local` install is implicitly trusted (the user
   // copied the folder here themselves), everything else starts restricted
-  // until an explicit `od plugin trust` flip. Fall back to that source-kind
+  // until an explicit `readable plugin trust` flip. Fall back to that source-kind
   // policy when the caller did not pin a trust tier — previously this was
   // hard-coded to 'restricted', which left local scenario plugins unable to
   // obtain the `pipeline:*` capability they need to run their own pipeline.

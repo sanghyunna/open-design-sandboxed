@@ -13,7 +13,7 @@ triggers:
   - "mrr review"
   - "earnings report"
   - "financial statement"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: finance

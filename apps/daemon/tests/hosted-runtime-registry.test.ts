@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { PassThrough } from 'node:stream';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createApiError } from '@open-design/contracts';
+import { createApiError } from '@readable-studio/contracts';
 import { insertConversation, insertProject, upsertAgentSession } from '../src/db.js';
 import {
   createHostedRuntimeRegistry,
@@ -61,7 +61,7 @@ function createRegistry(
   overrides: Partial<HostedRuntimeRegistryOptions> = {},
 ) {
   const runtimeRoot = overrides.runtimeRoot
-    ?? mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-default-'));
+    ?? mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-default-'));
   if (overrides.runtimeRoot === undefined) defaultRuntimeRoots.push(runtimeRoot);
   return createHostedRuntimeRegistry({
     ...overrides,
@@ -134,7 +134,7 @@ describe('HostedRuntimeRegistry', () => {
 
   it('owns isolated runtime generations and evicts only a released user', async () => {
     vi.useFakeTimers();
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-storage-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-storage-'));
     const registry = createRegistry({ idleEvictionMs: 25, runtimeRoot });
     try {
       const a = registry.acquire({ userKey: 'a' });
@@ -179,7 +179,7 @@ describe('HostedRuntimeRegistry', () => {
   });
 
   it('dispatches database, checkpoint, and run state through each owned runtime', async () => {
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-db-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-db-'));
     const registry = createRegistry({ runtimeRoot });
     const a = registry.acquire({ userKey: 'a' });
     const b = registry.acquire({ userKey: 'b' });
@@ -232,7 +232,7 @@ describe('HostedRuntimeRegistry', () => {
   });
 
   it('restores the newest valid snapshot before admitting work to a fresh generation', async () => {
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-restore-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-restore-'));
     const identity = {
       storageKey: deriveHostedStorageKey('a'),
       userKey: 'a',
@@ -283,7 +283,7 @@ describe('HostedRuntimeRegistry', () => {
   });
 
   it('hydrates the restored Pi session before the next turn', async () => {
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-session-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-session-'));
     const identity = { storageKey: deriveHostedStorageKey('a'), userKey: 'a' };
     const storage = createHostedRuntimeStorage({ identity, runtimeRoot });
     const now = Date.now();
@@ -325,7 +325,7 @@ describe('HostedRuntimeRegistry', () => {
   });
 
   it('serializes snapshot publication in the existing per-user mutation lane', async () => {
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-lane-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-lane-'));
     const registry = createRegistry({ runtimeRoot });
     const lease = registry.acquire({ userKey: 'a' });
     const runStarted = deferred();
@@ -387,7 +387,7 @@ describe('HostedRuntimeRegistry', () => {
   });
 
   it('keeps async failures inside the per-user mutation lane until they settle', async () => {
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-async-lane-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-async-lane-'));
     const registry = createRegistry({ runtimeRoot });
     const lease = registry.acquire({ userKey: 'a' });
     const now = Date.now();
@@ -485,7 +485,7 @@ describe('HostedRuntimeRegistry', () => {
   });
 
   it('bounds retained terminal runs per hosted runtime', async () => {
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-run-bound-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-run-bound-'));
     const registry = createRegistry({ runtimeRoot, limits: { retainedRunsPerUser: 1 } });
     const lease = registry.acquire({ userKey: 'a' });
     try {
@@ -507,7 +507,7 @@ describe('HostedRuntimeRegistry', () => {
   });
 
   it('poisons only a failed publisher and restores its last valid snapshot', async () => {
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-publish-fail-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-publish-fail-'));
     let failA = false;
     const registry = createRegistry({
       runtimeRoot,
@@ -586,7 +586,7 @@ describe('HostedRuntimeRegistry', () => {
   });
 
   it('preserves snapshot quota failures while poisoning the generation', async () => {
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-quota-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-quota-'));
     const registry = createRegistry({
       runtimeRoot,
       createSnapshotStore() {
@@ -618,7 +618,7 @@ describe('HostedRuntimeRegistry', () => {
   });
 
   it('settles failed initialization even when partial storage cleanup throws', async () => {
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-init-close-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-init-close-'));
     let first = true;
     let failCleanup = true;
     const registry = createRegistry({
@@ -678,7 +678,7 @@ describe('HostedRuntimeRegistry', () => {
   });
 
   it('keeps an accepted owned operation alive after its caller lease releases', async () => {
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-accepted-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-accepted-'));
     const registry = createRegistry({ runtimeRoot });
     const lease = registry.acquire({ userKey: 'a' });
     const now = Date.now();
@@ -705,7 +705,7 @@ describe('HostedRuntimeRegistry', () => {
   });
 
   it('does not publish a resident generation when storage initialization fails', async () => {
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-failed-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-failed-'));
     const storageKey = deriveHostedStorageKey('b');
     const storageRoot = join(runtimeRoot, 'live', storageKey);
     mkdirSync(storageRoot, { recursive: true });
@@ -754,7 +754,7 @@ describe('HostedRuntimeRegistry', () => {
 
   it('contains an idle cleanup failure and only replaces the failed generation after cleanup', async () => {
     vi.useFakeTimers();
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-close-failure-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-close-failure-'));
     let failFirstBClose = true;
     const registry = createRegistry({
       idleEvictionMs: 25,
@@ -814,7 +814,7 @@ describe('HostedRuntimeRegistry', () => {
   });
 
   it('poisons only the addressed generation, drains it, and recreates it fresh', async () => {
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-poison-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-poison-'));
     const registry = createRegistry({ runtimeRoot });
     const a = registry.acquire({ userKey: 'a' });
     const b = registry.acquire({ userKey: 'b' });
@@ -881,7 +881,7 @@ describe('HostedRuntimeRegistry', () => {
   });
 
   it('never acknowledges success when owned run finalization fails', async () => {
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-run-failure-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-run-failure-'));
     let failTerminalization = true;
     const registry = createRegistry({
       runtimeRoot,
@@ -934,7 +934,7 @@ describe('HostedRuntimeRegistry', () => {
   });
 
   it('keeps storage live during shutdown until the last strong lease releases', async () => {
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-shutdown-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-shutdown-'));
     const registry = createRegistry({ runtimeRoot });
     const lease = registry.acquire({ userKey: 'a' });
     await waitForReady(registry, lease);
@@ -1108,7 +1108,7 @@ describe('HostedRuntimeRegistry', () => {
   });
 
   it('admits bounded per-user metadata growth while allowing updates at the ceiling', async () => {
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-metadata-limits-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-metadata-limits-'));
     const counters = { conversation: 0, message: 0, project: 0 };
     const registry = createRegistry({
       runtimeRoot,
@@ -1232,7 +1232,7 @@ describe('HostedRuntimeRegistry', () => {
   });
 
   it('charges copied seed messages before creating a conversation', async () => {
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-seed-limits-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-seed-limits-'));
     const counters = { conversation: 0, message: 0, project: 0 };
     const registry = createRegistry({
       runtimeRoot,
@@ -1281,7 +1281,7 @@ describe('HostedRuntimeRegistry', () => {
   });
 
   it('refuses to materialize metadata lists already beyond their fixed ceiling', async () => {
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-list-limits-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-runtime-registry-list-limits-'));
     const registry = createRegistry({
       runtimeRoot,
       limits: { metadataProjectsPerUser: 1 },

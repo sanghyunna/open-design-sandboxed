@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { createPortal, flushSync } from 'react-dom';
-import { Button, Input, Select, VisuallyHidden } from '@open-design/components';
+import { Button, Input, Select, VisuallyHidden } from '@readable-studio/components';
 import { APP_CHROME_FILE_ACTIONS_ID, APP_CHROME_FILE_ACTIONS_SELECTOR } from './AppChromeHeader';
 import {
   buildSocialSharePayload,
-  OPEN_DESIGN_GITHUB_REPO_URL,
+  READABLE_GITHUB_REPO_URL,
   type SocialShareRequest,
   type SocialShareResponse,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import {
   anonymizeArtifactId,
   artifactKindToTracking,
   type TrackingProjectKind,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import { useAnalytics } from '../analytics/provider';
 import { trackIframeLoad } from '../observability/iframe-error';
 import {
@@ -112,7 +112,7 @@ import {
 import { applyPodMemberRemoval } from '../lib/pod-members';
 import { AnnotationHoverPopover, BoardComposerPopover } from './BoardComposerPopover';
 import {
-  OD_PREVIEW_KEEP_ALIVE,
+  READABLE_PREVIEW_KEEP_ALIVE,
   PooledIframe,
   previewIframeKeepAliveKey,
 } from './IframeKeepAlivePool';
@@ -213,7 +213,7 @@ type KeyboardBurst = {
   targetId: string;
   revision: number;
   // Arrow keys physically held on the HOST side. Iframe-origin bursts leave this
-  // empty and are committed by the bridge's od-edit-nudge-commit message; host
+  // empty and are committed by the bridge's readable-edit-nudge-commit message; host
   // bursts commit when this set empties on keyup.
   heldKeys: Set<string>;
   netDelta: { x: number; y: number };
@@ -321,7 +321,7 @@ function previewViewportIcon(viewport: PreviewViewportId): string {
   return 'computer-line';
 }
 
-const EXPORT_READY_NUDGE_STORAGE_PREFIX = 'open-design:export-ready-nudge:';
+const EXPORT_READY_NUDGE_STORAGE_PREFIX = 'readable-studio:export-ready-nudge:';
 const COMMENT_SIDE_DOCK_WIDTH = 320;
 const COMMENT_SIDE_DOCK_RAIL_WIDTH = 42;
 const COMMENT_SIDE_DOCK_GAP = 12;
@@ -372,7 +372,7 @@ const MAX_CACHED_SLIDE_STATES = 64;
 const htmlPreviewSlideState = new Map<string, SlideState>();
 const MAX_CACHED_PREVIEW_VIEWPORTS = 128;
 // Grace window before the inspect hover card is torn down. Long enough to absorb
-// the async iframe mouseout (od:comment-leave) that fires when the pointer slides
+// the async iframe mouseout (readable-studio:comment-leave) that fires when the pointer slides
 // onto the card or hops back onto the element under it, short enough to read as
 // an immediate dismiss when the pointer really leaves.
 const HOVER_CARD_DISMISS_DELAY_MS = 80;
@@ -595,7 +595,7 @@ function PreviewViewportControls({
     <div className="viewer-viewport-switcher" ref={menuRef}>
       <button
         type="button"
-        className={`viewer-action viewer-viewport-trigger${open ? '' : ' od-tooltip'}`}
+        className={`viewer-action viewer-viewport-trigger${open ? '' : ' readable-tooltip'}`}
         aria-label={t('fileViewer.viewportAria')}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -1642,7 +1642,7 @@ export function CommentSidePanel({
   );
 }
 
-const COMMENT_SIDE_DRAG_MIME = 'application/x-open-design-preview-comment';
+const COMMENT_SIDE_DRAG_MIME = 'application/x-readable-studio-preview-comment';
 
 type CommentSideDropEdge = 'before' | 'after';
 
@@ -1897,7 +1897,7 @@ function InspectPanel({
             {target.clickedDescendant.text
               ? ` ("${target.clickedDescendant.text.slice(0, 40)}${target.clickedDescendant.text.length > 40 ? '...' : ''}")`
               : ''}
-            , but it has no <code>data-od-id</code> annotation. Editing{' '}
+            , but it has no <code>data-readable-id</code> annotation. Editing{' '}
             <strong>{target.label || target.elementId}</strong> instead, the nearest annotated ancestor.
           </div>
         </div>
@@ -2038,9 +2038,9 @@ function InspectPanel({
 }
 
 // Inspect-mode override entry as held in the host's authoritative map and as
-// it travels in od:inspect-overrides messages. The host's persisted map is
+// it travels in readable-studio:inspect-overrides messages. The host's persisted map is
 // owned and mutated only by host-driven onApply / reset actions plus the
-// initial parse of the source's <style data-od-inspect-overrides> block;
+// initial parse of the source's <style data-readable-inspect-overrides> block;
 // inbound iframe messages are treated as preview acknowledgements, never as
 // save input. Artifact code rendered with scripts enabled can call
 // window.parent.postMessage with a forged payload — ev.source still points
@@ -2098,7 +2098,7 @@ const HOST_UNSAFE_INSPECT_VALUE = /[;{}<>\n\r]/;
 const HOST_UNSAFE_INSPECT_ID = /["\\<>\u0000-\u001f\u007f]/;
 
 // Build the inspect overrides CSS body the host will persist, from the
-// structured `overrides` field of an od:inspect-overrides message. The host
+// structured `overrides` field of an readable-studio:inspect-overrides message. The host
 // MUST NOT trust the sibling `css` string — it is attacker-controlled when
 // artifact JS forges the message. The selector is re-derived from each
 // elementId; only allow-listed properties with safe values survive.
@@ -2118,13 +2118,13 @@ export function serializeInspectOverrides(overrides: unknown): string {
     // it carried. The bridge runs CSS.escape over the elementId, so a raw
     // equality check against `[data-screen-label="${elementId}"]` would
     // miss legitimate deck labels like `01 Cover` (whitespace, leading
-    // digit) and silently downgrade them to `[data-od-id="..."]`. The
+    // digit) and silently downgrade them to `[data-readable-id="..."]`. The
     // elementId itself was sanitized above, so embedding it verbatim into
     // the re-derived selector is safe inside an attribute value string.
     const inboundSelector = typeof entry.selector === 'string' ? entry.selector : '';
     const attr = inboundSelector.startsWith('[data-screen-label="')
       ? 'data-screen-label'
-      : 'data-od-id';
+      : 'data-readable-id';
     const safeSelector = `[${attr}="${elementId}"]`;
     const decls: string[] = [];
     for (const [rawName, rawValue] of Object.entries(props as Record<string, unknown>)) {
@@ -2177,10 +2177,10 @@ export function updateInspectOverride(
   return nextMap;
 }
 
-// Parse any persisted <style data-od-inspect-overrides> blocks in the
+// Parse any persisted <style data-readable-inspect-overrides> blocks in the
 // artifact source into the host's authoritative override map. The host owns
 // this map and only mutates it from onApply / reset actions plus this
-// initial hydration step — inbound iframe od:inspect-overrides messages are
+// initial hydration step — inbound iframe readable-studio:inspect-overrides messages are
 // not ingested. Without this step, opening a file that already carries an
 // override block would leave the host map empty, so a Save-to-source after
 // any subsequent edit could splice a CSS body that drops every previously
@@ -2190,8 +2190,8 @@ export function updateInspectOverride(
 // same value sanitizer, same selector kinds, so what the iframe applies and
 // what the host persists stay in lock-step. Pure string transform; no DOM.
 //
-// HTML-aware: enumerates `<style data-od-inspect-overrides>` elements via
-// the same walker used by the splicer, so a `<style data-od-inspect-overrides>`
+// HTML-aware: enumerates `<style data-readable-inspect-overrides>` elements via
+// the same walker used by the splicer, so a `<style data-readable-inspect-overrides>`
 // literal living inside a `<script>`, `<style>` (e.g. CSS comment), `<textarea>`,
 // `<title>`, or HTML comment is not mistaken for a real override block. Without
 // that exclusion, useEffect would seed the host map from forged/quoted text and
@@ -2200,7 +2200,7 @@ export function parseInspectOverridesFromSource(source: string): InspectOverride
   const map: InspectOverrideMap = {};
   if (!source) return map;
   for (const body of stripInspectOverridesAndIndex(source).bodies) {
-    const ruleRe = /(\[data-(?:od-id|screen-label)="([^"]*)"\])\s*\{\s*([^}]*)\}/g;
+    const ruleRe = /(\[data-(?:readable-id|screen-label)="([^"]*)"\])\s*\{\s*([^}]*)\}/g;
     let ruleMatch: RegExpExecArray | null;
     while ((ruleMatch = ruleRe.exec(body)) !== null) {
       const selector = ruleMatch[1] ?? '';
@@ -2228,7 +2228,7 @@ export function parseInspectOverridesFromSource(source: string): InspectOverride
 
 // HTML5 raw-text and escapable-raw-text elements: the parser does not
 // interpret markup inside their contents, so a literal `</head>` or
-// `<style data-od-inspect-overrides>` written as text inside one of them
+// `<style data-readable-inspect-overrides>` written as text inside one of them
 // must NOT be treated as a real tag. Without this exclusion, a regex-only
 // splicer can match `</head>` inside an inline <script> string literal or
 // a CSS comment and inject the override block into the middle of
@@ -2237,17 +2237,17 @@ export function parseInspectOverridesFromSource(source: string): InspectOverride
 const RAW_TEXT_INSPECT_ELEMENTS = new Set(['script', 'style', 'textarea', 'title']);
 
 // Decide whether a `<style ...>` opening tag actually carries a real
-// `data-od-inspect-overrides` attribute, as opposed to merely mentioning
+// `data-readable-inspect-overrides` attribute, as opposed to merely mentioning
 // the marker text inside another attribute name or value. The naive
-// `\bdata-od-inspect-overrides\b` test against the whole tag text is
+// `\bdata-readable-inspect-overrides\b` test against the whole tag text is
 // over-broad in two cases:
 //
 //   1. A longer attribute name that has the marker as a prefix, e.g.
-//      `<style data-od-inspect-overrides-note="docs">`. The `-` after
+//      `<style data-readable-inspect-overrides-note="docs">`. The `-` after
 //      `overrides` is a non-word character, so `\b` matches and the tag
 //      gets mis-stripped on save / mis-parsed on hydration.
 //   2. The marker spelled inside an attribute value, e.g.
-//      `<style title="data-od-inspect-overrides">`. The whole tag text
+//      `<style title="data-readable-inspect-overrides">`. The whole tag text
 //      contains the literal, so the regex matches even though the actual
 //      attribute names are `title` only.
 //
@@ -2256,7 +2256,7 @@ const RAW_TEXT_INSPECT_ELEMENTS = new Set(['script', 'style', 'textarea', 'title
 // overrides into the host map even though the artifact has no real
 // override block. So we walk attributes proper, lower-casing each name
 // and skipping any quoted value, and report a hit only when one of those
-// names is exactly `data-od-inspect-overrides` (boolean attribute or
+// names is exactly `data-readable-inspect-overrides` (boolean attribute or
 // assigned value, both legal HTML for our marker).
 function styleTagIsInspectOverrideBlock(tagText: string): boolean {
   const start = /^<style/i.exec(tagText);
@@ -2294,7 +2294,7 @@ function styleTagIsInspectOverrideBlock(tagText: string): boolean {
         }
       }
     }
-    if (name === 'data-od-inspect-overrides') return true;
+    if (name === 'data-readable-inspect-overrides') return true;
   }
   return false;
 }
@@ -2324,7 +2324,7 @@ type InspectSpliceScan = {
   headOpenEnd: number;
   // Position in `out` at the first top-level `</head>` close tag, or -1.
   headCloseStart: number;
-  // Raw inner-text of every real `<style data-od-inspect-overrides>` element
+  // Raw inner-text of every real `<style data-readable-inspect-overrides>` element
   // discovered during the walk, in source order. Excludes occurrences inside
   // raw-text element contents and HTML comments. Hydration parses these
   // bodies for the host map; the splicer ignores them.
@@ -2332,7 +2332,7 @@ type InspectSpliceScan = {
 };
 
 // Walk `source` and produce a copy with every existing
-// `<style data-od-inspect-overrides>...</style>` block removed, while
+// `<style data-readable-inspect-overrides>...</style>` block removed, while
 // remembering where the real (non-raw-text) `<head>` boundaries land in
 // the output. The walker honours HTML comment, doctype/processing
 // instruction, and raw-text element boundaries so the splicer can ignore
@@ -2444,7 +2444,7 @@ function stripInspectOverridesAndIndex(source: string): InspectSpliceScan {
 //
 // HTML-aware: the underlying scan ignores comments and raw-text element
 // contents (script / style / textarea / title), so a literal `</head>` or
-// `<style data-od-inspect-overrides>` written inside an inline script or
+// `<style data-readable-inspect-overrides>` written inside an inline script or
 // style block does not trick the splicer into stripping user code or
 // inserting the override block in the middle of JavaScript/CSS.
 //
@@ -2454,7 +2454,7 @@ export function applyInspectOverridesToSource(source: string, css: string): stri
   const trimmed = css.trim();
   const { out, headOpenEnd, headCloseStart } = stripInspectOverridesAndIndex(source);
   if (!trimmed) return out;
-  const block = `<style data-od-inspect-overrides>\n${trimmed}\n</style>\n`;
+  const block = `<style data-readable-inspect-overrides>\n${trimmed}\n</style>\n`;
   if (headCloseStart >= 0) {
     return out.slice(0, headCloseStart) + block + out.slice(headCloseStart);
   }
@@ -3138,7 +3138,7 @@ function ReactComponentViewer({
         <div className="viewer-toolbar-left">
           <button
             type="button"
-            className="icon-only od-tooltip"
+            className="icon-only readable-tooltip"
             onClick={() => setReloadKey((n) => n + 1)}
             title={`${t('fileViewer.reload')} ${t('fileViewer.preview')}`}
             data-tooltip={`${t('fileViewer.reload')} ${t('fileViewer.preview')}`}
@@ -3174,7 +3174,7 @@ function ReactComponentViewer({
               <div className="share-menu" ref={shareRef}>
                 <button
                   type="button"
-                  className="viewer-action primary viewer-action-export od-tooltip"
+                  className="viewer-action primary viewer-action-export readable-tooltip"
                   aria-haspopup="menu"
                   aria-expanded={shareMenuOpen}
                   title={t('fileViewer.shareLabel')}
@@ -3455,7 +3455,7 @@ function HtmlViewer({
         { requestId },
       );
     };
-    const toastFormats = new Set(['pdf', 'pptx', 'zip', 'html', 'image', 'markdown']);
+    const toastFormats = new Set(['pdf', 'pptx', 'zip', 'image', 'markdown']);
     try {
       const out = fn();
       if (out && typeof (out as Promise<unknown>).then === 'function') {
@@ -3798,7 +3798,7 @@ function HtmlViewer({
         frameDocument?.scrollingElement?.scrollTo(snapshot.frameLeft, snapshot.frameTop);
         frameDocument?.querySelector<HTMLElement>('.design-canvas')?.scrollTo(snapshot.canvasLeft, snapshot.canvasTop);
         iframeRef.current?.contentWindow?.postMessage({
-          type: 'od:preview-scroll-restore',
+          type: 'readable-studio:preview-scroll-restore',
           frameLeft: snapshot.frameLeft,
           frameTop: snapshot.frameTop,
           canvasLeft: snapshot.canvasLeft,
@@ -3864,7 +3864,7 @@ function HtmlViewer({
   const manualEditPreviewVersionRef = useRef(0);
   const manualEditTargetMessageEpochRef = useRef<string | null>(null);
   const manualEditTargetMessageSequenceRef = useRef(0);
-  // Host revision counter sent to the iframe with od-edit-selected-target. The
+  // Host revision counter sent to the iframe with readable-edit-selected-target. The
   // bridge echoes it back on every nudge so stale (out-of-order) key events are
   // ignored after selection changes or iframe reloads.
   const manualEditPreviewRevisionRef = useRef(0);
@@ -3924,14 +3924,14 @@ function HtmlViewer({
   const [hoveredCommentTarget, setHoveredCommentTarget] = useState<PreviewCommentSnapshot | null>(null);
   // True while the pointer is physically over the floating hover card. The card
   // sits on top of the preview iframe, so reaching it makes the iframe fire a
-  // mouseout -> od:comment-leave. We ignore that leave while pinned so the card
+  // mouseout -> readable-studio:comment-leave. We ignore that leave while pinned so the card
   // (and its selectable values) stays put instead of unmounting and flickering.
   // The pointer cannot be over the iframe and the host card at once, so a fresh
-  // od:comment-hover never races this; only the card's own leave clears it.
+  // readable-studio:comment-hover never races this; only the card's own leave clears it.
   const hoverCardPinnedRef = useRef(false);
   // Tearing the card down is always deferred by a beat rather than done
-  // synchronously. The iframe's mouseout (od:comment-leave) arrives async via
-  // postMessage; the card's own mouseenter and the next od:comment-hover are the
+  // synchronously. The iframe's mouseout (readable-studio:comment-leave) arrives async via
+  // postMessage; the card's own mouseenter and the next readable-studio:comment-hover are the
   // signals that the pointer actually landed on the card or back on the element
   // it overlaps. Deferring lets those cancel the dismiss before it lands.
   // Synchronous teardown raced ahead of them: the card flickered on the way in
@@ -3971,7 +3971,7 @@ function HtmlViewer({
   // overrides via postMessage. The host owns the authoritative override map:
   // it is hydrated from the artifact's persisted <style> block on load and
   // mutated only by host-driven onApply / reset actions. Save-to-source
-  // serializes that host map directly — iframe od:inspect-overrides messages
+  // serializes that host map directly — iframe readable-studio:inspect-overrides messages
   // are preview acknowledgements and never feed save input, so artifact JS
   // forging a postMessage cannot tamper with what gets persisted.
   const [activeInspectTarget, setActiveInspectTarget] = useState<InspectTarget | null>(null);
@@ -4300,7 +4300,7 @@ function HtmlViewer({
   const livePreviewSource = inlinedSource ?? source;
   // Freeze the iframe input on the snapshot taken at Edit-mode entry. Any
   // source rewrite during edit (1.5s debounced set-style patches) stays
-  // invisible to the iframe — live updates flow through od-edit-preview-style
+  // invisible to the iframe — live updates flow through readable-edit-preview-style
   // postMessage instead, so the canvas never has to reload.
   useEffect(() => {
     if (!manualEditMode) {
@@ -4445,7 +4445,7 @@ function HtmlViewer({
   const wasUrlLoadPreviewRef = useRef(useUrlLoadPreview);
   const urlPreviewKeepAliveKey = previewIframeKeepAliveKey(projectId, file.name);
   // Reset the shell-ready latch whenever the srcDoc iframe re-mounts. The
-  // next shell will post `od:srcdoc-transport-ready` (or fire onLoad) and
+  // next shell will post `readable-studio:srcdoc-transport-ready` (or fire onLoad) and
   // flip this back to true. See #2253.
   useEffect(() => {
     setSrcDocShellReady(false);
@@ -4459,7 +4459,7 @@ function HtmlViewer({
     function onMessage(ev: MessageEvent) {
       if (ev.source !== srcDocPreviewIframeRef.current?.contentWindow) return;
       const data = ev.data as { type?: string } | null;
-      if (data?.type !== 'od:srcdoc-transport-ready') return;
+      if (data?.type !== 'readable-studio:srcdoc-transport-ready') return;
       setSrcDocShellReady(true);
     }
     window.addEventListener('message', onMessage);
@@ -4471,7 +4471,7 @@ function HtmlViewer({
       if (ev.source !== frame?.contentWindow) return;
       if (frame.getAttribute('src') === 'about:blank') return;
       const data = ev.data as { type?: string } | null;
-      if (data?.type !== 'od:url-selection-bridge-ready') return;
+      if (data?.type !== 'readable-studio:url-selection-bridge-ready') return;
       setUrlSelectionBridgeReady(true);
     }
     window.addEventListener('message', onMessage);
@@ -4485,7 +4485,7 @@ function HtmlViewer({
   const srcDocTransportContent = useLazySrcDocTransport
     ? lazySrcDocTransport
     : manualEditSrcDocActive && !useUrlLoadPreview && srcDoc
-      ? `${srcDoc}\n<!-- od:manual-edit-document-revision=${manualEditDocumentRevision} -->`
+      ? `${srcDoc}\n<!-- readable-studio:manual-edit-document-revision=${manualEditDocumentRevision} -->`
       : srcDoc;
   const urlTransportSrc = useUrlLoadPreview ? activePreviewSrcUrl : 'about:blank';
   const activateSrcDocTransport = useCallback((target: HTMLIFrameElement | null = srcDocPreviewIframeRef.current) => {
@@ -4517,7 +4517,7 @@ function HtmlViewer({
     }
     const win = target?.contentWindow;
     if (!win) return false;
-    win.postMessage({ type: 'od:srcdoc-transport-activate', html }, '*');
+    win.postMessage({ type: 'readable-studio:srcdoc-transport-activate', html }, '*');
     activatedSrcDocTransportHtmlRef.current = html;
     return true;
   }, [buildPreviewSrcDoc, srcDoc, useLazySrcDocTransport, useUrlLoadPreview, srcDocShellReady, boardMode]);
@@ -4532,7 +4532,7 @@ function HtmlViewer({
     })) return false;
     const win = target?.contentWindow;
     if (!win) return false;
-    win.postMessage({ type: 'od:srcdoc-transport-activate', html }, '*');
+    win.postMessage({ type: 'readable-studio:srcdoc-transport-activate', html }, '*');
     activatedSrcDocTransportHtmlRef.current = html;
     return true;
   }, [buildPreviewSrcDoc, srcDoc, useLazySrcDocTransport, useUrlLoadPreview]);
@@ -4541,7 +4541,7 @@ function HtmlViewer({
     if (!html) return false;
     const win = target?.contentWindow;
     if (!win) return false;
-    win.postMessage({ type: 'od:srcdoc-transport-activate', html }, '*');
+    win.postMessage({ type: 'readable-studio:srcdoc-transport-activate', html }, '*');
     return true;
   }, [buildPreviewSrcDoc, srcDoc]);
   useEffect(() => {
@@ -4576,7 +4576,7 @@ function HtmlViewer({
         canvasLeft?: number;
         canvasTop?: number;
       } | null;
-      if (!data || data.type !== 'od:preview-scroll') return;
+      if (!data || data.type !== 'readable-studio:preview-scroll') return;
       if (previewScrollRestoreRef.current && Number(data.canvasLeft || 0) === 0 && Number(data.canvasTop || 0) === 0) return;
       if (
         previewScrollPositionRef.current.canvasLeft !== 0 ||
@@ -4596,7 +4596,7 @@ function HtmlViewer({
       if (!isOurPreviewIframeSource(ev.source)) return;
       if (!isActivePreviewIframeSource(ev.source)) return;
       const data = ev.data as { type?: string } | null;
-      if (!data || data.type !== 'od:preview-scroll-request') return;
+      if (!data || data.type !== 'readable-studio:preview-scroll-request') return;
       previewScrollRequestAtRef.current = Date.now();
       const snapshot = previewScrollRestoreRef.current;
       const scroll = snapshot ?? {
@@ -4606,7 +4606,7 @@ function HtmlViewer({
         canvasTop: previewScrollPositionRef.current.canvasTop,
       };
       iframeRef.current?.contentWindow?.postMessage({
-        type: 'od:preview-scroll-restore',
+        type: 'readable-studio:preview-scroll-restore',
         frameLeft: scroll.frameLeft,
         frameTop: scroll.frameTop,
         canvasLeft: scroll.canvasLeft,
@@ -4667,7 +4667,7 @@ function HtmlViewer({
       const data = ev?.data as
         | { type?: string; active?: number; count?: number }
         | null;
-      if (!data || data.type !== 'od:slide-state') return;
+      if (!data || data.type !== 'readable-studio:slide-state') return;
       if (typeof data.active !== 'number' || typeof data.count !== 'number') return;
       const next = { active: data.active, count: data.count };
       setSlideStateCached(previewStateKey, next);
@@ -4681,7 +4681,7 @@ function HtmlViewer({
     const win = iframeRef.current?.contentWindow;
     if (!win) return;
     win.postMessage({
-      type: 'od:comment-mode',
+      type: 'readable-studio:comment-mode',
       enabled: boardMode,
       mode: boardTool,
     }, '*');
@@ -4698,7 +4698,7 @@ function HtmlViewer({
       manualEditPreviewRevisionRef.current += 1;
       manualEditPreviewDocRef.current = docKey;
     }
-    win.postMessage({ type: 'od-edit-mode', enabled: manualEditMode, documentEpoch: manualEditDocumentEpoch() }, '*');
+    win.postMessage({ type: 'readable-edit-mode', enabled: manualEditMode, documentEpoch: manualEditDocumentEpoch() }, '*');
     postSelectedManualEditTargetToIframe(manualEditMode ? selectedManualEditTarget?.id ?? null : null);
   }, [manualEditMode, selectedManualEditTarget?.id, srcDoc, useUrlLoadPreview, file.name]);
 
@@ -4711,13 +4711,13 @@ function HtmlViewer({
   ) => {
     const win = iframeRef.current?.contentWindow;
     if (!win) return false;
-    win.postMessage({ type: 'od-edit-preview-style', id, styles, version, includeAuthoredSize, ...(resize ? { resize } : {}) }, '*');
+    win.postMessage({ type: 'readable-edit-preview-style', id, styles, version, includeAuthoredSize, ...(resize ? { resize } : {}) }, '*');
     return true;
   }, []);
 
   const sendManualEditRichFormat = useCallback((command: 'bold' | 'italic' | 'underline') => {
     const win = iframeRef.current?.contentWindow;
-    if (win) win.postMessage({ type: 'od-edit-rich-format', command }, '*');
+    if (win) win.postMessage({ type: 'readable-edit-rich-format', command }, '*');
   }, []);
 
   const sendManualEditTextEdit = useCallback(
@@ -4734,34 +4734,34 @@ function HtmlViewer({
   function postSelectedManualEditTargetToIframe(id: string | null, target: HTMLIFrameElement | null = iframeRef.current) {
     const win = target?.contentWindow;
     if (!win) return;
-    win.postMessage({ type: 'od-edit-selected-target', id, revision: manualEditPreviewRevisionRef.current }, '*');
+    win.postMessage({ type: 'readable-edit-selected-target', id, revision: manualEditPreviewRevisionRef.current }, '*');
   }
 
   function syncBridgeModes(target: HTMLIFrameElement | null = iframeRef.current) {
     const win = target?.contentWindow;
     if (!win) return;
     win.postMessage({
-      type: 'od:comment-mode',
+      type: 'readable-studio:comment-mode',
       enabled: boardMode,
       mode: boardTool,
     }, '*');
-    win.postMessage({ type: 'od-edit-mode', enabled: manualEditMode, documentEpoch: manualEditDocumentEpoch() }, '*');
+    win.postMessage({ type: 'readable-edit-mode', enabled: manualEditMode, documentEpoch: manualEditDocumentEpoch() }, '*');
     postSelectedManualEditTargetToIframe(manualEditMode ? selectedManualEditTarget?.id ?? null : null, target);
-    win.postMessage({ type: 'od:inspect-mode', enabled: inspectMode }, '*');
+    win.postMessage({ type: 'readable-studio:inspect-mode', enabled: inspectMode }, '*');
   }
 
   useEffect(() => {
     const win = iframeRef.current?.contentWindow;
     if (!win) return;
-    win.postMessage({ type: 'od:inspect-mode', enabled: inspectMode }, '*');
+    win.postMessage({ type: 'readable-studio:inspect-mode', enabled: inspectMode }, '*');
   }, [inspectMode, srcDoc, useUrlLoadPreview]);
 
-  // Mirror the bridge's `od:comment-targets` broadcast into
+  // Mirror the bridge's `readable-studio:comment-targets` broadcast into
   // `liveCommentTargets` whenever EITHER Inspect or Comments mode is
   // active. The boardMode-only useEffect below still handles its
   // own comment-specific events (hover / click target / pod), but
   // the targets list itself is mode-agnostic — it's just "which
-  // elements on the page carry data-od-id / data-screen-label".
+  // elements on the page carry data-readable-id / data-screen-label".
   // Without this listener Inspect mode never learns the artifact's
   // annotation count, and the empty-state hint added for #890 would
   // misfire (always firing in Inspect mode, even on annotated
@@ -4780,7 +4780,7 @@ function HtmlViewer({
             targets?: Array<Partial<PreviewCommentSnapshot>>;
           }
         | null;
-      if (data?.type !== 'od:comment-targets' || !Array.isArray(data.targets)) return;
+      if (data?.type !== 'readable-studio:comment-targets' || !Array.isArray(data.targets)) return;
       const next = new Map<string, PreviewCommentSnapshot>();
       data.targets.forEach((item) => {
         const elementId = String(item?.elementId || '');
@@ -4869,7 +4869,7 @@ function HtmlViewer({
   // updated state before commit, so the new `srcDoc` and the new
   // `inspectOverrides` always commit together. After hydration the map
   // only mutates from host-driven onApply / reset callbacks below, so
-  // artifact JS forging an od:inspect-overrides message cannot tamper
+  // artifact JS forging an readable-studio:inspect-overrides message cannot tamper
   // with what saveInspectToSource will persist.
   if (inspectHydratedSourceRef.current !== source) {
     inspectHydratedSourceRef.current = source;
@@ -4932,7 +4932,7 @@ function HtmlViewer({
         points?: StrokePoint[];
       }) | null;
       if (!data?.type) return;
-      if (data.type === 'od:comment-targets' && Array.isArray(data.targets)) {
+      if (data.type === 'readable-studio:comment-targets' && Array.isArray(data.targets)) {
         const next = new Map<string, PreviewCommentSnapshot>();
         data.targets.forEach((item) => {
           const snapshot = snapshotFromData(item);
@@ -4958,7 +4958,7 @@ function HtmlViewer({
         });
         return;
       }
-      if (data.type === 'od:comment-active-target-update') {
+      if (data.type === 'readable-studio:comment-active-target-update') {
         const snapshot = snapshotFromData(data);
         if (!snapshot.elementId || !isValidCommentOverlayPosition(snapshot.position)) return;
         // Fires on every pointermove while a target is active — skip the Map
@@ -4981,7 +4981,7 @@ function HtmlViewer({
         );
         return;
       }
-      if (data.type === 'od:comment-leave') {
+      if (data.type === 'readable-studio:comment-leave') {
         // Already firmly on the card — nothing to dismiss.
         if (hoverCardPinnedRef.current) return;
         // The pointer left the element. It may be sliding onto the floating card
@@ -4992,7 +4992,7 @@ function HtmlViewer({
         scheduleHoverCardDismiss();
         return;
       }
-      if (data.type === 'od:comment-hover') {
+      if (data.type === 'readable-studio:comment-hover') {
         const snapshot = snapshotFromData(data);
         if (!snapshot.elementId || !isValidCommentOverlayPosition(snapshot.position)) return;
         // Pointer landed on an element — cancel any deferred dismiss so moving
@@ -5012,7 +5012,7 @@ function HtmlViewer({
         });
         return;
       }
-      if (data.type === 'od:comment-target') {
+      if (data.type === 'readable-studio:comment-target') {
         const snapshot = snapshotFromData(data);
         if (!snapshot.elementId || !isValidCommentOverlayPosition(snapshot.position)) return;
         const shouldOpenComposer = boardMode || commentCreateMode;
@@ -5032,11 +5032,11 @@ function HtmlViewer({
         }
         return;
       }
-      if (data.type === 'od:pod-clear') {
+      if (data.type === 'readable-studio:pod-clear') {
         setStrokePoints([]);
         return;
       }
-      if (data.type === 'od:pod-stroke' && Array.isArray(data.points)) {
+      if (data.type === 'readable-studio:pod-stroke' && Array.isArray(data.points)) {
         setStrokePoints(
           data.points.map((point) => ({
             x: clampBridgeCoordinate(point.x),
@@ -5045,7 +5045,7 @@ function HtmlViewer({
         );
         return;
       }
-      if (data.type === 'od:pod-select' && Array.isArray(data.points)) {
+      if (data.type === 'readable-studio:pod-select' && Array.isArray(data.points)) {
         const points = data.points.map((point) => ({
           x: clampBridgeCoordinate(point.x),
           y: clampBridgeCoordinate(point.y),
@@ -5076,7 +5076,7 @@ function HtmlViewer({
   useEffect(() => {
     if (!boardMode || !activeCommentTarget || activeCommentTarget.selectionKind === 'pod') return;
     iframeRef.current?.contentWindow?.postMessage({
-      type: 'od:comment-active-target',
+      type: 'readable-studio:comment-active-target',
       elementId: activeCommentTarget.elementId,
       selector: activeCommentTarget.selector,
     }, '*');
@@ -5104,7 +5104,7 @@ function HtmlViewer({
       if (!isOurPreviewIframeSource(ev.source)) return;
       const data = ev.data as ManualEditBridgeMessage | null;
       if (!data?.type) return;
-      if (data.type === 'od-edit-duplicate-preview') {
+      if (data.type === 'readable-edit-duplicate-preview') {
         if (!isActivePreviewIframeSource(ev.source)) return;
         if (data.documentEpoch !== manualEditDocumentEpoch()) return;
         const movement = activeManualEditMovementRef.current;
@@ -5147,7 +5147,7 @@ function HtmlViewer({
         if (pendingCommit && manualEditCtrlRef.current) void commitManualEditMovement(pendingCommit);
         return;
       }
-      if (data.type === 'od-edit-duplicate-removed') {
+      if (data.type === 'readable-edit-duplicate-removed') {
         if (!isActivePreviewIframeSource(ev.source)) return;
         if (data.documentEpoch !== manualEditDocumentEpoch()) return;
         const duplicate = activeManualEditMovementRef.current?.duplicate;
@@ -5157,7 +5157,7 @@ function HtmlViewer({
         duplicate.lastAckSequence = sequence;
         return;
       }
-      if (data.type === 'od-edit-targets' && Array.isArray(data.targets)) {
+      if (data.type === 'readable-edit-targets' && Array.isArray(data.targets)) {
         if (data.documentEpoch !== undefined) {
           const epoch = String(data.documentEpoch);
           if (epoch !== manualEditDocumentEpoch()) return;
@@ -5211,12 +5211,12 @@ function HtmlViewer({
         if (selectedId) setTimeout(() => postSelectedManualEditTargetToIframe(selectedId), 0);
         return;
       }
-      if (data.type === 'od-edit-select') {
+      if (data.type === 'readable-edit-select') {
         setManualEditHoverTarget(null);
         void selectManualEditTarget(data.target);
         return;
       }
-      if (data.type === 'od-edit-hover') {
+      if (data.type === 'readable-edit-hover') {
         // Hover only surfaces a lightweight "edit params" affordance; it must
         // NOT switch the pinned inspector. The panel changes only when the
         // user clicks that affordance (or a container/image body), so moving
@@ -5226,7 +5226,7 @@ function HtmlViewer({
         );
         return;
       }
-      if (data.type === 'od-edit-background') {
+      if (data.type === 'readable-edit-background') {
         // Clicking empty canvas deselects and opens the compact page-styles
         // card — only meaningful for full HTML documents.
         setManualEditHoverTarget(null);
@@ -5235,7 +5235,7 @@ function HtmlViewer({
         }
         return;
       }
-      if (data.type === 'od-edit-text-commit') {
+      if (data.type === 'readable-edit-text-commit') {
         void applyManualEdit({
           id: String(data.id),
           kind: 'set-text',
@@ -5243,7 +5243,7 @@ function HtmlViewer({
         }, 'Edit text');
         return;
       }
-      if (data.type === 'od-edit-html-commit') {
+      if (data.type === 'readable-edit-html-commit') {
         // Rich inline edits (Ctrl/Cmd+B/U/I, or any element that kept nested
         // markup) commit the element's inner HTML. It flows through the same
         // applyManualEdit history pipeline as set-text, so host Ctrl+Z undo works
@@ -5255,7 +5255,7 @@ function HtmlViewer({
         }, 'Edit text');
         return;
       }
-      if (data.type === 'od-edit-selection-state') {
+      if (data.type === 'readable-edit-selection-state') {
         setManualEditRichFormat({
           editing: !!data.editing, hasSelection: !!data.hasSelection,
           bold: !!data.bold, italic: !!data.italic, underline: !!data.underline,
@@ -5265,7 +5265,7 @@ function HtmlViewer({
         if (!data.editing) setManualEditMoveMode('selected');
         return;
       }
-      if (data.type === 'od-edit-preview-style-applied') {
+      if (data.type === 'readable-edit-preview-style-applied') {
         if (!isActivePreviewIframeSource(ev.source)) return;
         const version = typeof data.version === 'number' ? data.version : 0;
         // Drop only out-of-order stragglers; every newer ack is applied even if
@@ -5307,7 +5307,7 @@ function HtmlViewer({
         }
         return;
       }
-      if (data.type === 'od-edit-undo') {
+      if (data.type === 'readable-edit-undo') {
         // The host's window-level Ctrl+Z/Ctrl+Y shortcut (below) never sees
         // this keystroke: keydown does not bubble out of the cross-document
         // preview iframe. The bridge forwards it here instead, but only when
@@ -5317,7 +5317,7 @@ function HtmlViewer({
         else void undoManualEditRef.current();
         return;
       }
-      if (data.type === 'od-edit-nudge') {
+      if (data.type === 'readable-edit-nudge') {
         const target = selectedManualEditTargetRef.current;
         if (!target || target.id !== data.targetId) return;
         if (data.revision !== manualEditPreviewRevisionRef.current) return;
@@ -5329,11 +5329,11 @@ function HtmlViewer({
         handleKeyboardNudge(delta);
         return;
       }
-      if (data.type === 'od-edit-nudge-commit') {
+      if (data.type === 'readable-edit-nudge-commit') {
         handleKeyboardNudgeCommit(data.targetId, data.revision);
         return;
       }
-      if (data.type === 'od-edit-nudge-keyup') {
+      if (data.type === 'readable-edit-nudge-keyup') {
         // The bridge forwards arrow keyups it does not own, so a host-origin
         // burst still ends when the key physically comes up inside the iframe.
         // Identity must match the open burst exactly, like a bridge commit.
@@ -5343,7 +5343,7 @@ function HtmlViewer({
         }
         return;
       }
-      if (data.type === 'od-edit-burst-cancel') {
+      if (data.type === 'readable-edit-burst-cancel') {
         // Cancel an active burst if one exists; otherwise a no-op. Escape inside
         // the iframe must NOT deselect the object (that path stays reserved for
         // the empty-canvas click / host Escape ladder).
@@ -5489,7 +5489,7 @@ function HtmlViewer({
     // on a consecutive drag reverts to the saved size instead of the pre-drag
     // one. The rect deliberately stays untouched: the mouse-implied size is a
     // request the layout may have clamped, and the per-frame preview acks (plus
-    // the bridge's deferred od-edit-targets re-broadcast after the drag) hold
+    // the bridge's deferred readable-edit-targets re-broadcast after the drag) hold
     // the element's real measured box.
     setSelectedManualEditTarget((current) => {
       if (!current || current.id !== target.id) return current;
@@ -5707,7 +5707,7 @@ function HtmlViewer({
     duplicate.sequence += 1;
     const sequence = duplicate.sequence;
     win.postMessage({
-      type: 'od-edit-duplicate-update',
+      type: 'readable-edit-duplicate-update',
       documentEpoch: manualEditDocumentEpoch(),
       transactionId: duplicate.transactionId,
       sequence,
@@ -5747,7 +5747,7 @@ function HtmlViewer({
       // observe the older acknowledgement after this synchronous transition.
       duplicate.lastAckSequence = duplicate.sequence;
       win.postMessage({
-        type: 'od-edit-duplicate-cancel',
+        type: 'readable-edit-duplicate-cancel',
         documentEpoch: manualEditDocumentEpoch(),
         transactionId: duplicate.transactionId,
         sequence: duplicate.sequence,
@@ -5782,7 +5782,7 @@ function HtmlViewer({
         const win = iframeRef.current?.contentWindow;
         if (existing.plan && win) {
           win.postMessage({
-            type: 'od-edit-duplicate-create',
+            type: 'readable-edit-duplicate-create',
             documentEpoch: manualEditDocumentEpoch(),
             transactionId: existing.transactionId,
             sequence: existing.sequence,
@@ -5863,7 +5863,7 @@ function HtmlViewer({
       duplicate.status = 'creating';
       duplicate.sequence = 1;
       win.postMessage({
-        type: 'od-edit-duplicate-create',
+        type: 'readable-edit-duplicate-create',
         documentEpoch: manualEditDocumentEpoch(),
         transactionId: duplicate.transactionId,
         sequence: duplicate.sequence,
@@ -6080,7 +6080,7 @@ function HtmlViewer({
 
   // A single owned keydown. `key` is set for host-origin nudges so keyup can end
   // the burst; iframe-origin nudges omit it and are ended by the bridge's
-  // od-edit-nudge-commit message. Never auto-commits — the burst stays open
+  // readable-edit-nudge-commit message. Never auto-commits — the burst stays open
   // (accumulating net delta, one preview per keydown) until keyup/commit, blur,
   // or Escape, so a held key produces exactly one write.
   function handleKeyboardNudge(delta: { x: number; y: number }, key?: string): void {
@@ -6324,7 +6324,7 @@ function HtmlViewer({
     const ok = await flushManualEditStyleSave();
     if (actionSeq !== manualEditActionSeqRef.current) return false;
     if (!ok) return false;
-    iframeRef.current?.contentWindow?.postMessage({ type: 'od-edit-click-cancel' } satisfies ManualEditActivationMessage, '*');
+    iframeRef.current?.contentWindow?.postMessage({ type: 'readable-edit-click-cancel' } satisfies ManualEditActivationMessage, '*');
     setManualEditMode(false);
     return true;
   }
@@ -6338,7 +6338,7 @@ function HtmlViewer({
     if (!manualEditHoverTarget) return;
     setManualEditHoverTarget(null);
     const win = iframeRef.current?.contentWindow;
-    if (win) win.postMessage({ type: 'od-edit-hover-reset' }, '*');
+    if (win) win.postMessage({ type: 'readable-edit-hover-reset' }, '*');
   }
 
   async function selectManualEditTarget(target: ManualEditTarget, actionSeq = ++manualEditActionSeqRef.current) {
@@ -6365,7 +6365,7 @@ function HtmlViewer({
     selectedManualEditTargetRef.current = target;
     setSelectedManualEditTarget(target);
     // A genuine new selection re-snapshots the panel's placement anchor. This
-    // is the single funnel for od-edit-select, the panel's onSelectTarget,
+    // is the single funnel for readable-edit-select, the panel's onSelectTarget,
     // and the hover-affordance click — none of them call setSelectedManualEditTarget directly.
     // Text/link land in the caret (PPT click-into-textbox); everything else is
     // object-selected so the whole box is a move surface.
@@ -6832,7 +6832,7 @@ function HtmlViewer({
     }
   }
 
-  // Inspect-mode picker: same `od:comment-target` payload, different sink.
+  // Inspect-mode picker: same `readable-studio:comment-target` payload, different sink.
   // The bridge tags the message with a computed-style snapshot so the panel
   // can show real starting values for color / typography / spacing / radius.
   useEffect(() => {
@@ -6850,7 +6850,7 @@ function HtmlViewer({
             clickedDescendant?: Partial<InspectClickedDescendant>;
           }
         | null;
-      if (!data || data.type !== 'od:comment-target') return;
+      if (!data || data.type !== 'readable-studio:comment-target') return;
       if (!data.elementId || !data.selector) return;
       const clickedDescendant =
         data.clickedDescendant && typeof data.clickedDescendant === 'object'
@@ -6877,21 +6877,21 @@ function HtmlViewer({
   function postSlide(action: 'next' | 'prev' | 'first' | 'last') {
     const win = iframeRef.current?.contentWindow;
     if (!win) return;
-    win.postMessage({ type: 'od:slide', action }, '*');
+    win.postMessage({ type: 'readable-studio:slide', action }, '*');
   }
 
   function syncCachedSlideStateToIframe(target: HTMLIFrameElement | null = iframeRef.current) {
     const active = htmlPreviewSlideState.get(previewStateKey)?.active;
     const win = target?.contentWindow;
     if (!win || typeof active !== 'number') return;
-    win.postMessage({ type: 'od:slide', action: 'go', index: active }, '*');
+    win.postMessage({ type: 'readable-studio:slide', action: 'go', index: active }, '*');
   }
 
   function postInspectSet(elementId: string, selector: string, prop: string, value: string) {
     const win = iframeRef.current?.contentWindow;
     if (!win) return;
     win.postMessage(
-      { type: 'od:inspect-set', elementId, selector, prop, value },
+      { type: 'readable-studio:inspect-set', elementId, selector, prop, value },
       '*',
     );
   }
@@ -6899,7 +6899,7 @@ function HtmlViewer({
   function postInspectReset(elementId?: string) {
     const win = iframeRef.current?.contentWindow;
     if (!win) return;
-    win.postMessage({ type: 'od:inspect-reset', elementId }, '*');
+    win.postMessage({ type: 'readable-studio:inspect-reset', elementId }, '*');
   }
 
   // Replay the host's authoritative override map into the freshly loaded
@@ -6912,7 +6912,7 @@ function HtmlViewer({
   // saveInspectToSource() can still persist them later from the stale
   // host map. The bridge re-validates each entry under its own allow-list,
   // so a parent that posted a hostile replay can only land overrides the
-  // bridge would also have accepted via od:inspect-set.
+  // bridge would also have accepted via readable-studio:inspect-set.
   //
   // The render-time hydration above keeps `inspectOverrides` aligned with
   // the current `source` whenever React commits, but the iframe `onLoad`
@@ -6928,16 +6928,16 @@ function HtmlViewer({
     const overrides = inspectHydratedSourceRef.current === source
       ? inspectOverrides
       : (typeof source === 'string' ? parseInspectOverridesFromSource(source) : {});
-    win.postMessage({ type: 'od:inspect-replay', overrides }, '*');
+    win.postMessage({ type: 'readable-studio:inspect-replay', overrides }, '*');
   }
 
   // Persist accumulated inspect overrides into the artifact source: replace
-  // (or insert) a single <style data-od-inspect-overrides> block in <head>.
+  // (or insert) a single <style data-readable-inspect-overrides> block in <head>.
   // The CSS body is serialized from the host's own override map, hydrated
   // from source on load and updated only by host-driven onApply / reset
   // callbacks. We deliberately do NOT round-trip through the iframe at save
   // time: artifact JS rendered inside the preview shares the same
-  // contentWindow as the bridge and could forge an od:inspect-overrides
+  // contentWindow as the bridge and could forge an readable-studio:inspect-overrides
   // reply that flips allow-listed properties on elements the user never
   // touched. POSTing to /api/projects/:id/files upserts the file via
   // writeProjectFile (multipart-or-JSON; we use JSON).
@@ -6984,7 +6984,7 @@ function HtmlViewer({
         // Arrows owned by a focused selected-object surface nudge the object, not
         // the deck. The host capture listener already stops those, but yield
         // explicitly so intent survives any listener-order change.
-        if (target.closest('[data-od-edit-selected-surface]')) return;
+        if (target.closest('[data-readable-edit-selected-surface]')) return;
       }
       if (e.key === 'ArrowRight' || e.key === 'PageDown') {
         e.preventDefault();
@@ -7099,7 +7099,7 @@ function HtmlViewer({
       if (!isManualEditNudgeKey(e.key)) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const target = e.target as HTMLElement | null;
-      if (!target?.closest('[data-od-edit-selected-surface]')) return;
+      if (!target?.closest('[data-readable-edit-selected-surface]')) return;
       if (isManualEditNudgeBlocked(e.target, { isComposing: e.isComposing })) return;
       // Prove ownership BEFORE consuming the event: if a pointer drag owns the
       // movement session (or nothing is selected), leave the arrow untouched.
@@ -7146,15 +7146,15 @@ function HtmlViewer({
       // resize handles, which coexist), not just the primary one.
       const active = document.activeElement;
       selectedObjectSurfaceHadFocusRef.current = active instanceof HTMLElement
-        && active.closest('[data-od-edit-selected-surface]') !== null;
+        && active.closest('[data-readable-edit-selected-surface]') !== null;
     };
   }, [manualEditMode, selectedManualEditTarget?.id, manualEditMoveMode, manualEditDocumentRevision]);
 
   useEffect(() => {
     if (!selectedObjectSurfaceHadFocusRef.current) return;
     selectedObjectSurfaceHadFocusRef.current = false;
-    const surface = document.querySelector<HTMLElement>('[data-od-edit-primary-surface]')
-      ?? document.querySelector<HTMLElement>('[data-od-edit-selected-surface]');
+    const surface = document.querySelector<HTMLElement>('[data-readable-edit-primary-surface]')
+      ?? document.querySelector<HTMLElement>('[data-readable-edit-selected-surface]');
     if (surface && typeof surface.focus === 'function') {
       surface.focus({ preventScroll: true });
     }
@@ -8261,7 +8261,7 @@ function HtmlViewer({
     const title = t('socialShare.projectTitle', { title: exportTitle });
     const text = t('socialShare.projectText', {
       title: exportTitle,
-      repo: OPEN_DESIGN_GITHUB_REPO_URL,
+      repo: READABLE_GITHUB_REPO_URL,
     });
     return {
       kind: 'project-html',
@@ -8272,7 +8272,7 @@ function HtmlViewer({
       copyText: t('socialShare.projectCopyText', {
         title: exportTitle,
         url: socialShareDisplayUrl,
-        repo: OPEN_DESIGN_GITHUB_REPO_URL,
+        repo: READABLE_GITHUB_REPO_URL,
       }),
     };
   }, [exportTitle, locale, socialShareDisplayUrl, t]);
@@ -8445,7 +8445,7 @@ function HtmlViewer({
           const target = manualEditHoverTarget;
           setManualEditHoverTarget(null);
           const win = iframeRef.current?.contentWindow;
-          if (win) win.postMessage({ type: 'od-edit-select-target', id: target.id }, '*');
+          if (win) win.postMessage({ type: 'readable-edit-select-target', id: target.id }, '*');
           else void selectManualEditTarget(target);
         }}
       >
@@ -8477,7 +8477,7 @@ function HtmlViewer({
   }).join('\n');
   // Resize handles ride the same iframe→canvas transform as the hover
   // affordance, and only when the srcDoc edit bridge is live (URL-load preview
-  // has no od-edit-preview-style channel), with edit mode on, an element
+  // has no readable-edit-preview-style channel), with edit mode on, an element
   // selected, and a valid rect.
   const manualEditResizeRect =
     manualEditMode && selectedManualEditTarget && !useUrlLoadPreview
@@ -8505,7 +8505,7 @@ function HtmlViewer({
     if (!frame || !win || !selectedManualEditTarget) return;
     const frameRect = frame.getBoundingClientRect();
     const message: ManualEditHoverAtMessage = {
-      type: 'od-edit-hover-at',
+      type: 'readable-edit-hover-at',
       clientX: (clientX - frameRect.left) / overlayPreviewScale,
       clientY: (clientY - frameRect.top) / overlayPreviewScale,
       selectedId: selectedManualEditTarget.id,
@@ -8575,7 +8575,7 @@ function HtmlViewer({
           // Dragging the border while editing commits the text and promotes to
           // object-select before the move (PPT).
           if (manualEditMoveMode === 'editing') {
-            sendManualEditTextEdit({ type: 'od-edit-end-text-edit' });
+            sendManualEditTextEdit({ type: 'readable-edit-end-text-edit' });
             setManualEditMoveMode('selected');
           }
         }}
@@ -8603,7 +8603,7 @@ function HtmlViewer({
           manualEditAltRef.current = false;
           manualEditCtrlRef.current = false;
           iframeRef.current?.contentWindow?.postMessage(
-            { type: 'od-edit-click-cancel' } satisfies ManualEditActivationMessage,
+            { type: 'readable-edit-click-cancel' } satisfies ManualEditActivationMessage,
             '*',
           );
         }}
@@ -8618,8 +8618,8 @@ function HtmlViewer({
             clientY: (clientY - frameRect.top) / overlayPreviewScale,
           };
           const message: ManualEditActivationMessage = altKey
-            ? { type: 'od-edit-alt-click', ...point }
-            : { type: 'od-edit-click', ...point, selectedId: selectedManualEditTarget.id };
+            ? { type: 'readable-edit-alt-click', ...point }
+            : { type: 'readable-edit-click', ...point, selectedId: selectedManualEditTarget.id };
           win.postMessage(message, '*');
         }}
         onSurfaceDoubleClick={() => {
@@ -8627,7 +8627,7 @@ function HtmlViewer({
             ? selectedManualEditTarget.id
             : selectedManualEditTarget.textEditTargetId;
           if (!textTargetId || manualEditMoveMode !== 'selected') return;
-          sendManualEditTextEdit({ type: 'od-edit-begin-text-edit', id: textTargetId });
+          sendManualEditTextEdit({ type: 'readable-edit-begin-text-edit', id: textTargetId });
           setManualEditMoveMode('editing');
         }}
       />
@@ -8710,7 +8710,7 @@ function HtmlViewer({
               <span title={boardPreviewImage.file.name}>{boardPreviewImage.file.name}</span>
               <button
                 type="button"
-                className="icon-only od-tooltip"
+                className="icon-only readable-tooltip"
                 onClick={() => setBoardPreviewIndex(null)}
                 aria-label={t('common.close')}
                 title={t('common.close')}
@@ -8811,7 +8811,7 @@ function HtmlViewer({
         <div className="viewer-toolbar-left">
           <button
             type="button"
-            className="icon-only od-tooltip"
+            className="icon-only readable-tooltip"
             onClick={reloadHtmlPreview}
             title={`${t('fileViewer.reload')} ${t('fileViewer.preview')}`}
             data-tooltip={`${t('fileViewer.reload')} ${t('fileViewer.preview')}`}
@@ -8858,7 +8858,7 @@ function HtmlViewer({
             >
               <button
                 type="button"
-                className="icon-only od-tooltip"
+                className="icon-only readable-tooltip"
                 onClick={() => postSlide('prev')}
                 title={t('fileViewer.previousSlide')}
                 data-tooltip={t('fileViewer.previousSlide')}
@@ -8875,7 +8875,7 @@ function HtmlViewer({
               </span>
               <button
                 type="button"
-                className="icon-only od-tooltip"
+                className="icon-only readable-tooltip"
                 onClick={() => postSlide('next')}
                 title={t('fileViewer.nextSlide')}
                 data-tooltip={t('fileViewer.nextSlide')}
@@ -8897,7 +8897,7 @@ function HtmlViewer({
               {mode === 'preview' ? (
                 <button
                   type="button"
-                  className="viewer-action viewer-action-icon od-tooltip"
+                  className="viewer-action viewer-action-icon readable-tooltip"
                   data-testid="screenshot-copy-button"
                   data-tooltip={t('fileViewer.screenshot')}
                   data-tooltip-placement="bottom"
@@ -8911,7 +8911,7 @@ function HtmlViewer({
               <div className="artifact-tool-menu-anchor">
                 <button
                   type="button"
-                  className={`viewer-action viewer-action-icon viewer-comment-toggle od-tooltip${boardMode && !commentCreateMode && boardTool === 'inspect' ? ' active' : ''}`}
+                  className={`viewer-action viewer-action-icon viewer-comment-toggle readable-tooltip${boardMode && !commentCreateMode && boardTool === 'inspect' ? ' active' : ''}`}
                   data-testid="board-mode-toggle"
                   data-tooltip={t('fileViewer.comment')}
                   data-tooltip-placement="bottom"
@@ -8924,7 +8924,7 @@ function HtmlViewer({
                 </button>
               </div>
               <button
-                className={`viewer-action viewer-action-icon od-tooltip${drawOverlayOpen ? ' active' : ''}`}
+                className={`viewer-action viewer-action-icon readable-tooltip${drawOverlayOpen ? ' active' : ''}`}
                 type="button"
                 data-testid="draw-overlay-toggle"
                 data-tooltip={t('fileViewer.mark')}
@@ -8938,7 +8938,7 @@ function HtmlViewer({
               </button>
               <span className="viewer-toolbar-tool-divider" aria-hidden />
               <button
-                className={`viewer-action viewer-action-icon od-tooltip${manualEditMode ? ' active' : ''}`}
+                className={`viewer-action viewer-action-icon readable-tooltip${manualEditMode ? ' active' : ''}`}
                 type="button"
                 data-testid="manual-edit-mode-toggle"
                 data-tooltip={t('fileViewer.edit')}
@@ -8953,7 +8953,7 @@ function HtmlViewer({
               <span className="viewer-toolbar-tool-divider" aria-hidden />
               <button
                 type="button"
-                className={`viewer-action viewer-comment-count-trigger viewer-comment-toggle od-tooltip${boardMode && commentCreateMode ? ' active' : ''}`}
+                className={`viewer-action viewer-comment-count-trigger viewer-comment-toggle readable-tooltip${boardMode && commentCreateMode ? ' active' : ''}`}
                 data-testid="comment-panel-toggle"
                 data-tooltip={t('chat.tabComments')}
                 data-tooltip-placement="bottom"
@@ -8969,7 +8969,7 @@ function HtmlViewer({
                 <div className="zoom-menu viewer-toolbar-zoom" ref={zoomMenuRef}>
                   <button
                     type="button"
-                    className="viewer-action zoom-trigger od-tooltip"
+                    className="viewer-action zoom-trigger readable-tooltip"
                     aria-haspopup="menu"
                     aria-expanded={zoomMenuOpen}
                     title={t('fileViewer.resetZoom')}
@@ -9131,7 +9131,7 @@ function HtmlViewer({
           {showPresent ? (
             <div className="present-wrap chrome-present-wrap">
               <button
-                className="chrome-action chrome-action-secondary chrome-action-icon present-trigger od-tooltip"
+                className="chrome-action chrome-action-secondary chrome-action-icon present-trigger readable-tooltip"
                 aria-haspopup="menu"
                 aria-expanded={presentMenuOpen}
                 aria-label={t('fileViewer.present')}
@@ -9392,12 +9392,35 @@ function HtmlViewer({
                     role="menuitem"
                     onClick={() => {
                       setDownloadMenuOpen(false);
-                      fireShareExport('html', () => exportProjectAsHtml({
-                        projectId,
-                        filePath: file.name,
-                        fallbackHtml: source ?? '',
-                        fallbackTitle: exportTitle,
-                      }));
+                      fireShareExport('html', async () => {
+                        try {
+                          const summary = await exportProjectAsHtml({
+                            projectId,
+                            filePath: file.name,
+                            title: exportTitle,
+                          });
+                          const external = summary.externalReferenceCount;
+                          const missing = summary.missingLocalReferenceCount;
+                          setExportToast({
+                            message: external && missing
+                              ? t('fileViewer.standaloneExportExternalAndMissing', { external, missing })
+                              : external
+                                ? t('fileViewer.standaloneExportExternal', { count: external })
+                                : missing
+                                  ? t('fileViewer.standaloneExportMissing', { count: missing })
+                                  : t('fileViewer.standaloneExportSuccess'),
+                            tone: 'default',
+                          });
+                        } catch (error) {
+                          setExportToast({
+                            message: error instanceof Error && error.name === 'PAYLOAD_TOO_LARGE'
+                              ? t('fileViewer.standaloneExportTooLarge')
+                              : t('fileViewer.standaloneExportFailed'),
+                            tone: 'error',
+                          });
+                          throw error;
+                        }
+                      });
                     }}
                   >
                     <span className="share-menu-icon"><RemixIcon name="file-code-line" size={15} /></span>
@@ -9497,13 +9520,13 @@ function HtmlViewer({
                     onToolbarClick={fireDrawToolbarClick}
                   >
                     <div className="artifact-preview-transport-stack">
-                      {OD_PREVIEW_KEEP_ALIVE ? (
+                      {READABLE_PREVIEW_KEEP_ALIVE ? (
                         <PooledIframe
                           ref={urlPreviewIframeRef}
                           cacheKey={urlPreviewKeepAliveKey}
                           data-testid={useUrlLoadPreview ? 'artifact-preview-frame' : 'artifact-preview-frame-url-load'}
-                          data-od-render-mode="url-load"
-                          data-od-active={useUrlLoadPreview ? 'true' : 'false'}
+                          data-readable-render-mode="url-load"
+                          data-readable-active={useUrlLoadPreview ? 'true' : 'false'}
                           aria-hidden={useUrlLoadPreview ? undefined : true}
                           tabIndex={useUrlLoadPreview ? 0 : -1}
                           title={file.name}
@@ -9518,7 +9541,7 @@ function HtmlViewer({
                               type: '__dc_set_viewport',
                               ...dcViewportRef.current,
                             }, '*');
-                            frame?.contentWindow?.postMessage({ type: 'od:url-selection-bridge-probe' }, '*');
+                            frame?.contentWindow?.postMessage({ type: 'readable-studio:url-selection-bridge-probe' }, '*');
                             syncBridgeModes(frame);
                             if (useUrlLoadPreview) restorePreviewScrollPosition();
                           }}
@@ -9527,8 +9550,8 @@ function HtmlViewer({
                         <iframe
                           ref={urlPreviewIframeRef}
                           data-testid={useUrlLoadPreview ? 'artifact-preview-frame' : 'artifact-preview-frame-url-load'}
-                          data-od-render-mode="url-load"
-                          data-od-active={useUrlLoadPreview ? 'true' : 'false'}
+                          data-readable-render-mode="url-load"
+                          data-readable-active={useUrlLoadPreview ? 'true' : 'false'}
                           aria-hidden={useUrlLoadPreview ? undefined : true}
                           tabIndex={useUrlLoadPreview ? 0 : -1}
                           title={file.name}
@@ -9543,7 +9566,7 @@ function HtmlViewer({
                               type: '__dc_set_viewport',
                               ...dcViewportRef.current,
                             }, '*');
-                            frame?.contentWindow?.postMessage({ type: 'od:url-selection-bridge-probe' }, '*');
+                            frame?.contentWindow?.postMessage({ type: 'readable-studio:url-selection-bridge-probe' }, '*');
                             syncBridgeModes(frame);
                             if (useUrlLoadPreview) restorePreviewScrollPosition();
                           }}
@@ -9553,8 +9576,8 @@ function HtmlViewer({
                         key={srcDocTransportResetKey}
                         ref={srcDocPreviewIframeRef}
                         data-testid={useUrlLoadPreview ? 'artifact-preview-frame-srcdoc' : 'artifact-preview-frame'}
-                        data-od-render-mode="srcdoc"
-                        data-od-active={useUrlLoadPreview ? 'false' : 'true'}
+                        data-readable-render-mode="srcdoc"
+                        data-readable-active={useUrlLoadPreview ? 'false' : 'true'}
                         aria-hidden={useUrlLoadPreview ? true : undefined}
                         tabIndex={useUrlLoadPreview ? -1 : 0}
                         title={file.name}
@@ -9693,18 +9716,18 @@ function HtmlViewer({
               ) : null}
               {/*
                 Hint banner for Inspect / Picker modes. The bridge in
-                `apps/web/src/runtime/srcdoc.ts` posts `od:comment-targets`
-                with every element annotated with `data-od-id` /
+                `apps/web/src/runtime/srcdoc.ts` posts `readable-studio:comment-targets`
+                with every element annotated with `data-readable-id` /
                 `data-screen-label`, so `liveCommentTargets.size` is the
                 authoritative annotation count for the current artifact.
 
                 Two states:
                 - "has targets": the existing copy ("Click any element with
-                  `data-od-id` to tune its style.") for users who just don't
+                  `data-readable-id` to tune its style.") for users who just don't
                   see the crosshair cursor.
                 - "no targets" (issue #890): a freeform-generated artifact
                   (e.g. PRD → HTML through a Claude-Code-compatible CLI
-                  without a skill) ships zero `data-od-id` annotations. The
+                  without a skill) ships zero `data-readable-id` annotations. The
                   bridge's click handler walks up to <html>, finds nothing,
                   and bails — clicks no-op silently. The static copy made
                   this look broken; the empty-state copy explains what's
@@ -9813,14 +9836,14 @@ function HtmlViewer({
             <iframe
               title="present"
               sandbox="allow-scripts allow-downloads"
-              data-od-render-mode="url-load"
+              data-readable-render-mode="url-load"
               src={activePreviewSrcUrl}
             />
           ) : (
             <iframe
               title="present"
               sandbox="allow-scripts allow-downloads"
-              data-od-render-mode="srcdoc"
+              data-readable-render-mode="srcdoc"
               srcDoc={srcDoc}
             />
           )}
@@ -10395,7 +10418,7 @@ async function inlineRelativeAssets(
           : {
               from: tag,
               to:
-                `<style data-od-inline-asset="${escapeHtmlAttr(href)}">\n` +
+                `<style data-readable-inline-asset="${escapeHtmlAttr(href)}">\n` +
                 `${css.replace(/<\/style/gi, '<\\/style')}\n</style>`,
             },
       ),
@@ -10447,8 +10470,8 @@ async function fetchProjectRelativeText(
 function resolveProjectRelativePath(ownerFileName: string, assetRef: string): string | null {
   if (/^(?:https?:|data:|blob:|mailto:|tel:|#|\/)/i.test(assetRef)) return null;
   try {
-    const url = new URL(assetRef, `https://od.local/${baseDirFor(ownerFileName)}`);
-    if (url.origin !== 'https://od.local') return null;
+    const url = new URL(assetRef, `https://readable.local/${baseDirFor(ownerFileName)}`);
+    if (url.origin !== 'https://readable.local') return null;
     return decodeURIComponent(url.pathname.replace(/^\/+/, ''));
   } catch {
     return null;

@@ -10,7 +10,7 @@ triggers:
   - "morphsvg"
   - "splittext"
 license: MIT
-od:
+readable:
   mode: prototype
   category: animation-motion
   upstream: "https://github.com/greensock/gsap-skills"

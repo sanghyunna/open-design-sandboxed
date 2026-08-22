@@ -23,7 +23,7 @@ full split.
 ## Adding a skill
 
 1. Create `skills/<my-skill>/SKILL.md` with `name`, `description`,
-   `triggers`, and `od.mode: utility` (or `design-system`) frontmatter.
+   `triggers`, and `readable.mode: utility` (or `design-system`) frontmatter.
 2. Drop any side files alongside; reference them from the body using
    the relative-from-skill-root paths the daemon advertises in the
    skill preamble.
@@ -39,7 +39,7 @@ frontmatter + a short body that points at the upstream repo — so the
 Settings → Skills tab surfaces a rich, filterable list out of the box
 without vendoring every upstream workflow.
 
-- `od.category` on these stubs powers the new category filter row in
+- `readable.category` on these stubs powers the new category filter row in
   Settings → Skills (e.g. `image-generation`, `video-generation`,
   `audio-music`, `slides`, `documents`, `design-systems`, `figma`,
   `animation-motion`, `3d-shaders`, `diagrams`, `creative-direction`,

@@ -4,7 +4,7 @@ import {
   createApiErrorResponse,
   type ApiErrorCode,
   type HostedAuthContext,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 export interface HostedIdentityRequest {
   readonly method: string;
@@ -137,6 +137,7 @@ export const HOSTED_ROUTE_ALLOWLIST: readonly HostedRouteRule[] = Object.freeze(
   { method: 'GET', path: '/api/projects/:id/preview/*' },
   { method: 'GET', path: '/api/projects/:id/archive' },
   { method: 'GET', path: '/api/projects/:id/export/manifest' },
+  { method: 'POST', path: '/api/exports/standalone-html' },
   { method: 'POST', path: '/api/artifacts/save' },
   { method: 'POST', path: '/api/artifacts/lint' },
   { method: 'GET', path: '/api/runs' },

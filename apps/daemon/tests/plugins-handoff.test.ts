@@ -1,11 +1,11 @@
 // Phase 7-8 entry slice / spec §11.5.1 — handoff atom helper.
 
 import { describe, expect, it } from 'vitest';
-import type { ArtifactManifest } from '@open-design/contracts';
+import type { ArtifactManifest } from '@readable-studio/contracts';
 import { isDeployableAppEligible, recordHandoff } from '../src/plugins/atoms/handoff.js';
 
 const baseManifest = (extra: Partial<ArtifactManifest> = {}): ArtifactManifest => ({
-  version:  1,
+  schema: 'readable-studio.artifact-manifest.v1',
   kind:     'html',
   title:    'Fixture',
   entry:    'index.html',
@@ -18,11 +18,11 @@ describe('recordHandoff — append-only contracts', () => {
   it('appends a new exportTargets entry', () => {
     const out = recordHandoff({
       manifest: baseManifest(),
-      exportTarget: { surface: 'cli', target: '/workspace/od/x.html', exportedAt: 1000 },
+      exportTarget: { surface: 'cli', target: '/workspace/readable/x.html', exportedAt: 1000 },
     });
     expect(out.changed).toContain('exportTargets');
     expect(out.manifest.exportTargets).toEqual([
-      { surface: 'cli', target: '/workspace/od/x.html', exportedAt: 1000 },
+      { surface: 'cli', target: '/workspace/readable/x.html', exportedAt: 1000 },
     ]);
   });
 
@@ -84,7 +84,7 @@ describe('recordHandoff — handoffKind monotonicity', () => {
 
 describe('isDeployableAppEligible', () => {
   it('requires both build + tests passing', () => {
-    const m = baseManifest({ exportTargets: [{ surface: 'docker', target: 'ghcr.io/od/x:1', exportedAt: 1 }] });
+    const m = baseManifest({ exportTargets: [{ surface: 'docker', target: 'ghcr.io/readable/x:1', exportedAt: 1 }] });
     expect(isDeployableAppEligible({ manifest: m, buildPassing: true, testsPassing: true })).toBe(true);
     expect(isDeployableAppEligible({ manifest: m, buildPassing: false, testsPassing: true })).toBe(false);
     expect(isDeployableAppEligible({ manifest: m, buildPassing: true, testsPassing: false })).toBe(false);

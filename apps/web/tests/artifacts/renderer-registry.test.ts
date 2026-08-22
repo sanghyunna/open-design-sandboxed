@@ -39,7 +39,7 @@ describe('RendererRegistry', () => {
       kind: 'text',
       mime: 'text/markdown; charset=utf-8',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'markdown-document',
         title: 'Notes',
         entry: 'notes.md',
@@ -70,7 +70,7 @@ describe('RendererRegistry', () => {
       kind: 'sketch',
       mime: 'image/svg+xml',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'svg',
         title: 'Diagram',
         entry: 'diagram.svg',
@@ -153,7 +153,7 @@ describe('RendererRegistry', () => {
           name: 'entry.txt',
           kind: 'text',
           artifactManifest: {
-            version: 1,
+            schema: 'readable-studio.artifact-manifest.v1',
             kind: 'react-component',
             title: 'Entry',
             entry: 'entry.txt',

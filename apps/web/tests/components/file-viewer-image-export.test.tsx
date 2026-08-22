@@ -8,16 +8,27 @@ const {
   captureHostIframeSnapshotMock,
   downloadImageDataUrlMock,
   imageDataUrlToBlobMock,
+  exportProjectAsHtmlMock,
   prepareImageExportTargetMock,
   requestPreviewSnapshotMock,
   saveImageBlobMock,
+  analyticsTrackMock,
 } = vi.hoisted(() => ({
   captureHostIframeSnapshotMock: vi.fn(),
   downloadImageDataUrlMock: vi.fn(),
   imageDataUrlToBlobMock: vi.fn(),
+  exportProjectAsHtmlMock: vi.fn(),
   prepareImageExportTargetMock: vi.fn(),
   requestPreviewSnapshotMock: vi.fn(),
   saveImageBlobMock: vi.fn(),
+  analyticsTrackMock: vi.fn(),
+}));
+
+vi.mock('../../src/analytics/provider', () => ({
+  useAnalytics: () => ({
+    track: analyticsTrackMock,
+    newRequestId: () => 'request-1',
+  }),
 }));
 
 vi.mock('../../src/runtime/exports', async () => {
@@ -29,6 +40,7 @@ vi.mock('../../src/runtime/exports', async () => {
     captureHostIframeSnapshot: captureHostIframeSnapshotMock,
     downloadImageDataUrl: downloadImageDataUrlMock,
     imageDataUrlToBlob: imageDataUrlToBlobMock,
+    exportProjectAsHtml: exportProjectAsHtmlMock,
     prepareImageExportTarget: prepareImageExportTargetMock,
     requestPreviewSnapshot: requestPreviewSnapshotMock,
   };
@@ -46,7 +58,7 @@ function htmlFile(): ProjectFile {
     kind: 'html',
     mime: 'text/html',
     artifactManifest: {
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
       kind: 'html',
       title: 'Workspace',
       entry: 'workspace.html',
@@ -67,8 +79,8 @@ function renderHtmlPreview() {
   );
   const { container } = view;
   const activeFrame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
-  expect(activeFrame.getAttribute('data-od-render-mode')).toBe('url-load');
-  const srcDocFrame = container.querySelector<HTMLIFrameElement>('iframe[data-od-render-mode="srcdoc"]');
+  expect(activeFrame.getAttribute('data-readable-render-mode')).toBe('url-load');
+  const srcDocFrame = container.querySelector<HTMLIFrameElement>('iframe[data-readable-render-mode="srcdoc"]');
   expect(srcDocFrame).toBeTruthy();
   fireEvent.load(srcDocFrame as HTMLIFrameElement);
   return { ...view, activeFrame, srcDocFrame: srcDocFrame as HTMLIFrameElement };
@@ -92,6 +104,46 @@ describe('FileViewer image export', () => {
   afterEach(() => {
     cleanup();
     vi.resetAllMocks();
+  });
+
+  it('exports project HTML and reports external and missing references', async () => {
+    exportProjectAsHtmlMock.mockResolvedValueOnce({
+      outputBytes: 10,
+      externalReferenceCount: 2,
+      missingLocalReferenceCount: 1,
+      skippedSystemFontCount: 0,
+    });
+    renderHtmlPreview();
+    fireEvent.click(screen.getByRole('button', { name: /download/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /standalone html/i }));
+    await waitFor(() => {
+      expect(exportProjectAsHtmlMock).toHaveBeenCalledWith({
+        projectId: 'project-1', filePath: 'workspace.html', title: 'Workspace',
+      });
+      expect(document.body.textContent).toContain('2 external');
+      expect(document.body.textContent).toContain('1 missing');
+      expect(analyticsTrackMock).toHaveBeenCalledWith(
+        'artifact_export_result',
+        expect.objectContaining({ export_format: 'html', result: 'success' }),
+        expect.anything(),
+      );
+    });
+  });
+
+  it('shows the standalone export failure without falling back to preview HTML', async () => {
+    const error = new Error('bundle failed');
+    error.name = 'BUNDLE_FAILED';
+    exportProjectAsHtmlMock.mockRejectedValueOnce(error);
+    renderHtmlPreview();
+    fireEvent.click(screen.getByRole('button', { name: /download/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /standalone html/i }));
+    await waitFor(() => expect(document.body.textContent).toContain('Could not export standalone HTML'));
+    expect(exportProjectAsHtmlMock).toHaveBeenCalledTimes(1);
+    expect(analyticsTrackMock).toHaveBeenCalledWith(
+      'artifact_export_result',
+      expect.objectContaining({ export_format: 'html', result: 'failed', error_code: 'BUNDLE_FAILED' }),
+      expect.anything(),
+    );
   });
 
   it('portals the image export dialog above fixed chat composer layers', async () => {
@@ -222,7 +274,7 @@ describe('FileViewer image export', () => {
     const pngBlob = new Blob(['png'], { type: 'image/png' });
     let srcDocAttempts = 0;
     requestPreviewSnapshotMock.mockImplementation(async (iframe: HTMLIFrameElement) => {
-      if (iframe.getAttribute('data-od-render-mode') === 'url-load') return null;
+      if (iframe.getAttribute('data-readable-render-mode') === 'url-load') return null;
       srcDocAttempts += 1;
       if (srcDocAttempts === 1) return null;
       return {
@@ -246,7 +298,7 @@ describe('FileViewer image export', () => {
   it('captures the visible URL-loaded preview before falling back to the hidden srcDoc transport', async () => {
     const pngBlob = new Blob(['png'], { type: 'image/png' });
     requestPreviewSnapshotMock.mockImplementation(async (iframe: HTMLIFrameElement) => {
-      if (iframe.getAttribute('data-od-render-mode') === 'url-load') {
+      if (iframe.getAttribute('data-readable-render-mode') === 'url-load') {
         return {
           dataUrl: 'data:image/png;base64,visible',
           w: 800,

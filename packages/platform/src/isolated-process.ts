@@ -42,11 +42,11 @@ type HelperReady = {
 };
 
 const MAX_BROKER_FRAME_BYTES = 4 * 1024 * 1024;
-const BROKER_PIPE_PATTERN = /^\\\\\.\\pipe\\LOCAL\\OpenDesign\.[A-Za-z0-9.-]{1,160}$/u;
+const BROKER_PIPE_PATTERN = /^\\\\\.\\pipe\\LOCAL\\ReadableStudio\.[A-Za-z0-9.-]{1,160}$/u;
 
 const helperCandidates = [
-  new URL("../dist/native/win32/od-agent-isolator.exe", import.meta.url),
-  new URL("./native/win32/od-agent-isolator.exe", import.meta.url),
+  new URL("../dist/native/win32/agent-isolator.exe", import.meta.url),
+  new URL("./native/win32/agent-isolator.exe", import.meta.url),
 ];
 
 function nativeHelperPath(explicitPath?: string): string | null {

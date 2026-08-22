@@ -10,7 +10,7 @@ triggers:
   - "minutes"
   - "1:1 notes"
   - "all-hands recap"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: operations

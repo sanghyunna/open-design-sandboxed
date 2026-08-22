@@ -84,7 +84,7 @@ export interface ProjectExportManifestArtifact {
 }
 
 export interface ProjectExportManifestResponse {
-  schema: 'open-design.project-export-manifest.v1';
+  schema: 'readable-studio.project-export-manifest.v1';
   projectId: string;
   projectName: string | null;
   generatedAt: string;

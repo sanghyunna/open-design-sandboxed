@@ -42,7 +42,7 @@ describe('RootLayout theme init script', () => {
       const script = findThemeInitScript(RootLayout({ children: null }));
       expect(script).toBeTruthy();
 
-      localStorage.setItem('open-design:config', JSON.stringify({ theme: theme.id }));
+      localStorage.setItem('readable-studio:config', JSON.stringify({ theme: theme.id }));
       new Function(script ?? '')();
 
       expect(document.documentElement.getAttribute('data-theme')).toBe(theme.id);
@@ -51,37 +51,37 @@ describe('RootLayout theme init script', () => {
   );
 
   it('serializes the hosted marker before theme initialization and never reads local app config', () => {
-    const previousComposition = process.env.OD_WEB_COMPOSITION;
-    process.env.OD_WEB_COMPOSITION = 'hosted';
+    const previousComposition = process.env.READABLE_WEB_COMPOSITION;
+    process.env.READABLE_WEB_COMPOSITION = 'hosted';
 
     try {
       const layout = RootLayout({ children: null });
-      expect(layout.props['data-od-composition']).toBe('hosted');
+      expect(layout.props['data-readable-composition']).toBe('hosted');
 
       const getItem = vi.spyOn(Storage.prototype, 'getItem');
       const script = findThemeInitScript(layout);
       expect(script).toBeTruthy();
 
-      document.documentElement.setAttribute('data-od-composition', 'hosted');
+      document.documentElement.setAttribute('data-readable-composition', 'hosted');
       new Function(script ?? '')();
 
-      expect(getItem).not.toHaveBeenCalledWith('open-design:config');
+      expect(getItem).not.toHaveBeenCalledWith('readable-studio:config');
       getItem.mockRestore();
     } finally {
-      if (previousComposition == null) delete process.env.OD_WEB_COMPOSITION;
-      else process.env.OD_WEB_COMPOSITION = previousComposition;
-      document.documentElement.removeAttribute('data-od-composition');
+      if (previousComposition == null) delete process.env.READABLE_WEB_COMPOSITION;
+      else process.env.READABLE_WEB_COMPOSITION = previousComposition;
+      document.documentElement.removeAttribute('data-readable-composition');
     }
   });
 
   it('does not mount the local locale provider in hosted composition', () => {
-    const previousComposition = process.env.OD_WEB_COMPOSITION;
-    process.env.OD_WEB_COMPOSITION = 'hosted';
+    const previousComposition = process.env.READABLE_WEB_COMPOSITION;
+    process.env.READABLE_WEB_COMPOSITION = 'hosted';
     try {
       expect(containsElementType(RootLayout({ children: null }), I18nProvider)).toBe(false);
     } finally {
-      if (previousComposition == null) delete process.env.OD_WEB_COMPOSITION;
-      else process.env.OD_WEB_COMPOSITION = previousComposition;
+      if (previousComposition == null) delete process.env.READABLE_WEB_COMPOSITION;
+      else process.env.READABLE_WEB_COMPOSITION = previousComposition;
     }
     expect(containsElementType(RootLayout({ children: null }), I18nProvider)).toBe(true);
   });

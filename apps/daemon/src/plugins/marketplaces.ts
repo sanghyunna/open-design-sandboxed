@@ -2,13 +2,13 @@
 // (entry slice).
 //
 // Stores user-configured federated catalog indexes in
-// `plugin_marketplaces`. The actual `od plugin install <name>` resolution
+// `plugin_marketplaces`. The actual `readable plugin install <name>` resolution
 // through these catalogs lands in Phase 3 alongside the trust UI; this
 // module is the storage + refresh half so the desktop / CLI can already
 // register and inspect catalogs.
 //
 // We intentionally treat the catalog body as opaque JSON in v1 — Zod
-// validation lives in `@open-design/plugin-runtime`'s parser and we only
+// validation lives in `@readable-studio/plugin-runtime`'s parser and we only
 // store what the parser returns. Trust default mirrors §9: a freshly
 // added user-supplied marketplace is `restricted` (discovery only)
 // unless `--trust` is passed.
@@ -18,11 +18,13 @@ import type Database from 'better-sqlite3';
 import {
   parseMarketplace,
   type MarketplaceParseResult,
-} from '@open-design/plugin-runtime';
+} from '@readable-studio/plugin-runtime';
 import {
-  OPEN_DESIGN_PLUGIN_SPEC_VERSION,
+  READABLE_STUDIO_PLUGIN_SPEC_VERSION,
+  UNSUPPORTED_LEGACY_PRODUCT_V1,
   type MarketplaceManifest,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
+import { READABLE_STUDIO_REGISTRY_MANIFEST_NAME } from '@readable-studio/registry-protocol';
 import {
   parsePluginSpecifier,
   resolveMarketplaceEntryVersion,
@@ -72,43 +74,57 @@ export interface EnsureMarketplaceManifestInput {
   now?: number;
 }
 
+export type MarketplaceManifestReadErrorCode =
+  | 'UNSUPPORTED_LEGACY_PRODUCT_V1'
+  | 'CORRUPT_MARKETPLACE_MANIFEST';
+
+export class MarketplaceManifestReadError extends Error {
+  constructor(
+    readonly code: MarketplaceManifestReadErrorCode,
+    readonly errors: readonly string[],
+  ) {
+    super(code === 'UNSUPPORTED_LEGACY_PRODUCT_V1'
+      ? 'stored marketplace uses an unsupported legacy product format'
+      : 'stored marketplace manifest is corrupt');
+    this.name = 'MarketplaceManifestReadError';
+  }
+}
+
 const HTTPS_RE = /^https:\/\//i;
-const DEFAULT_MARKETPLACE_REPO = 'nexu-io/open-design';
+const DEFAULT_MARKETPLACE_REPO = 'sanghyunna/readable-studio';
 const DEFAULT_MARKETPLACE_REPO_REF = 'main';
 const DEFAULT_MARKETPLACE_REGISTRY_PATH = 'plugins/registry';
-const PUBLIC_MARKETPLACE_BASE_URL = 'https://open-design.ai/marketplace';
-const PUBLIC_PLUGINS_BASE_URL = 'https://open-design.ai/plugins';
 
 function marketplaceRegistryRepo(): string {
-  return (process.env.OD_MARKETPLACE_REPO?.trim() || DEFAULT_MARKETPLACE_REPO)
+  return (process.env.READABLE_MARKETPLACE_REPO?.trim() || DEFAULT_MARKETPLACE_REPO)
     .replace(/^\/+|\/+$/g, '');
 }
 
 export function marketplaceRegistryBaseUrl(): string {
-  const explicit = process.env.OD_MARKETPLACE_REGISTRY_BASE_URL?.trim();
+  const explicit = process.env.READABLE_MARKETPLACE_REGISTRY_BASE_URL?.trim();
   if (explicit) return explicit.replace(/\/+$/, '');
 
   const repo = marketplaceRegistryRepo();
-  const ref = (process.env.OD_MARKETPLACE_REPO_REF?.trim() || DEFAULT_MARKETPLACE_REPO_REF)
+  const ref = (process.env.READABLE_MARKETPLACE_REPO_REF?.trim() || DEFAULT_MARKETPLACE_REPO_REF)
     .replace(/^\/+|\/+$/g, '');
-  const registryPath = (process.env.OD_MARKETPLACE_REGISTRY_PATH?.trim() || DEFAULT_MARKETPLACE_REGISTRY_PATH)
+  const registryPath = (process.env.READABLE_MARKETPLACE_REGISTRY_PATH?.trim() || DEFAULT_MARKETPLACE_REGISTRY_PATH)
     .replace(/^\/+|\/+$/g, '');
   return `https://raw.githubusercontent.com/${repo}/${ref}/${registryPath}`;
 }
 
 export function marketplaceManifestUrlForRegistry(id: string): string {
   const registryId = id.trim().replace(/^\/+|\/+$/g, '');
-  return `${marketplaceRegistryBaseUrl()}/${registryId}/open-design-marketplace.json`;
+  return `${marketplaceRegistryBaseUrl()}/${registryId}/${READABLE_STUDIO_REGISTRY_MANIFEST_NAME}`;
 }
 
 function registryIdFromBaseUrl(url: string, baseUrl: string): string | null {
   const base = baseUrl.replace(/\/+$/, '');
-  if (!url.startsWith(`${base}/`) || !url.endsWith('/open-design-marketplace.json')) {
+  if (!url.startsWith(`${base}/`) || !url.endsWith(`/${READABLE_STUDIO_REGISTRY_MANIFEST_NAME}`)) {
     return null;
   }
   const id = url
     .slice(base.length + 1)
-    .replace(/\/open-design-marketplace\.json$/, '');
+    .replace(/\/readable-studio-marketplace\.json$/, '');
   return id && !id.includes('/') ? id : null;
 }
 
@@ -118,17 +134,6 @@ export function marketplaceRegistryIdFromUrl(url: string): string | null {
 
   const configuredId = registryIdFromBaseUrl(trimmed, marketplaceRegistryBaseUrl());
   if (configuredId) return configuredId;
-
-  const publicBases = [PUBLIC_MARKETPLACE_BASE_URL, PUBLIC_PLUGINS_BASE_URL];
-  for (const base of publicBases) {
-    if (trimmed === `${base}/open-design-marketplace.json`) return 'official';
-    if (trimmed.startsWith(`${base}/`) && trimmed.endsWith('/open-design-marketplace.json')) {
-      const id = trimmed
-        .slice(base.length + 1)
-        .replace(/\/open-design-marketplace\.json$/, '');
-      if (id && !id.includes('/')) return id;
-    }
-  }
 
   try {
     const parsed = new URL(trimmed);
@@ -145,7 +150,7 @@ export function marketplaceRegistryIdFromUrl(url: string): string | null {
     );
     const id = marker >= 0 ? parts[marker + 2] : undefined;
     const filename = marker >= 0 ? parts[marker + 3] : undefined;
-    return id && filename === 'open-design-marketplace.json' ? id : null;
+    return id && filename === READABLE_STUDIO_REGISTRY_MANIFEST_NAME ? id : null;
   } catch {
     return null;
   }
@@ -157,6 +162,27 @@ export function resolveMarketplaceFetchUrl(url: string): string {
   return registryId ? marketplaceManifestUrlForRegistry(registryId) : trimmed;
 }
 
+const LEGACY_MARKETPLACE_SLUG = ['open', 'design'].join('-');
+const LEGACY_MARKETPLACE_HOST = `${LEGACY_MARKETPLACE_SLUG}.ai`;
+
+function isUnsupportedMarketplaceUrl(url: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url.trim());
+  } catch (error) {
+    if (error instanceof TypeError) return false;
+    throw error;
+  }
+
+  const { hostname, pathname } = parsed;
+  if (pathname.endsWith(`/${LEGACY_MARKETPLACE_SLUG}-marketplace.json`)) return true;
+  if (hostname === LEGACY_MARKETPLACE_HOST || hostname === `www.${LEGACY_MARKETPLACE_HOST}`) return true;
+  if (hostname !== 'github.com' && hostname !== 'raw.githubusercontent.com') return false;
+
+  const [owner, repository] = pathname.split('/').filter(Boolean);
+  return owner === 'nexu-io' && repository === LEGACY_MARKETPLACE_SLUG;
+}
+
 function normalizeMarketplaceTrust(value: unknown): MarketplaceTrustTier {
   return value === 'official' || value === 'trusted' ? value : 'restricted';
 }
@@ -165,6 +191,14 @@ export async function addMarketplace(
   db: SqliteDb,
   input: AddMarketplaceInput,
 ): Promise<AddMarketplaceResult | AddMarketplaceFailure> {
+  if (isUnsupportedMarketplaceUrl(input.url)) {
+    return {
+      ok: false,
+      status: 400,
+      message: UNSUPPORTED_LEGACY_PRODUCT_V1,
+      errors: [UNSUPPORTED_LEGACY_PRODUCT_V1],
+    };
+  }
   const url = resolveMarketplaceFetchUrl(input.url);
   if (!HTTPS_RE.test(url)) {
     return {
@@ -362,6 +396,14 @@ export async function refreshMarketplace(
   if (!existing) {
     return { ok: false, status: 404, message: `marketplace ${id} not found` };
   }
+  if (isUnsupportedMarketplaceUrl(existing.url)) {
+    return {
+      ok: false,
+      status: 400,
+      message: UNSUPPORTED_LEGACY_PRODUCT_V1,
+      errors: [UNSUPPORTED_LEGACY_PRODUCT_V1],
+    };
+  }
   const useFetcher = fetcher ?? defaultFetcher;
   const url = resolveMarketplaceFetchUrl(existing.url);
   let resp;
@@ -402,62 +444,14 @@ async function defaultFetcher(url: string) {
 }
 
 function safeParseManifest(raw: string): MarketplaceManifest {
-  try {
-    const parsed = parseMarketplace(raw);
-    if (parsed.ok) return parsed.manifest;
-  } catch {
-    // fall through
-  }
-  try {
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      throw new Error('legacy marketplace manifest is not an object');
-    }
-    const legacy = parsed as Record<string, unknown>;
-    const metadata = typeof legacy['metadata'] === 'object' && legacy['metadata'] !== null
-      ? legacy['metadata'] as Record<string, unknown>
-      : {};
-    const plugins = Array.isArray(legacy?.['plugins'])
-      ? (legacy['plugins'] as unknown[]).flatMap((entry) => {
-          if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];
-          const obj = entry as Record<string, unknown>;
-          const name = typeof obj['name'] === 'string' ? obj['name'] : '';
-          const source = typeof obj['source'] === 'string' ? obj['source'] : '';
-          if (!name || !source) return [];
-          return [{
-            ...obj,
-            name,
-            source,
-            version: typeof obj['version'] === 'string' && obj['version'].length > 0
-              ? obj['version']
-              : '0.0.0',
-          }];
-        })
-      : [];
-    return {
-      ...legacy,
-      specVersion: typeof legacy['specVersion'] === 'string'
-        ? legacy['specVersion'] as string
-        : OPEN_DESIGN_PLUGIN_SPEC_VERSION,
-      name: typeof legacy['name'] === 'string' ? legacy['name'] as string : 'unknown',
-      version: typeof legacy['version'] === 'string' && (legacy['version'] as string).length > 0
-        ? legacy['version'] as string
-        : typeof metadata['version'] === 'string' && metadata['version'].length > 0
-          ? metadata['version']
-          : '0.0.0',
-      plugins,
-    } as MarketplaceManifest;
-  } catch {
-    // fall through
-  }
-  // Last-resort fallback: return a minimal shape so the caller doesn't
-  // explode if a database row was stored before a schema patch.
-  return {
-    specVersion: OPEN_DESIGN_PLUGIN_SPEC_VERSION,
-    name: 'unknown',
-    version: '0.0.0',
-    plugins: [],
-  } as MarketplaceManifest;
+  const parsed = parseMarketplace(raw);
+  if (parsed.ok) return parsed.manifest;
+  throw new MarketplaceManifestReadError(
+    parsed.code === UNSUPPORTED_LEGACY_PRODUCT_V1
+      ? 'UNSUPPORTED_LEGACY_PRODUCT_V1'
+      : 'CORRUPT_MARKETPLACE_MANIFEST',
+    parsed.errors,
+  );
 }
 
 // Plan §3.F3 / spec §7.2 + §6 — resolve a bare plugin name through

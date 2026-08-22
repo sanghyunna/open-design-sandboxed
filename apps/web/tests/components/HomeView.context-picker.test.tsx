@@ -7,7 +7,7 @@ import {
   type InstalledPluginRecord,
   type McpServerConfig,
   type SkillSummary,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { HomeView } from '../../src/components/HomeView';
 import { homeHeroPromptText, setHomeHeroPrompt } from '../helpers/home-hero-lexical';
 
@@ -82,7 +82,7 @@ function makePlugin(id: string, title: string): InstalledPluginRecord {
       version: '1.0.0',
       description: `${title} fixture`,
       tags: ['fixture'],
-      od: {
+      readable: {
         kind: 'scenario',
         taskKind: 'new-generation',
         useCase: {

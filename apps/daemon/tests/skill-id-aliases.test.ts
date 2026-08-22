@@ -10,7 +10,7 @@ import {
   resolveSkillId,
 } from '../src/skills.js';
 
-// Regression coverage for the editorial-collage → open-design-landing rename.
+// Regression coverage for the editorial-collage → readable-landing rename.
 // The daemon persists the chosen skill_id verbatim on a project row and
 // resolves it later by id, so a folder/frontmatter rename without a
 // compatibility shim would silently drop the skill prompt for projects
@@ -20,22 +20,22 @@ import {
 let skillsRoot: string;
 
 beforeAll(async () => {
-  skillsRoot = await mkdtemp(path.join(tmpdir(), 'od-skills-aliases-'));
+  skillsRoot = await mkdtemp(path.join(tmpdir(), 'readable-skills-aliases-'));
   // Mimic the on-disk shape the production registry expects: one
   // directory per skill, each with a SKILL.md whose frontmatter `name`
   // becomes the canonical id returned by listSkills().
-  await mkdir(path.join(skillsRoot, 'open-design-landing'), { recursive: true });
+  await mkdir(path.join(skillsRoot, 'readable-landing'), { recursive: true });
   await writeFile(
-    path.join(skillsRoot, 'open-design-landing', 'SKILL.md'),
-    '---\nname: open-design-landing\ndescription: Atelier Zero landing.\n---\n\nbody\n',
+    path.join(skillsRoot, 'readable-landing', 'SKILL.md'),
+    '---\nname: readable-landing\ndescription: Atelier Zero landing.\n---\n\nbody\n',
     'utf8',
   );
-  await mkdir(path.join(skillsRoot, 'open-design-landing-deck'), {
+  await mkdir(path.join(skillsRoot, 'readable-landing-deck'), {
     recursive: true,
   });
   await writeFile(
-    path.join(skillsRoot, 'open-design-landing-deck', 'SKILL.md'),
-    '---\nname: open-design-landing-deck\ndescription: Atelier Zero deck.\n---\n\nbody\n',
+    path.join(skillsRoot, 'readable-landing-deck', 'SKILL.md'),
+    '---\nname: readable-landing-deck\ndescription: Atelier Zero deck.\n---\n\nbody\n',
     'utf8',
   );
   // An untouched skill so we can prove the helper still resolves
@@ -54,9 +54,9 @@ afterAll(async () => {
 
 describe('SKILL_ID_ALIASES', () => {
   it('maps the editorial-collage rename to its current canonical id', () => {
-    expect(SKILL_ID_ALIASES['editorial-collage']).toBe('open-design-landing');
+    expect(SKILL_ID_ALIASES['editorial-collage']).toBe('readable-landing');
     expect(SKILL_ID_ALIASES['editorial-collage-deck']).toBe(
-      'open-design-landing-deck',
+      'readable-landing-deck',
     );
   });
 
@@ -67,9 +67,9 @@ describe('SKILL_ID_ALIASES', () => {
 
 describe('resolveSkillId', () => {
   it('forwards deprecated ids to their canonical replacement', () => {
-    expect(resolveSkillId('editorial-collage')).toBe('open-design-landing');
+    expect(resolveSkillId('editorial-collage')).toBe('readable-landing');
     expect(resolveSkillId('editorial-collage-deck')).toBe(
-      'open-design-landing-deck',
+      'readable-landing-deck',
     );
   });
 
@@ -90,7 +90,7 @@ describe('findSkillById', () => {
     const skills = await listSkills(skillsRoot);
     const skill = findSkillById(skills, 'editorial-collage');
     if (!skill) throw new Error('editorial-collage skill not found');
-    expect(skill.id).toBe('open-design-landing');
+    expect(skill.id).toBe('readable-landing');
     expect(skill.body).toContain('body');
   });
 
@@ -98,13 +98,13 @@ describe('findSkillById', () => {
     const skills = await listSkills(skillsRoot);
     const skill = findSkillById(skills, 'editorial-collage-deck');
     if (!skill) throw new Error('editorial-collage-deck skill not found');
-    expect(skill.id).toBe('open-design-landing-deck');
+    expect(skill.id).toBe('readable-landing-deck');
   });
 
   it('still resolves current ids exactly', async () => {
     const skills = await listSkills(skillsRoot);
-    expect(findSkillById(skills, 'open-design-landing')?.id).toBe(
-      'open-design-landing',
+    expect(findSkillById(skills, 'readable-landing')?.id).toBe(
+      'readable-landing',
     );
     expect(findSkillById(skills, 'simple-deck')?.id).toBe('simple-deck');
   });
@@ -113,6 +113,6 @@ describe('findSkillById', () => {
     const skills = await listSkills(skillsRoot);
     expect(findSkillById(skills, 'definitely-not-a-skill')).toBeUndefined();
     expect(findSkillById(skills, '')).toBeUndefined();
-    expect(findSkillById(null, 'open-design-landing')).toBeUndefined();
+    expect(findSkillById(null, 'readable-landing')).toBeUndefined();
   });
 });

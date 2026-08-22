@@ -12,7 +12,7 @@
 // and the localization helpers so the copy follows the active locale.
 
 import { useMemo } from 'react';
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 import { useT } from '../i18n';
 import { PreviewSurface } from './plugins-home/cards/PreviewSurface';
 import { extractCategories } from './plugins-home/facets';
@@ -44,8 +44,8 @@ function pluginKindLabel(
 // `extractCategories` returns nothing for them. Detect them the same way
 // the preview classifier does (mode / tag) so they still get a kind tag.
 function isDesignSystemRecord(record: InstalledPluginRecord): boolean {
-  const od = record.manifest?.od as { mode?: unknown } | undefined;
-  if (typeof od?.mode === 'string' && od.mode.toLowerCase() === 'design-system') {
+  const readable = record.manifest?.readable as { mode?: unknown } | undefined;
+  if (typeof readable?.mode === 'string' && readable.mode.toLowerCase() === 'design-system') {
     return true;
   }
   return (record.manifest?.tags ?? []).some(

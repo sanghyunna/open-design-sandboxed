@@ -619,7 +619,7 @@ test('cursor stream emits partial text once and usage events', () => {
     JSON.stringify({
       type: 'assistant',
       timestamp_ms: 1,
-      message: { role: 'assistant', content: [{ type: 'text', text: 'OD' }] },
+      message: { role: 'assistant', content: [{ type: 'text', text: 'READABLE' }] },
     }) +
     '\n' +
     JSON.stringify({
@@ -630,7 +630,7 @@ test('cursor stream emits partial text once and usage events', () => {
     '\n' +
     JSON.stringify({
       type: 'assistant',
-      message: { role: 'assistant', content: [{ type: 'text', text: 'OD_OK' }] },
+      message: { role: 'assistant', content: [{ type: 'text', text: 'READABLE_OK' }] },
     }) +
     '\n' +
     JSON.stringify({
@@ -643,7 +643,7 @@ test('cursor stream emits partial text once and usage events', () => {
 
   assert.deepEqual(events, [
     { type: 'status', label: 'initializing', model: 'GPT-5 Mini' },
-    { type: 'text_delta', delta: 'OD' },
+    { type: 'text_delta', delta: 'READABLE' },
     { type: 'text_delta', delta: '_OK' },
     {
       type: 'usage',

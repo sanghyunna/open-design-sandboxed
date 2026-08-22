@@ -13,8 +13,8 @@ import {
   deriveConfigureGlobals,
   projectKindToTracking,
   fidelityToTracking,
-} from '@open-design/contracts/analytics';
-import type { AmrModelsResponse, ChatSessionMode } from '@open-design/contracts';
+} from '@readable-studio/contracts/analytics';
+import type { AmrModelsResponse, ChatSessionMode } from '@readable-studio/contracts';
 import { EntryView } from './components/EntryView';
 import type { IntegrationTab } from './components/IntegrationsView';
 import type { CreateInput, ImportClaudeDesignOutcome } from './components/NewProjectPanel';
@@ -84,7 +84,7 @@ import type {
   PluginShareAction,
   PluginShareProjectOutcome,
 } from './state/projects';
-import type { OpenDesignHostProjectImportSuccess } from '@open-design/host';
+import type { ReadableStudioHostProjectImportSuccess } from '@readable-studio/host';
 import { useI18n } from './i18n';
 import type {
   AgentInfo,
@@ -126,9 +126,9 @@ const SettingsDialog = dynamic(
   { ssr: false },
 );
 
-const APP_CONFIG_CHANGED_EVENT = 'open-design:app-config-changed';
+const APP_CONFIG_CHANGED_EVENT = 'readable-studio:app-config-changed';
 const AMR_AGENT_ID = 'amr';
-const AMR_PROFILE_ENV_KEY = 'OPEN_DESIGN_AMR_PROFILE';
+const AMR_PROFILE_ENV_KEY = 'READABLE_AMR_PROFILE';
 
 
 function amrProfileForConfig(config: AppConfig): string | null {
@@ -283,14 +283,14 @@ function AppInner() {
   useModalWindowDragGuard();
   // Observability marker. `apps/web/src/observability/white-screen.ts`
   // keys its "app actually mounted" success condition on this attribute
-  // because the dynamic-import loading shell (`<div class="od-loading-shell">
-  // Loading Open Design…</div>`) is itself >MIN_VISIBLE_TEXT and would
+  // because the dynamic-import loading shell (`<div class="readable-loading-shell">
+  // Loading Readable Studio…</div>`) is itself >MIN_VISIBLE_TEXT and would
   // otherwise be mistaken for a real mount. Survives subsequent render
   // crashes — once App has mounted at least once, it's no longer a white
   // screen (subsequent failures show up as `$exception`).
   useEffect(() => {
     if (typeof document !== 'undefined') {
-      document.documentElement.setAttribute('data-od-app-mounted', '1');
+      document.documentElement.setAttribute('data-readable-app-mounted', '1');
     }
   }, []);
   const [config, setConfig] = useState<AppConfig>(() => loadConfig());
@@ -1125,7 +1125,7 @@ function AppInner() {
       // uploading staged attachments. `replaceProjectWorkingDir` changes
       // `metadata.baseDir`, so the project starts reading from the external
       // folder. If we uploaded first, the staged files would land in the
-      // temporary managed `.od/projects/<id>` root and then silently vanish
+      // temporary managed `.readable-studio/projects/<id>` root and then silently vanish
       // from Design Files and the first auto-send context once the project
       // folder flips. Doing the handoff first means the initial upload lands in
       // the final tree.
@@ -1144,7 +1144,7 @@ function AppInner() {
           // handoff fails AFTER the project already exists. Do NOT swallow
           // this and do NOT proceed: uploading staged attachments or
           // auto-sending the first message would target the managed
-          // `.od/projects/<id>` root the user did not choose. Mark the
+          // `.readable-studio/projects/<id>` root the user did not choose. Mark the
           // handoff as failed so the upload + auto-send branches below are
           // skipped, then surface a create-time error so the user can create
           // again after choosing the intended project folder.
@@ -1207,17 +1207,17 @@ function AppInner() {
       ) {
         try {
           window.sessionStorage.setItem(
-            `od:auto-send-first:${result.project.id}`,
+            `readable:auto-send-first:${result.project.id}`,
             '1',
           );
           if (firstMessageAttachments.length > 0) {
             window.sessionStorage.setItem(
-              `od:auto-send-attachments:${result.project.id}`,
+              `readable:auto-send-attachments:${result.project.id}`,
               JSON.stringify(firstMessageAttachments),
             );
           } else {
             window.sessionStorage.removeItem(
-              `od:auto-send-attachments:${result.project.id}`,
+              `readable:auto-send-attachments:${result.project.id}`,
             );
           }
         } catch {
@@ -1260,7 +1260,7 @@ function AppInner() {
       if (!outcome.ok) return outcome;
       try {
         window.sessionStorage.setItem(
-          `od:auto-send-first:${outcome.project.id}`,
+          `readable:auto-send-first:${outcome.project.id}`,
           '1',
         );
       } catch {
@@ -1327,7 +1327,7 @@ function AppInner() {
   // atomically. The renderer never sees the path, token, or daemon DTO;
   // it receives host-owned project identifiers and refreshes project state
   // through the normal daemon API.
-  const handleImportFolderResponse = useCallback(async (result: OpenDesignHostProjectImportSuccess) => {
+  const handleImportFolderResponse = useCallback(async (result: ReadableStudioHostProjectImportSuccess) => {
     rememberLocalProject(result.projectId);
     const project = await getProject(result.projectId);
     if (project != null) {

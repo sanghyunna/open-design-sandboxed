@@ -3,7 +3,7 @@
 // Plugins-home HTML preview surface — reachability fallback.
 //
 // The home gallery used to render a permanently-blank tile when a
-// plugin declared an `od.preview.entry` that 404'd on the daemon
+// plugin declared an `readable.preview.entry` that 404'd on the daemon
 // (the iframe quietly painted the JSON error envelope as white).
 // The HtmlSurface now probes the URL once per session and swaps
 // in a typographic fallback tile when the URL is unreachable.

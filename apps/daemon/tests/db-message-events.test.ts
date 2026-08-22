@@ -18,7 +18,7 @@ describe('message event persistence', () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(path.join(os.tmpdir(), 'od-db-message-events-'));
+    tempDir = mkdtempSync(path.join(os.tmpdir(), 'readable-db-message-events-'));
   });
 
   afterEach(() => {
@@ -102,7 +102,7 @@ describe('message event persistence', () => {
       kind: 'tool_use',
       id: 'tool-1',
       name: 'Bash',
-      input: { command: 'od run start' },
+      input: { command: 'readable run start' },
     });
     appendMessageAgentEvent(db, 'assistant-1', { kind: 'text', text: 'done.' });
 
@@ -114,7 +114,7 @@ describe('message event persistence', () => {
         kind: 'tool_use',
         id: 'tool-1',
         name: 'Bash',
-        input: { command: 'od run start' },
+        input: { command: 'readable run start' },
       },
       { kind: 'text', text: 'done.' },
     ]);

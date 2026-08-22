@@ -10,7 +10,7 @@ import type {
   SocialShareResponse,
   SystemFontFamily,
   SystemFontsResponse,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import type {
   AgentInfo,
   AppVersionInfo,
@@ -51,9 +51,9 @@ import type {
 } from '../types';
 import type { ArtifactManifest } from '../artifacts/types';
 import {
-  isOpenDesignHostAvailable,
+  isReadableStudioHostAvailable,
   openHostExternalUrl,
-} from '@open-design/host';
+} from '@readable-studio/host';
 
 export const DEFAULT_DEPLOY_PROVIDER_ID = 'vercel-self';
 export const CLOUDFLARE_PAGES_PROVIDER_ID = 'cloudflare-pages';
@@ -752,7 +752,7 @@ export async function daemonIsLive(): Promise<boolean> {
 }
 
 export async function openExternalUrl(url: string): Promise<boolean> {
-  if (isOpenDesignHostAvailable()) {
+  if (isReadableStudioHostAvailable()) {
     const opened = await openHostExternalUrl(url);
     if (opened.ok) return true;
   }
@@ -806,7 +806,7 @@ export type SkillExampleResult =
   // and the daemon's `/example` endpoint only ships HTML, so calling it
   // would 404 into a misleading "failed to fetch" state. The modal
   // renders a calm "no shipped preview" affordance instead. The `kind`
-  // is the raw `od.preview.type` from SKILL.md so future preview kinds
+  // is the raw `readable.preview.type` from SKILL.md so future preview kinds
   // can be picked up by name without a registry change. Issue #897.
   | { unavailable: true; kind: string }
   | { error: string };
@@ -817,7 +817,7 @@ export type SkillExampleResult =
 // every failure into `null`, which left the example preview modal stuck
 // at its loading state with no recovery affordance. Issue #860.
 //
-// `previewType` is the skill's `od.preview.type` (defaults to `'html'`
+// `previewType` is the skill's `readable.preview.type` (defaults to `'html'`
 // daemon-side). Anything other than `'html'` short-circuits to an
 // `unavailable` result so we don't fire a network call against a
 // daemon endpoint that only resolves HTML files. Issue #897.
@@ -966,7 +966,7 @@ export async function createSocialSharePayload(
   return (await resp.json()) as SocialShareResponse;
 }
 
-// Project files — all paths are scoped under .od/projects/<id>/ on disk.
+// Project files — all paths are scoped under .readable-studio/projects/<id>/ on disk.
 
 export async function fetchProjectFiles(projectId: string): Promise<ProjectFile[]> {
   try {
@@ -1446,7 +1446,7 @@ export async function replaceProjectWorkingDir(
 ): Promise<ReplaceProjectWorkingDirResponse> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (desktopImportToken) {
-    headers['x-od-desktop-import-token'] = desktopImportToken;
+    headers['x-readable-studio-desktop-import-token'] = desktopImportToken;
   }
   const resp = await fetch(
     `/api/projects/${encodeURIComponent(projectId)}/working-dir`,
@@ -1513,7 +1513,7 @@ export async function fetchPluginPreviewHtml(
 }
 
 // Fetch a single example output by stem (matches the basename of the
-// `od.useCase.exampleOutputs[].path` minus its extension). 404 is
+// `readable.useCase.exampleOutputs[].path` minus its extension). 404 is
 // mapped to `unavailable` for the same reason as fetchPluginPreviewHtml.
 export async function fetchPluginExampleHtml(
   pluginId: string,

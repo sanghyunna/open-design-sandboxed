@@ -1,4 +1,4 @@
-import { APP_KEYS } from "@open-design/sidecar-proto";
+import { APP_KEYS } from "@readable-studio/sidecar-proto";
 
 export type ApprovalLifecycleApp = (typeof APP_KEYS)[keyof typeof APP_KEYS];
 

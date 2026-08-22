@@ -3,6 +3,8 @@ import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
+import { RUNTIME_APP_ID } from "@readable-studio/sidecar-proto";
+
 import { hashJson, hashPath, type CacheNode, ToolPackCache } from "../cache.js";
 import type { ToolPackConfig } from "../config.js";
 import { winResources } from "../resources.js";
@@ -14,19 +16,11 @@ import {
   shouldUseWinStandalonePrebundle,
 } from "../win-prebundle.js";
 import {
-  buildCustomWinNsisInstaller,
-  hashWinNsisBasePayloadInputs,
-  buildWinNsisBasePayload,
-  buildWinNsisOverlayPayload,
-  resolveWinNsisOverlayRequiredPaths,
-} from "./custom-installer.js";
-import {
   ELECTRON_BUILDER_ASAR,
   ELECTRON_BUILDER_BUILD_DEPENDENCIES_FROM_SOURCE,
   ELECTRON_BUILDER_FILE_PATTERNS,
   ELECTRON_BUILDER_NODE_GYP_REBUILD,
   ELECTRON_BUILDER_NPM_REBUILD,
-  NSIS_INSTALLER_LANGUAGE_BY_WEB_LOCALE,
   PRODUCT_NAME,
   WEB_STANDALONE_HOOK_CONFIG_ENV,
   WEB_STANDALONE_RESOURCE_NAME,
@@ -37,13 +31,7 @@ import {
   writeBuiltAppManifest,
   writePackagedConfig,
 } from "./manifest.js";
-import { ensureNsisPersianLanguageAlias, writeNsisInclude } from "./nsis.js";
 import { sanitizeNamespace } from "./paths.js";
-import {
-  resolveElectronBuilderWinTargets,
-  shouldBuildWinNsisInstaller,
-  shouldBuildWinPortableZip,
-} from "./report.js";
 import type { ResourceTreeResult } from "./resources.js";
 import {
   resolveWinSigningCacheKey,
@@ -57,7 +45,6 @@ import {
 import {
   buildWinPortableZip,
   resolvePortableZipCompression,
-  withPortableConfigFlag,
 } from "./zip.js";
 import type {
   ElectronBuilderDirCacheMetadata,
@@ -68,31 +55,25 @@ import type {
 
 const execFileAsync = promisify(execFile);
 const WIN_ARCHIVE_CACHE_VERSION = 3;
-const WIN_ELECTRON_BUILDER_DIR_CACHE_VERSION = 6;
-const WIN_NSIS_BASE_PAYLOAD_INPUT_HASH_CACHE_VERSION = 1;
-// Versions the zip-only config injection LOGIC (tools/pack/src/win/zip.ts).
-// The portable-zip node key also embeds the injection's exact output text and
+const WIN_ELECTRON_BUILDER_DIR_CACHE_VERSION = 8;
+// The portable ZIP cache key embeds the packaged config and
 // the electron-builder dir key (see buildWinPortableZipCacheKeyInput), so
 // input-driven changes — resource tree, baked config fields, version — re-key
 // automatically; this constant covers logic changes whose output happens to be
-// byte-identical for the current config, and stays separate from the NSIS
-// nodes' WIN_ARCHIVE_CACHE_VERSION so a zip bump never rebuilds installers.
-// v2: the patch also strips any baked namespaceBaseRoot, making the zip's
-// config — and therefore the zip — identical for --portable and non-portable
-// invocations even though their unpacked trees' baked configs differ.
-const WIN_PORTABLE_ZIP_CACHE_VERSION = 4;
+// byte-identical for the current config.
+const WIN_PORTABLE_ZIP_CACHE_VERSION = 6;
 
 // Pure key-input assembly for the portable-zip cache node, exported for tests.
 // The zip's true inputs are the materialized unpacked tree and the exact
-// config text the injection pass writes into the archive. packagedAppKey and
+// packaged config text. packagedAppKey and
 // packagedVersion alone cannot see resource-tree changes (those ride the
 // electron-builder dir key via resourceTreeKey) or baked-config-only changes
-// (updateMetadataUrl, telemetry, profile fields), so the key carries the dir
-// key and the post-injection config text directly — a cache hit can only ever
+// (telemetry and profile fields), so the key carries the dir
+// key and config text directly — a cache hit can only ever
 // serve a zip whose bytes match what this invocation would produce.
 export function buildWinPortableZipCacheKeyInput(input: {
   electronBuilderDirKey: string;
-  injectedPackagedConfig: string;
+  packagedConfig: string;
   portableZipCompression: number;
   namespace: string;
   packagedAppKey: string;
@@ -102,7 +83,7 @@ export function buildWinPortableZipCacheKeyInput(input: {
   return {
     archiveCacheVersion: WIN_ARCHIVE_CACHE_VERSION,
     electronBuilderDirKey: input.electronBuilderDirKey,
-    injectedPackagedConfig: input.injectedPackagedConfig,
+    packagedConfig: input.packagedConfig,
     namespace: input.namespace,
     packagedAppKey: input.packagedAppKey,
     packagedVersion: input.packagedVersion,
@@ -113,14 +94,14 @@ export function buildWinPortableZipCacheKeyInput(input: {
   };
 }
 
-function isPurePortableZipCacheHitEligible(config: ToolPackConfig): boolean {
-  return config.to === "zip" && config.portable && !config.signed;
+function isPortableZipCacheHitEligible(config: ToolPackConfig): boolean {
+  return !config.signed;
 }
 
 function createWinPortableZipNode(input: {
   build: (context: { entryRoot: string }) => Promise<{ createdAt: string; portableZipPath: string }>;
   electronBuilderDirKey: string;
-  injectedPackagedConfig: string;
+  packagedConfig: string;
   namespace: string;
   packagedAppKey: string;
   packagedVersion: string;
@@ -134,7 +115,7 @@ function createWinPortableZipNode(input: {
     key: hashJson(
       buildWinPortableZipCacheKeyInput({
         electronBuilderDirKey: input.electronBuilderDirKey,
-        injectedPackagedConfig: input.injectedPackagedConfig,
+        packagedConfig: input.packagedConfig,
         namespace: input.namespace,
         packagedAppKey: input.packagedAppKey,
         packagedVersion: input.packagedVersion,
@@ -144,38 +125,6 @@ function createWinPortableZipNode(input: {
     ),
     outputs: ["portable.zip"],
   };
-}
-
-export async function materializeCachedPurePortableZip(input: {
-  cache: ToolPackCache;
-  config: ToolPackConfig;
-  electronBuilderDirKey: string;
-  packagedAppKey: string;
-  packagedVersion: string;
-  paths: WinPaths;
-  signingCacheKey: unknown;
-}): Promise<boolean> {
-  if (!isPurePortableZipCacheHitEligible(input.config)) return false;
-  const portableZipCompression = resolvePortableZipCompression();
-  const injectedPackagedConfig = withPortableConfigFlag(
-    await readFile(input.paths.packagedConfigPath, "utf8"),
-  );
-  const hit = await input.cache.readHit({
-    materialize: [{ from: "portable.zip", reuse: true, to: input.paths.setupZipPath }],
-    node: createWinPortableZipNode({
-      build: async () => {
-        throw new Error("portable zip read-hit probe must not build");
-      },
-      electronBuilderDirKey: input.electronBuilderDirKey,
-      injectedPackagedConfig,
-      namespace: input.config.namespace,
-      packagedAppKey: input.packagedAppKey,
-      packagedVersion: input.packagedVersion,
-      portableZipCompression,
-      signingCacheKey: input.signingCacheKey,
-    }),
-  });
-  return hit != null;
 }
 
 function logWinBuildProgress(message: string, fields: Record<string, unknown> = {}): void {
@@ -269,7 +218,7 @@ async function runElectronBuilderRaw(
     )
     : null;
   const builderConfig = {
-    appId: "io.open-design.desktop",
+    appId: RUNTIME_APP_ID,
     afterPack: webStandaloneHookConfigPath == null ? undefined : winResources.webStandaloneAfterPackHook,
     asar: ELECTRON_BUILDER_ASAR,
     buildDependenciesFromSource: ELECTRON_BUILDER_BUILD_DEPENDENCIES_FROM_SOURCE,
@@ -285,49 +234,30 @@ async function runElectronBuilderRaw(
     executableName: PRODUCT_NAME,
     extraMetadata: {
       main: "./main.cjs",
-      name: "open-design-packaged-app",
+      name: "readable-studio-packaged-app",
       productName: PRODUCT_NAME,
       version: packageVersion,
     },
     extraResources: [
-      { from: paths.resourceRoot, to: "open-design" },
-      { from: paths.packagedConfigPath, to: "open-design-config.json" },
+      { from: paths.resourceRoot, to: "readable-studio" },
+      { from: paths.packagedConfigPath, to: "readable-studio-config.json" },
     ],
     files: [...ELECTRON_BUILDER_FILE_PATTERNS],
     forceCodeSigning: false,
     icon: paths.winIconPath,
     nodeGypRebuild: ELECTRON_BUILDER_NODE_GYP_REBUILD,
     npmRebuild: ELECTRON_BUILDER_NPM_REBUILD,
-    nsis: {
-      allowElevation: false,
-      allowToChangeInstallationDirectory: true,
-      artifactName: `${PRODUCT_NAME}-${namespaceToken}-setup.\${ext}`,
-      createDesktopShortcut: true,
-      createStartMenuShortcut: true,
-      deleteAppDataOnUninstall: false,
-      displayLanguageSelector: false,
-      include: paths.nsisIncludePath,
-      installerLanguages: Object.values(NSIS_INSTALLER_LANGUAGE_BY_WEB_LOCALE),
-      language: "1033",
-      multiLanguageInstaller: true,
-      oneClick: false,
-      perMachine: false,
-      shortcutName: PRODUCT_NAME,
-      warningsAsErrors: false,
-    },
     productName: PRODUCT_NAME,
-    publish: [{ provider: "generic", url: "https://updates.invalid/open-design" }],
     win: {
       artifactName: `${PRODUCT_NAME}-${namespaceToken}.\${ext}`,
       icon: paths.winIconPath,
-      target: resolveElectronBuilderWinTargets(config.to).map((target) => ({ arch: ["x64"], target })),
+      target: [{ arch: ["x64"], target: "dir" }],
     },
   };
 
   await runSegment("electron-builder-raw:prepare-config", async () => {
     await removeTree(paths.appBuilderOutputRoot);
     await mkdir(dirname(paths.appBuilderConfigPath), { recursive: true });
-    await writeNsisInclude(config, paths);
     await writeFile(paths.appBuilderConfigPath, `${JSON.stringify(builderConfig, null, 2)}\n`, "utf8");
   });
 
@@ -357,23 +287,7 @@ async function runElectronBuilderRaw(
     });
   };
 
-  await runSegment("electron-builder-raw:ensure-nsis-persian-alias", async () => {
-    await ensureNsisPersianLanguageAlias(config);
-  });
-  try {
-    await build("electron-builder-raw:process");
-  } catch (error) {
-    const output = `${(error as { stdout?: unknown }).stdout ?? ""}\n${(error as { stderr?: unknown }).stderr ?? ""}`;
-    const retried = output.includes("Persian.nlf") && await runSegment(
-      "electron-builder-raw:retry-ensure-nsis-persian-alias",
-      async () => ensureNsisPersianLanguageAlias(config),
-    );
-    if (retried) {
-      await build("electron-builder-raw:process-retry");
-      return segments;
-    }
-    throw error;
-  }
+  await build("electron-builder-raw:process");
   return segments;
 }
 
@@ -382,51 +296,9 @@ function createCacheLocalWinPaths(paths: WinPaths, entryRoot: string): WinPaths 
     ...paths,
     appBuilderConfigPath: join(entryRoot, "builder-config.json"),
     appBuilderOutputRoot: join(entryRoot, "builder"),
-    nsisIncludePath: join(entryRoot, "nsis", "installer.nsh"),
     webStandaloneHookAuditPath: join(entryRoot, "web-standalone-after-pack-audit.json"),
     webStandaloneHookConfigPath: join(entryRoot, "web-standalone-after-pack-config.json"),
   };
-}
-
-function resolveCachedNsisBasePayloadInputHashPath(entryPath: string): string {
-  return join(entryPath, "win-nsis-base-payload-input-hash.json");
-}
-
-async function readCachedNsisBasePayloadInputHash(entryPath: string): Promise<string | null> {
-  try {
-    const value = JSON.parse(
-      await readFile(resolveCachedNsisBasePayloadInputHashPath(entryPath), "utf8"),
-    ) as { hash?: unknown; version?: unknown };
-    if (
-      value.version === WIN_NSIS_BASE_PAYLOAD_INPUT_HASH_CACHE_VERSION
-      && typeof value.hash === "string"
-      && /^[0-9a-f]{64}$/.test(value.hash)
-    ) {
-      return value.hash;
-    }
-  } catch {
-    // Older cache entries do not have this metadata.
-  }
-  return null;
-}
-
-async function resolveCachedNsisBasePayloadInputHash(
-  entryPath: string,
-  builtApp: WinBuiltAppManifest,
-): Promise<string> {
-  const cached = await readCachedNsisBasePayloadInputHash(entryPath);
-  if (cached != null) return cached;
-
-  const hash = await hashWinNsisBasePayloadInputs(builtApp);
-  await writeFile(
-    resolveCachedNsisBasePayloadInputHashPath(entryPath),
-    `${JSON.stringify({
-      hash,
-      version: WIN_NSIS_BASE_PAYLOAD_INPUT_HASH_CACHE_VERSION,
-    }, null, 2)}\n`,
-    "utf8",
-  );
-  return hash;
 }
 
 function rewriteAuditPaths(value: unknown, fromRoot: string, toRoot: string): unknown {
@@ -474,7 +346,7 @@ async function assertMaterializedUnpackedVersionConsistency(
     );
   }
 
-  const packagedConfigPath = join(unpackedRoot, "resources", "open-design-config.json");
+  const packagedConfigPath = join(unpackedRoot, "resources", "readable-studio-config.json");
   const packagedConfig = JSON.parse(await readFile(packagedConfigPath, "utf8")) as { appVersion?: unknown };
   if (packagedConfig.appVersion !== packagedVersion) {
     throw new Error(
@@ -485,6 +357,9 @@ async function assertMaterializedUnpackedVersionConsistency(
   const executablePath = join(unpackedRoot, `${PRODUCT_NAME}.exe`);
   const executableVersionTargets = resolveWinExecutableVersionTargets(packagedVersion);
   const executableVersion = await readWinExecutableVersionSnapshot(executablePath);
+  if (executableVersion.machine !== "x64") {
+    throw new Error(`expected unpacked executable to target Windows x64 in ${executablePath}`);
+  }
   if (executableVersion.fixedFileVersion !== executableVersionTargets.numericVersion) {
     throw new Error(
       `expected unpacked executable fixed FileVersion ${executableVersionTargets.numericVersion} in ${executablePath}, received ${executableVersion.fixedFileVersion}`,
@@ -509,16 +384,16 @@ async function assertMaterializedUnpackedVersionConsistency(
   }
 }
 
-export async function materializeCachedUnpackedForInstaller(
+export async function materializeCachedUnpackedForPortableZip(
   sourceUnpackedRoot: string,
   paths: WinPaths,
   packagedVersion?: string,
 ): Promise<WinBuiltAppManifest>;
-export async function materializeCachedUnpackedForInstaller(
+export async function materializeCachedUnpackedForPortableZip(
   paths: WinPaths,
   packagedVersion?: string,
 ): Promise<WinBuiltAppManifest>;
-export async function materializeCachedUnpackedForInstaller(
+export async function materializeCachedUnpackedForPortableZip(
   sourceUnpackedRootOrPaths: string | WinPaths,
   pathsOrPackagedVersion?: WinPaths | string,
   maybePackagedVersion?: string,
@@ -539,7 +414,7 @@ export async function materializeCachedUnpackedForInstaller(
   }
   await mkdir(join(paths.unpackedRoot, "resources"), { recursive: true });
   await writeFile(
-    join(paths.unpackedRoot, "resources", "open-design-config.json"),
+    join(paths.unpackedRoot, "resources", "readable-studio-config.json"),
     await readFile(paths.packagedConfigPath),
   );
   if (packagedVersion != null) {
@@ -564,15 +439,11 @@ export async function runElectronBuilder(
   paths: WinPaths,
   cache: ToolPackCache,
   packagedAppKey: string,
-  getPackagedAppRoot: () => Promise<string>,
+  packagedAppRoot: string,
   resourceTree: ResourceTreeResult,
 ): Promise<WinPackTiming[]> {
   const segments: WinPackTiming[] = [];
-  const runSegment = async <T>(
-    phase: string,
-    task: () => Promise<T>,
-    details?: Record<string, unknown>,
-  ): Promise<T> => {
+  const runSegment = async <T>(phase: string, task: () => Promise<T>, details?: Record<string, unknown>): Promise<T> => {
     const startedAt = Date.now();
     logWinBuildProgress("segment:start", { phase });
     try {
@@ -580,408 +451,105 @@ export async function runElectronBuilder(
       logWinBuildProgress("segment:done", { durationMs: Date.now() - startedAt, phase });
       return result;
     } catch (error) {
-      logWinBuildProgress("segment:failed", {
-        durationMs: Date.now() - startedAt,
-        error: error instanceof Error ? error.message : String(error),
-        phase,
-      });
+      logWinBuildProgress("segment:failed", { durationMs: Date.now() - startedAt, error: error instanceof Error ? error.message : String(error), phase });
       throw error;
     } finally {
       segments.push({ details, durationMs: Date.now() - startedAt, phase });
     }
   };
   const packagedVersion = await readPackagedVersion(config);
-  const versionCore = versionCoreForAppVersion(packagedVersion);
   const usePrebundle = shouldUseWinStandalonePrebundle(config.webOutputMode);
   const packagedConfigEntrypoints = usePrebundle
-    ? {
-        daemonCliEntryRelative: WIN_PREBUNDLED_DAEMON_CLI_RELATIVE_PATH,
-        daemonSidecarEntryRelative: WIN_PREBUNDLED_DAEMON_SIDECAR_RELATIVE_PATH,
-        webSidecarEntryRelative: WIN_PREBUNDLED_WEB_SIDECAR_RELATIVE_PATH,
-      }
+    ? { daemonCliEntryRelative: WIN_PREBUNDLED_DAEMON_CLI_RELATIVE_PATH, daemonSidecarEntryRelative: WIN_PREBUNDLED_DAEMON_SIDECAR_RELATIVE_PATH, webSidecarEntryRelative: WIN_PREBUNDLED_WEB_SIDECAR_RELATIVE_PATH }
     : {};
-  const afterPackHook = config.webOutputMode === "standalone" ? await hashPath(winResources.webStandaloneAfterPackHook) : null;
-  const winIcon = await hashPath(winResources.icon);
   const electronBuilderKeyInput = {
-    afterPackHook,
-    cacheVersion: WIN_ELECTRON_BUILDER_DIR_CACHE_VERSION,
+    afterPackHook: config.webOutputMode === "standalone" ? await hashPath(winResources.webStandaloneAfterPackHook) : null,
     asar: ELECTRON_BUILDER_ASAR,
     buildDependenciesFromSource: ELECTRON_BUILDER_BUILD_DEPENDENCIES_FROM_SOURCE,
+    cacheVersion: WIN_ELECTRON_BUILDER_DIR_CACHE_VERSION,
     electronBuilderCliPath: config.electronBuilderCliPath,
     electronVersion: config.electronVersion,
+    filePatterns: ELECTRON_BUILDER_FILE_PATTERNS,
     nodeGypRebuild: ELECTRON_BUILDER_NODE_GYP_REBUILD,
     npmRebuild: ELECTRON_BUILDER_NPM_REBUILD,
     packagedAppKey,
     packagedConfigSchemaVersion: usePrebundle ? 2 : 1,
-    portable: config.portable,
+    packagedVersionScope: versionCoreForAppVersion(packagedVersion),
     platform: "win32",
-    packagedVersionScope: versionCore,
     resourceTreeKey: resourceTree.key,
     target: "dir",
     webOutputMode: config.webOutputMode,
-    winIcon,
-    filePatterns: ELECTRON_BUILDER_FILE_PATTERNS,
+    winIcon: await hashPath(winResources.icon),
   };
-  const key = hashJson({
-    ...electronBuilderKeyInput,
-    node: "win.electron-builder-dir",
-  });
-  const builderVersionScopeKey = hashJson({
-    ...electronBuilderKeyInput,
-    node: "win.electron-builder-dir-base",
-    packagedVersion: versionCore,
-  });
-  const auditOutput = "web-standalone-after-pack-audit.json";
+  const key = hashJson({ ...electronBuilderKeyInput, node: "win.electron-builder-dir" });
   const node = {
     id: "win.electron-builder-dir",
     key,
-    outputs: ["builder", ...(config.webOutputMode === "standalone" ? [auditOutput] : [])],
+    outputs: ["builder", ...(config.webOutputMode === "standalone" ? ["web-standalone-after-pack-audit.json"] : [])],
     invalidate: async () => null,
     build: async ({ entryRoot }: { entryRoot: string }): Promise<ElectronBuilderDirCacheMetadata> => {
-      const packagedAppRoot = await getPackagedAppRoot();
-      await runElectronBuilderRaw(
-        { ...config, to: "dir" },
+      const rawSegments = await runElectronBuilderRaw(
+        config,
         { ...createCacheLocalWinPaths(paths, entryRoot), resourceRoot: resourceTree.resourceRoot },
         packagedAppRoot,
       );
+      segments.push(...rawSegments);
       return { packagedAppKey, packagedVersion };
     },
   };
-  let manifest = await runSegment("electron-builder-dir:read-hit", async () =>
-    cache.readHit({
-      materialize: [],
-      node,
-    })
-  );
-  if (manifest == null) {
-    const packagedAppRoot = await runSegment("packaged-app:prepare", async () => getPackagedAppRoot());
-    manifest = await runSegment("electron-builder-dir:acquire", async () =>
-      cache.acquire({
-        materialize: [],
-        node: {
-          ...node,
-          build: async ({ entryRoot }: { entryRoot: string }): Promise<ElectronBuilderDirCacheMetadata> => {
-            await runSegment("electron-builder-dir:build-raw", async () => {
-              const rawSegments = await runElectronBuilderRaw(
-                { ...config, to: "dir" },
-                { ...createCacheLocalWinPaths(paths, entryRoot), resourceRoot: resourceTree.resourceRoot },
-                packagedAppRoot,
-              );
-              segments.push(...rawSegments);
-            });
-            return { packagedAppKey, packagedVersion };
-          },
-        },
-      })
-    );
-  }
-
+  let manifest = await runSegment("electron-builder-dir:read-hit", async () => cache.readHit({ materialize: [], node }));
+  if (manifest == null) manifest = await runSegment("electron-builder-dir:acquire", async () => cache.acquire({ materialize: [], node }));
   const cachedBuilderRoot = join(manifest.entryPath, "builder");
   const cachedUnpackedRoot = join(cachedBuilderRoot, "win-unpacked");
-  const cachedExecutablePath = join(cachedUnpackedRoot, `${PRODUCT_NAME}.exe`);
   await runSegment("electron-builder-dir:prepare-namespace", async () => {
-    if (shouldBuildWinNsisInstaller(config.to) || shouldBuildWinPortableZip(config.to)) {
-      await mkdir(paths.appBuilderOutputRoot, { recursive: true });
-    } else {
-      await removeTree(paths.appBuilderOutputRoot);
-    }
+    await mkdir(paths.appBuilderOutputRoot, { recursive: true });
     await writePackagedConfig(config, paths, packagedVersion, packagedConfigEntrypoints);
   });
-  await runSegment("electron-builder-dir:materialize-audit", async () => {
-    await materializeCachedElectronBuilderAudit(manifest.entryPath, paths);
-  });
-  await runSegment("electron-builder-dir:write-manifest", async () => {
-    await writeBuiltAppManifest(paths, {
-      appBuilderOutputRoot: cachedBuilderRoot,
-      cacheEntryPath: manifest.entryPath,
-      configPath: paths.packagedConfigPath,
-      executablePath: cachedExecutablePath,
-      source: "cache",
-      unpackedRoot: cachedUnpackedRoot,
-      webStandaloneHookAuditPath: (await pathExists(paths.webStandaloneHookAuditPath)) ? paths.webStandaloneHookAuditPath : null,
+  await runSegment("electron-builder-dir:materialize-audit", async () => materializeCachedElectronBuilderAudit(manifest.entryPath, paths));
+  await runSegment("electron-builder-dir:write-manifest", async () => writeBuiltAppManifest(paths, {
+    appBuilderOutputRoot: cachedBuilderRoot,
+    cacheEntryPath: manifest.entryPath,
+    configPath: paths.packagedConfigPath,
+    executablePath: join(cachedUnpackedRoot, `${PRODUCT_NAME}.exe`),
+    source: "cache",
+    unpackedRoot: cachedUnpackedRoot,
+    webStandaloneHookAuditPath: (await pathExists(paths.webStandaloneHookAuditPath)) ? paths.webStandaloneHookAuditPath : null,
+  }));
+  const signingCacheKey = resolveWinSigningCacheKey(config);
+  const materialized = await runSegment("portable-zip:materialize-unpacked", async () => {
+    const cached = await cache.readHit({
+      materialize: [{ from: "builder/win-unpacked", reuse: true, reuseRequiredPaths: [[`resources/${WEB_STANDALONE_RESOURCE_NAME}/apps/web/server.js`, `resources/${WEB_STANDALONE_RESOURCE_NAME}/server.js`]], to: paths.unpackedRoot }],
+      node,
     });
+    if (cached == null) throw new Error("electron builder cache entry disappeared before portable zip materialization");
+    return materializeCachedUnpackedForPortableZip(paths, packagedVersion);
   });
-  if (shouldBuildWinNsisInstaller(config.to) || shouldBuildWinPortableZip(config.to)) {
-    const signingCacheKey = resolveWinSigningCacheKey(config);
-    const nsisSetupMaterialize = [
-      { from: "setup.exe", reuse: true, to: paths.setupPath },
-    ];
-    const nsisBasePayloadMaterialize = [
-      { from: "payload-base.7z", reuse: true, to: paths.installerBasePayloadPath },
-    ];
-    const nsisOverlayPayloadMaterialize = [
-      { from: "payload-overlay.7z", reuse: true, to: paths.installerOverlayPayloadPath },
-    ];
-    const createNsisBasePayloadNode = (
-      materialized: WinBuiltAppManifest | null,
-      archiveSegments: WinPackTiming[],
-      basePayloadInputHash: string | null = null,
-    ): CacheNode<{ createdAt: string; payloadPath: string; versionCore: string }> => ({
+  await runSegment("portable-zip:write-manifest", async () => writeBuiltAppManifest(paths, materialized));
+  let signedUnpacked = false;
+  const ensureSignedUnpacked = async (): Promise<void> => {
+    if (!config.signed || signedUnpacked) return;
+    await runSegment("windows-sign:unpacked-exe", async () => { await signAndVerifyWinFile(materialized.executablePath, { verify: false }); });
+    signedUnpacked = true;
+  };
+  const archiveSegments: WinPackTiming[] = [];
+  await runSegment("portable-zip:cache", async () => {
+    const portableZipNode = createWinPortableZipNode({
       build: async ({ entryRoot }) => {
-        if (materialized == null) throw new Error("cannot build NSIS base payload without materialized unpacked app");
-        archiveSegments.push(...await buildWinNsisBasePayload(paths, materialized));
-        await cp(paths.installerBasePayloadPath, join(entryRoot, "payload-base.7z"));
-        return {
-          createdAt: new Date().toISOString(),
-          payloadPath: paths.installerBasePayloadPath,
-          versionCore,
-        };
-      },
-      id: "win.nsis-payload-base",
-      invalidate: async () => null,
-      key: hashJson({
-        archiveCacheVersion: WIN_ARCHIVE_CACHE_VERSION,
-        basePayloadInputHash,
-        builderVersionScopeKey: basePayloadInputHash == null ? builderVersionScopeKey : null,
-        namespace: config.namespace,
-        target: "nsis-payload-base",
-        versionCore,
-      }),
-      outputs: ["payload-base.7z"],
-    });
-    const createNsisOverlayPayloadNode = (
-      materialized: WinBuiltAppManifest | null,
-      archiveSegments: WinPackTiming[],
-      ensureSignedUnpacked: () => Promise<void>,
-    ): CacheNode<{ createdAt: string; payloadPath: string }> => ({
-      build: async ({ entryRoot }) => {
-        if (materialized == null) throw new Error("cannot build NSIS overlay payload without materialized unpacked app");
         await ensureSignedUnpacked();
-        archiveSegments.push(...await buildWinNsisOverlayPayload(paths, materialized));
-        await cp(paths.installerOverlayPayloadPath, join(entryRoot, "payload-overlay.7z"));
-        return {
-          createdAt: new Date().toISOString(),
-          payloadPath: paths.installerOverlayPayloadPath,
-        };
+        archiveSegments.push(...await buildWinPortableZip(config, paths, materialized));
+        await cp(paths.setupZipPath, join(entryRoot, "portable.zip"));
+        return { createdAt: new Date().toISOString(), portableZipPath: paths.setupZipPath };
       },
-      id: "win.nsis-payload-overlay",
-      invalidate: async () => null,
-      key: hashJson({
-        archiveCacheVersion: WIN_ARCHIVE_CACHE_VERSION,
-        key,
-        namespace: config.namespace,
-        packagedVersion,
-        signing: signingCacheKey,
-        target: "nsis-payload-overlay",
-      }),
-      outputs: ["payload-overlay.7z"],
+      electronBuilderDirKey: key,
+      packagedConfig: await readFile(materialized.configPath, "utf8"),
+      namespace: config.namespace,
+      packagedAppKey,
+      packagedVersion,
+      portableZipCompression: resolvePortableZipCompression(),
+      signingCacheKey,
     });
-    const nsisBasePayloadNode = createNsisBasePayloadNode(null, []);
-    const nsisOverlayPayloadNode = createNsisOverlayPayloadNode(null, [], async () => undefined);
-    const createNsisInstallerNode = (
-      archiveSegments: WinPackTiming[],
-      basePayloadKey: string,
-      overlayPayloadKey: string,
-    ): CacheNode<{ createdAt: string; installerPath: string }> => ({
-      build: async ({ entryRoot }) => {
-        archiveSegments.push(...await buildCustomWinNsisInstaller(config, paths));
-        await cp(paths.setupPath, join(entryRoot, "setup.exe"));
-        return {
-          createdAt: new Date().toISOString(),
-          installerPath: paths.setupPath,
-        };
-      },
-      id: "win.nsis-installer",
-      invalidate: async () => null,
-      key: hashJson({
-        archiveCacheVersion: WIN_ARCHIVE_CACHE_VERSION,
-        basePayloadKey,
-        namespace: config.namespace,
-        overlayPayloadKey,
-        packagedVersion,
-        signing: signingCacheKey,
-        target: "nsis-installer",
-        winIcon,
-      }),
-      outputs: ["setup.exe"],
-    });
-
-    const basePayloadInputHash = shouldBuildWinNsisInstaller(config.to)
-      ? await runSegment("nsis-payload-base:input-hash", async () =>
-        resolveCachedNsisBasePayloadInputHash(
-          manifest.entryPath,
-          {
-            appBuilderOutputRoot: cachedBuilderRoot,
-            cacheEntryPath: manifest.entryPath,
-            configPath: paths.packagedConfigPath,
-            executablePath: cachedExecutablePath,
-            source: "cache",
-            unpackedRoot: cachedUnpackedRoot,
-            version: 1,
-            webStandaloneHookAuditPath: null,
-          },
-        )
-      )
-      : null;
-
-    const contentKeyedBasePayloadNode = basePayloadInputHash == null
-      ? null
-      : createNsisBasePayloadNode(null, [], basePayloadInputHash);
-    if (shouldBuildWinNsisInstaller(config.to) && !shouldBuildWinPortableZip(config.to)) {
-      if (contentKeyedBasePayloadNode == null) throw new Error("missing NSIS base payload input hash");
-      const nsisHitSegments: WinPackTiming[] = [];
-      const nsisHit = await runSegment("nsis-installer:read-hit", async () =>
-        cache.readHit({
-          materialize: nsisSetupMaterialize,
-          node: createNsisInstallerNode(nsisHitSegments, contentKeyedBasePayloadNode.key, nsisOverlayPayloadNode.key),
-        })
-      );
-      if (nsisHit != null) {
-        segments.push(...nsisHitSegments);
-        return segments;
-      }
-    }
-
-    let basePayloadHit = false;
-    let overlayPayloadHit = false;
-    if (shouldBuildWinNsisInstaller(config.to)) {
-      if (basePayloadInputHash == null || contentKeyedBasePayloadNode == null) {
-        throw new Error("missing NSIS base payload input hash");
-      }
-      const basePayloadProbeSegments: WinPackTiming[] = [];
-      const basePayloadProbeNode = createNsisBasePayloadNode(null, basePayloadProbeSegments, basePayloadInputHash);
-      const basePayloadProbe = await runSegment("nsis-payload-base:read-hit", async () =>
-        cache.readHit({
-          materialize: nsisBasePayloadMaterialize,
-          node: basePayloadProbeNode,
-        })
-      );
-      basePayloadHit = basePayloadProbe != null;
-      segments.push(...basePayloadProbeSegments);
-
-      const overlayPayloadProbeSegments: WinPackTiming[] = [];
-      const overlayPayloadProbe = await runSegment("nsis-payload-overlay:read-hit", async () =>
-        cache.readHit({
-          materialize: nsisOverlayPayloadMaterialize,
-          node: createNsisOverlayPayloadNode(null, overlayPayloadProbeSegments, async () => undefined),
-        })
-      );
-      overlayPayloadHit = overlayPayloadProbe != null;
-      segments.push(...overlayPayloadProbeSegments);
-
-      if (basePayloadHit && overlayPayloadHit && !shouldBuildWinPortableZip(config.to)) {
-        const installerSegments: WinPackTiming[] = [];
-        await runSegment("nsis-installer:cache", async () => {
-          await cache.acquire({
-            materialize: nsisSetupMaterialize,
-            node: createNsisInstallerNode(installerSegments, contentKeyedBasePayloadNode.key, nsisOverlayPayloadNode.key),
-          });
-        });
-        segments.push(...installerSegments);
-        return segments;
-      }
-    }
-
-  const purePortableZipHit = await runSegment("portable-zip:read-hit-before-unpacked", async () =>
-      materializeCachedPurePortableZip({
-        cache,
-        config,
-        electronBuilderDirKey: key,
-        packagedAppKey,
-        packagedVersion,
-        paths,
-        signingCacheKey,
-      }), { eligible: isPurePortableZipCacheHitEligible(config) });
-    if (purePortableZipHit) return segments;
-
-    const materialized = await runSegment("installer:materialize-unpacked", async () => {
-      const materializedManifest = await cache.readHit({
-        materialize: [{
-          from: "builder/win-unpacked",
-          reuse: true,
-          reuseRequiredPaths: [
-            ...resolveWinNsisOverlayRequiredPaths(),
-            [
-              "resources/open-design-web-standalone/apps/web/server.js",
-              "resources/open-design-web-standalone/server.js",
-            ],
-          ],
-          to: paths.unpackedRoot,
-        }],
-        node,
-      });
-      if (materializedManifest == null) {
-        throw new Error("electron builder cache entry disappeared before installer materialization");
-      }
-      return materializeCachedUnpackedForInstaller(paths, packagedVersion);
-    });
-    let signedUnpacked = false;
-    const ensureSignedUnpacked = async (): Promise<void> => {
-      if (!config.signed || signedUnpacked) return;
-      const signingDetails: Record<string, unknown> = {};
-      await runSegment("windows-sign:unpacked-exe", async () => {
-        // The final installer still gets a full sign+verify pass; skip the
-        // redundant local verify on the intermediate unpacked exe.
-        Object.assign(signingDetails, await signAndVerifyWinFile(materialized.executablePath, { verify: false }));
-      }, signingDetails);
-      signedUnpacked = true;
-    };
-    if (shouldBuildWinPortableZip(config.to)) {
-      const archiveSegments: WinPackTiming[] = [];
-      await runSegment("portable-zip:cache", async () => {
-        const portableZipCompression = resolvePortableZipCompression();
-        // Key on the exact bytes this node zips: the dir key identifies the
-        // materialized tree (including resourceTreeKey and the baked config's
-        // inputs), and the post-injection config text pins the one archive
-        // entry the second 7z pass rewrites.
-        const injectedPackagedConfig = withPortableConfigFlag(
-          await readFile(materialized.configPath, "utf8"),
-        );
-        const portableZipNode = createWinPortableZipNode({
-          build: async ({ entryRoot }) => {
-            await ensureSignedUnpacked();
-            archiveSegments.push(...await buildWinPortableZip(config, paths, materialized));
-            await cp(paths.setupZipPath, join(entryRoot, "portable.zip"));
-            return { createdAt: new Date().toISOString(), portableZipPath: paths.setupZipPath };
-          },
-          electronBuilderDirKey: key,
-          injectedPackagedConfig,
-          namespace: config.namespace,
-          packagedAppKey,
-          packagedVersion,
-          portableZipCompression,
-          signingCacheKey,
-        });
-        await cache.acquire({
-          materialize: [{ from: "portable.zip", reuse: true, to: paths.setupZipPath }],
-          node: portableZipNode,
-        });
-      });
-      segments.push(...archiveSegments);
-    }
-    if (shouldBuildWinNsisInstaller(config.to)) {
-      if (basePayloadInputHash == null || contentKeyedBasePayloadNode == null) {
-        throw new Error("missing NSIS base payload input hash");
-      }
-      if (!basePayloadHit) {
-        const basePayloadSegments: WinPackTiming[] = [];
-        await runSegment("nsis-payload-base:cache", async () => {
-          await cache.acquire({
-            materialize: nsisBasePayloadMaterialize,
-            node: createNsisBasePayloadNode(materialized, basePayloadSegments, basePayloadInputHash),
-          });
-        });
-        segments.push(...basePayloadSegments);
-      }
-      if (!overlayPayloadHit) {
-        const overlayPayloadSegments: WinPackTiming[] = [];
-        await runSegment("nsis-payload-overlay:cache", async () => {
-          await cache.acquire({
-            materialize: nsisOverlayPayloadMaterialize,
-            node: createNsisOverlayPayloadNode(materialized, overlayPayloadSegments, ensureSignedUnpacked),
-          });
-        });
-        segments.push(...overlayPayloadSegments);
-      }
-      const installerSegments: WinPackTiming[] = [];
-      await runSegment("nsis-installer:cache", async () => {
-        await cache.acquire({
-          materialize: nsisSetupMaterialize,
-          node: createNsisInstallerNode(installerSegments, contentKeyedBasePayloadNode.key, nsisOverlayPayloadNode.key),
-        });
-      });
-      segments.push(...installerSegments);
-    }
-  }
+    await cache.acquire({ materialize: [{ from: "portable.zip", reuse: true, to: paths.setupZipPath }], node: portableZipNode });
+  });
+  segments.push(...archiveSegments);
   return segments;
 }

@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { SIDECAR_CONTRACT } from '@readable-studio/sidecar-proto';
 import {
   createHostedPiBroker,
   type HostedPiBroker,
@@ -60,7 +61,7 @@ export function createHostedPiRuntimeAdapter(
 ): HostedPiRuntimeAdapter {
   const runtimeRoot = path.resolve(options.runtimeRoot);
   const sessionRoot = path.resolve(options.sessionRoot ?? path.join(runtimeRoot, 'sessions'));
-  const socketBase = path.resolve(options.socketBase ?? '/tmp/open-design/ipc');
+  const socketBase = path.resolve(options.socketBase ?? SIDECAR_CONTRACT.defaults.ipcBase);
   return async (request) => {
     const runId = safeRunId(request.runId);
     if (!Number.isSafeInteger(request.generation) || request.generation < 1) {

@@ -29,7 +29,7 @@ describe('hosted run journal ordering', () => {
   it('snapshots each authoritative run transition before provider effects or SSE', async () => {
     const order: string[] = [];
     let terminalCursor: string | null = null;
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-run-journal-order-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-run-journal-order-'));
     roots.push(runtimeRoot);
     const registry = createHostedRuntimeRegistry({
       runtimeRoot,
@@ -157,7 +157,7 @@ describe('hosted run journal ordering', () => {
 
   it('rolls back an unpublished run-created batch and poisons its generation', async () => {
     let failPublication = false;
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-run-journal-failure-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-run-journal-failure-'));
     roots.push(runtimeRoot);
     const registry = createHostedRuntimeRegistry({
       runtimeRoot,
@@ -222,7 +222,7 @@ describe('hosted run journal ordering', () => {
     const providerStarted = deferred();
     const terminalSeen = deferred();
     const order: string[] = [];
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-run-journal-shutdown-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-run-journal-shutdown-'));
     roots.push(runtimeRoot);
     const registry = createHostedRuntimeRegistry({
       runtimeRoot,
@@ -288,7 +288,7 @@ describe('hosted run journal ordering', () => {
     const terminalSeen = deferred();
     const targetRetired = deferred();
     const order: string[] = [];
-    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-run-journal-queued-cancel-'));
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-run-journal-queued-cancel-'));
     roots.push(runtimeRoot);
     const registry = createHostedRuntimeRegistry({
       runtimeRoot,

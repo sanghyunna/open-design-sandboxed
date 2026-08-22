@@ -7,7 +7,7 @@ triggers:
   - "tactical telemetry"
   - "swiss industrial"
   - "brutalist interface"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

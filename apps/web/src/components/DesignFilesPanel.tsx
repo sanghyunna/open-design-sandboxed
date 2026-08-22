@@ -246,7 +246,7 @@ function RotatingTip() {
 }
 
 /**
- * Full-panel browser for a project's `.od/projects/<id>/` folder. Mirrors
+ * Full-panel browser for a project's `.readable-studio/projects/<id>/` folder. Mirrors
  * Claude Design's "Design Files" surface: a single-line toolbar (up / refresh
  * / breadcrumbs + actions), semantic sections (Folders, Stylesheets, Scripts,
  * Documents, Images …), hover-revealed row checkbox + menu, a right-side
@@ -1029,7 +1029,7 @@ export function DesignFilesPanel({
                               void handlePluginFolderAgentAction(folder.path, 'contribute')
                             }
                           >
-                            {sharingFolder === `contribute:${folder.path}` ? 'Sending…' : 'Open Design PR'}
+                            {sharingFolder === `contribute:${folder.path}` ? 'Sending…' : 'Readable Studio PR'}
                           </button>
                         </div>
                       ) : null}

@@ -1,7 +1,7 @@
 import path from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
-import { SIDECAR_ENV } from '@open-design/sidecar-proto';
+import { SIDECAR_ENV } from '@readable-studio/sidecar-proto';
 
 import { createAgentRuntimeEnv, createAgentRuntimeToolPrompt } from '../src/server.js';
 import { applyAgentLaunchEnv } from '../src/runtimes/launch.js';
@@ -10,17 +10,17 @@ import { spawnEnvForAgent } from '../src/runtimes/env.js';
 describe('agent runtime tool environment', () => {
   it('injects daemon URL and run-scoped tool token into agent sessions', () => {
     const env = createAgentRuntimeEnv(
-      { PATH: '/bin', OD_TOOL_TOKEN: 'stale-token' },
+      { PATH: '/bin', READABLE_TOOL_TOKEN: 'stale-token' },
       'http://127.0.0.1:7456',
       { token: 'fresh-token' },
-      '/opt/open-design/bin/node',
+      '/opt/readable-studio/bin/node',
     );
 
     expect(env).toMatchObject({
-      PATH: `/opt/open-design/bin${path.delimiter}/bin`,
-      OD_DAEMON_URL: 'http://127.0.0.1:7456',
-      OD_NODE_BIN: '/opt/open-design/bin/node',
-      OD_TOOL_TOKEN: 'fresh-token',
+      PATH: `/opt/readable-studio/bin${path.delimiter}/bin`,
+      READABLE_DAEMON_URL: 'http://127.0.0.1:7456',
+      READABLE_NODE_BIN: '/opt/readable-studio/bin/node',
+      READABLE_TOOL_TOKEN: 'fresh-token',
     });
   });
 
@@ -66,15 +66,15 @@ describe('agent runtime tool environment', () => {
 
   it('does not leak stale inherited tool tokens when no run token was minted', () => {
     const env = createAgentRuntimeEnv(
-      { PATH: '/bin', OD_TOOL_TOKEN: 'stale-token' },
+      { PATH: '/bin', READABLE_TOOL_TOKEN: 'stale-token' },
       'http://127.0.0.1:7456',
       null,
-      '/opt/open-design/bin/node',
+      '/opt/readable-studio/bin/node',
     );
 
-    expect(env.OD_DAEMON_URL).toBe('http://127.0.0.1:7456');
-    expect(env.OD_NODE_BIN).toBe('/opt/open-design/bin/node');
-    expect(env.OD_TOOL_TOKEN).toBeUndefined();
+    expect(env.READABLE_DAEMON_URL).toBe('http://127.0.0.1:7456');
+    expect(env.READABLE_NODE_BIN).toBe('/opt/readable-studio/bin/node');
+    expect(env.READABLE_TOOL_TOKEN).toBeUndefined();
   });
 
   it('strips daemon and desktop approval bearers from inherited and configured agent env', () => {
@@ -82,7 +82,7 @@ describe('agent runtime tool environment', () => {
       'opencode',
       {
         PATH: '/bin',
-        OD_API_TOKEN: 'inherited-api-secret',
+        READABLE_API_TOKEN: 'inherited-api-secret',
         [SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN]: 'inherited-approval-secret',
       },
       {
@@ -92,7 +92,7 @@ describe('agent runtime tool environment', () => {
       {},
     );
 
-    expect(Object.keys(env).some((key) => key.toUpperCase() === 'OD_API_TOKEN')).toBe(false);
+    expect(Object.keys(env).some((key) => key.toUpperCase() === 'READABLE_API_TOKEN')).toBe(false);
     expect(Object.keys(env).some((key) => key.toUpperCase() === SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN)).toBe(false);
   });
 
@@ -101,10 +101,10 @@ describe('agent runtime tool environment', () => {
       { PATH: '/bin' },
       'http://127.0.0.1:7456',
       null,
-      '/opt/open-design/bin/node',
+      '/opt/readable-studio/bin/node',
     );
 
-    expect(env.OD_DATA_DIR).toBe(process.env.OD_DATA_DIR);
+    expect(env.READABLE_DATA_DIR).toBe(process.env.READABLE_DATA_DIR);
   });
 
   it('keeps non-sandbox NO_PROXY behavior unchanged', () => {
@@ -112,7 +112,7 @@ describe('agent runtime tool environment', () => {
       { PATH: '/bin', HTTP_PROXY: 'http://127.0.0.1:9', NO_PROXY: '' },
       'http://127.0.0.1:7456',
       { token: 'fresh-token' },
-      '/opt/open-design/bin/node',
+      '/opt/readable-studio/bin/node',
     );
 
     expect(env.HTTP_PROXY).toBe('http://127.0.0.1:9');
@@ -122,23 +122,23 @@ describe('agent runtime tool environment', () => {
 
   it('passes the daemon sidecar IPC path from the explicit base env into agent wrapper sessions', () => {
     const env = createAgentRuntimeEnv(
-      { PATH: '/bin', [SIDECAR_ENV.IPC_PATH]: '/tmp/open-design/ipc/daemon.sock' },
+      { PATH: '/bin', [SIDECAR_ENV.IPC_PATH]: '/tmp/readable-studio/ipc/daemon.sock' },
       'http://127.0.0.1:7456',
       null,
-      '/opt/open-design/bin/node',
+      '/opt/readable-studio/bin/node',
     );
 
-    expect(env[SIDECAR_ENV.IPC_PATH]).toBe('/tmp/open-design/ipc/daemon.sock');
+    expect(env[SIDECAR_ENV.IPC_PATH]).toBe('/tmp/readable-studio/ipc/daemon.sock');
   });
 
   it('does not pull the daemon sidecar IPC path from ambient process state', () => {
-    vi.stubEnv(SIDECAR_ENV.IPC_PATH, '/tmp/open-design/ipc/stale.sock');
+    vi.stubEnv(SIDECAR_ENV.IPC_PATH, '/tmp/readable-studio/ipc/stale.sock');
     try {
       const env = createAgentRuntimeEnv(
         { PATH: '/bin' },
         'http://127.0.0.1:7456',
         null,
-        '/opt/open-design/bin/node',
+        '/opt/readable-studio/bin/node',
       );
 
       expect(env[SIDECAR_ENV.IPC_PATH]).toBeUndefined();
@@ -153,11 +153,11 @@ describe('agent runtime tool environment', () => {
     });
 
     expect(prompt).toContain('Daemon URL: `http://127.0.0.1:7456`');
-    expect(prompt).toContain('`OD_DAEMON_URL`');
-    expect(prompt).toContain('`OD_NODE_BIN`');
-    expect(prompt).toContain('`"$OD_NODE_BIN" "$OD_BIN" tools ...`');
-    expect(prompt).toContain('& $env:OD_NODE_BIN $env:OD_BIN tools ...');
-    expect(prompt).toContain('`OD_TOOL_TOKEN` is available');
+    expect(prompt).toContain('`READABLE_DAEMON_URL`');
+    expect(prompt).toContain('`READABLE_NODE_BIN`');
+    expect(prompt).toContain('`"$READABLE_NODE_BIN" "$READABLE_BIN" tools ...`');
+    expect(prompt).toContain('& $env:READABLE_NODE_BIN $env:READABLE_BIN tools ...');
+    expect(prompt).toContain('`READABLE_TOOL_TOKEN` is available');
     expect(prompt).toContain('do not print, persist, or override it');
     expect(prompt).not.toContain('secret-run-token');
   });
@@ -166,7 +166,7 @@ describe('agent runtime tool environment', () => {
     const prompt = createAgentRuntimeToolPrompt('http://127.0.0.1:7456', null);
 
     expect(prompt).toContain('Daemon URL: `http://127.0.0.1:7456`');
-    expect(prompt).toContain('`OD_TOOL_TOKEN` is not available');
+    expect(prompt).toContain('`READABLE_TOOL_TOKEN` is not available');
     expect(prompt).not.toContain('Bearer');
   });
 });

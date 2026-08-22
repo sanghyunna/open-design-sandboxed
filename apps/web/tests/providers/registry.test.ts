@@ -182,8 +182,8 @@ describe('fetchSkillExample', () => {
     vi.unstubAllGlobals();
   });
 
-  // Regression coverage for nexu-io/open-design#897. Skills declared with
-  // a non-html `od.preview.type` ship no fetchable HTML — the daemon's
+  // Regression coverage for nexu-io/readable-studio#897. Skills declared with
+  // a non-html `readable.preview.type` ship no fetchable HTML — the daemon's
   // /example endpoint only resolves HTML files and 404s for everything
   // else, which left the gallery stuck on a misleading "Couldn't load
   // this example. The example HTML failed to fetch." state. The dispatch
@@ -585,7 +585,7 @@ describe('deploy provider registry helpers', () => {
       projectId: 'project-1',
       fileName: 'index.html',
       providerId: CLOUDFLARE_PAGES_PROVIDER_ID,
-      url: 'https://open-design-preview.pages.dev',
+      url: 'https://readable-studio-preview.pages.dev',
       deploymentId: 'cf-deployment-1',
       deploymentCount: 1,
       target: 'preview',
@@ -604,7 +604,7 @@ describe('deploy provider registry helpers', () => {
     ).resolves.toMatchObject({
       providerId: CLOUDFLARE_PAGES_PROVIDER_ID,
       deploymentId: 'cf-deployment-1',
-      url: 'https://open-design-preview.pages.dev',
+      url: 'https://readable-studio-preview.pages.dev',
     });
 
     expect(fetchMock).toHaveBeenCalledWith('/api/projects/project-1/deploy', {

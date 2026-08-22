@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 async function fixture(): Promise<string> {
-  const root = mkdtempSync(path.join(tmpdir(), 'od-hosted-download-'));
+  const root = mkdtempSync(path.join(tmpdir(), 'readable-hosted-download-'));
   roots.push(root);
   await mkdir(path.join(root, 'project', 'nested'), { recursive: true });
   await writeFile(path.join(root, 'project', 'index.html'), '<!doctype html>safe');
@@ -71,7 +71,7 @@ describe('hosted archive download streaming', () => {
 
   it('rejects traversal and link or junction escapes before returning a stream', async () => {
     const root = await fixture();
-    const outside = mkdtempSync(path.join(tmpdir(), 'od-hosted-download-outside-'));
+    const outside = mkdtempSync(path.join(tmpdir(), 'readable-hosted-download-outside-'));
     roots.push(outside);
     await writeFile(path.join(outside, 'secret.txt'), 'secret');
     await symlink(outside, path.join(root, 'project', 'escape'), 'junction');

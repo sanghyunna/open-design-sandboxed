@@ -4,11 +4,11 @@ import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fulfillAgentsRoute } from './mock-factory.js';
 
-const STORAGE_KEY = 'open-design:config';
-const GITHUB_STARS_STORAGE_KEY = 'open-design:gh-stars';
-const VISUAL_STYLE_ID = 'od-visual-stability-style';
+const STORAGE_KEY = 'readable-studio:config';
+const GITHUB_STARS_STORAGE_KEY = 'readable-studio:gh-stars';
+const VISUAL_STYLE_ID = 'readable-visual-stability-style';
 // Keep this exact-route mock narrow so unrelated GitHub UI still behaves normally.
-const VISUAL_GITHUB_REPO_API = 'https://api.github.com/repos/nexu-io/open-design';
+const VISUAL_GITHUB_REPO_API = 'https://api.github.com/repos/sanghyunna/readable-studio';
 const VISUAL_GITHUB_STARS = 40_000;
 
 type VisualConfig = {
@@ -99,7 +99,7 @@ const VISUAL_PLUGINS = [
     taskKind: 'new-generation',
     tags: ['slides'],
     query: 'Draft a {{topic}} deck.',
-    previewEntry: 'preview.html',
+    exampleOutput: 'examples/deck.html',
   }),
   makeVisualPlugin({
     id: 'visual-video-storyboard',
@@ -114,7 +114,7 @@ const VISUAL_PLUGINS = [
   makeVisualPlugin({
     id: 'visual-figma-importer',
     title: 'Figma Importer',
-    description: 'Migrate a Figma frame into an editable Open Design project.',
+    description: 'Migrate a Figma frame into an editable Readable Studio project.',
     mode: 'prototype',
     taskKind: 'figma-migration',
     tags: ['migration'],
@@ -244,6 +244,15 @@ export async function configureVisualPage(page: Page, options: VisualPageOptions
     });
   });
 
+  await page.route('**/api/plugins/*/example/*', async (route) => {
+    const parts = new URL(route.request().url()).pathname.split('/');
+    const id = decodeURIComponent(parts.at(-3) ?? 'plugin');
+    await route.fulfill({
+      contentType: 'text/html',
+      body: `<!doctype html><html><body><main><h1>${escapeHtml(id)} example</h1></main></body></html>`,
+    });
+  });
+
   await page.route('**/api/plugins/*/apply', async (route) => {
     if (route.request().method() !== 'POST') {
       await route.continue();
@@ -354,7 +363,7 @@ export async function configureVisualPage(page: Page, options: VisualPageOptions
 }
 
 export async function waitForVisualReady(page: Page): Promise<void> {
-  await page.getByText('Loading Open Design…').waitFor({ state: 'detached', timeout: 10_000 }).catch(() => {});
+  await page.locator('.readable-loading-shell').waitFor({ state: 'detached', timeout: 10_000 }).catch(() => {});
   await expect(page.getByTestId('home-hero')).toBeVisible();
   await expect(page.getByTestId('home-hero-input')).toBeVisible();
   await page.evaluate(async () => {
@@ -383,7 +392,7 @@ export async function waitForVisualFonts(page: Page): Promise<void> {
 }
 
 export async function captureVisual(page: Page, name: string): Promise<string> {
-  const outputDir = path.resolve(process.env.OD_VISUAL_OUTPUT_DIR || 'ui/reports/visual-screenshots');
+  const outputDir = path.resolve(process.env.READABLE_VISUAL_OUTPUT_DIR || 'ui/reports/visual-screenshots');
   const safeName = sanitizeVisualName(name);
   const outputPath = path.join(outputDir, `${safeName}.png`);
   await mkdir(outputDir, { recursive: true });
@@ -414,6 +423,7 @@ function makeVisualPlugin(input: {
   tags?: string[];
   query?: string;
   previewEntry?: string;
+  exampleOutput?: string;
 }) {
   return {
     id: input.id,
@@ -432,15 +442,16 @@ function makeVisualPlugin(input: {
       version: '1.0.0',
       description: input.description,
       tags: input.tags ?? [],
-      od: {
+      readable: {
         kind: 'scenario',
         taskKind: input.taskKind,
         mode: input.mode,
         ...(input.featured ? { featured: true } : {}),
-        ...(input.query
+        ...(input.query || input.exampleOutput
           ? {
               useCase: {
-                query: { en: input.query },
+                ...(input.query ? { query: { en: input.query } } : {}),
+                ...(input.exampleOutput ? { exampleOutputs: [{ path: input.exampleOutput, title: 'Example' }] } : {}),
               },
             }
           : {}),

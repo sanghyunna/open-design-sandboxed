@@ -25,9 +25,9 @@ test('AGENT_DEFS ids are unique', () => {
 });
 
 test('local agent profiles inherit a base adapter and can pin the default model', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-local-agent-profiles-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-local-agent-profiles-'));
   try {
-    await withEnvSnapshot(['OD_AGENT_PROFILES_CONFIG'], async () => {
+    await withEnvSnapshot(['READABLE_AGENT_PROFILES_CONFIG'], async () => {
       const config = join(dir, 'agents.local.json');
       writeFileSync(
         config,
@@ -53,7 +53,7 @@ test('local agent profiles inherit a base adapter and can pin the default model'
           ],
         }),
       );
-      process.env.OD_AGENT_PROFILES_CONFIG = config;
+      process.env.READABLE_AGENT_PROFILES_CONFIG = config;
 
       const profiles = readLocalAgentProfileDefs();
       assert.equal(profiles.length, 1);
@@ -88,9 +88,9 @@ test('local agent profiles inherit a base adapter and can pin the default model'
 });
 
 test('local agent profiles skip explicit unknown baseAgent without falling back', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-local-agent-profiles-invalid-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-local-agent-profiles-invalid-'));
   try {
-    await withEnvSnapshot(['OD_AGENT_PROFILES_CONFIG'], async () => {
+    await withEnvSnapshot(['READABLE_AGENT_PROFILES_CONFIG'], async () => {
       const config = join(dir, 'agents.local.json');
       writeFileSync(
         config,
@@ -103,7 +103,7 @@ test('local agent profiles skip explicit unknown baseAgent without falling back'
           ],
         }),
       );
-      process.env.OD_AGENT_PROFILES_CONFIG = config;
+      process.env.READABLE_AGENT_PROFILES_CONFIG = config;
 
       const profiles = readLocalAgentProfileDefs();
 
@@ -116,9 +116,9 @@ test('local agent profiles skip explicit unknown baseAgent without falling back'
 });
 
 test('sandbox mode ignores implicit and host explicit local agent profiles', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-local-agent-profiles-sandbox-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-local-agent-profiles-sandbox-'));
   try {
-    await withEnvSnapshot(['OD_AGENT_PROFILES_CONFIG', 'OD_SANDBOX_MODE', 'OD_DATA_DIR'], async () => {
+    await withEnvSnapshot(['READABLE_AGENT_PROFILES_CONFIG', 'READABLE_SANDBOX_MODE', 'READABLE_DATA_DIR'], async () => {
       const config = join(dir, 'agents.local.json');
       writeFileSync(
         config,
@@ -127,12 +127,12 @@ test('sandbox mode ignores implicit and host explicit local agent profiles', asy
         }),
       );
 
-      process.env.OD_SANDBOX_MODE = '1';
-      delete process.env.OD_DATA_DIR;
-      delete process.env.OD_AGENT_PROFILES_CONFIG;
+      process.env.READABLE_SANDBOX_MODE = '1';
+      delete process.env.READABLE_DATA_DIR;
+      delete process.env.READABLE_AGENT_PROFILES_CONFIG;
       assert.deepEqual(readLocalAgentProfileDefs(), []);
 
-      process.env.OD_AGENT_PROFILES_CONFIG = config;
+      process.env.READABLE_AGENT_PROFILES_CONFIG = config;
       assert.deepEqual(readLocalAgentProfileDefs(), []);
     });
   } finally {
@@ -140,13 +140,13 @@ test('sandbox mode ignores implicit and host explicit local agent profiles', asy
   }
 });
 
-test('codex args disable plugins when OD_CODEX_DISABLE_PLUGINS is 1', () => {
-  withEnvSnapshot(['OD_CODEX_DISABLE_PLUGINS', 'OD_CODEX_SANDBOX'], () => {
-    process.env.OD_CODEX_DISABLE_PLUGINS = '1';
-    delete process.env.OD_CODEX_SANDBOX;
+test('codex args disable plugins when READABLE_CODEX_DISABLE_PLUGINS is 1', () => {
+  withEnvSnapshot(['READABLE_CODEX_DISABLE_PLUGINS', 'READABLE_CODEX_SANDBOX'], () => {
+    process.env.READABLE_CODEX_DISABLE_PLUGINS = '1';
+    delete process.env.READABLE_CODEX_SANDBOX;
 
     withPlatform('darwin', () => {
-      const args = codex.buildArgs('', [], [], {}, { cwd: '/tmp/od-project' });
+      const args = codex.buildArgs('', [], [], {}, { cwd: '/tmp/readable-project' });
 
       assert.deepEqual(args.slice(0, 11), [
         'exec',
@@ -166,14 +166,14 @@ test('codex args disable plugins when OD_CODEX_DISABLE_PLUGINS is 1', () => {
 });
 
 test('codex args use workspace-write sandbox on macOS and Linux', () => {
-  withEnvSnapshot(['OD_CODEX_DISABLE_PLUGINS', 'OD_CODEX_SANDBOX', 'WSL_DISTRO_NAME'], () => {
-    delete process.env.OD_CODEX_DISABLE_PLUGINS;
-    delete process.env.OD_CODEX_SANDBOX;
+  withEnvSnapshot(['READABLE_CODEX_DISABLE_PLUGINS', 'READABLE_CODEX_SANDBOX', 'WSL_DISTRO_NAME'], () => {
+    delete process.env.READABLE_CODEX_DISABLE_PLUGINS;
+    delete process.env.READABLE_CODEX_SANDBOX;
 
     for (const platform of ['darwin', 'linux'] as const) {
       withPlatform(platform, () => {
         delete process.env.WSL_DISTRO_NAME;
-        const args = codex.buildArgs('', [], [], {}, { cwd: '/tmp/od-project' });
+        const args = codex.buildArgs('', [], [], {}, { cwd: '/tmp/readable-project' });
         assert.equal(args.includes('--full-auto'), false);
         assert.deepEqual(args.slice(0, 5), [
           'exec',
@@ -197,12 +197,12 @@ test('codex args use workspace-write sandbox on macOS and Linux', () => {
 
 test('codex args use danger-full-access sandbox on WSL because workspace-write stays read-only', () => {
   withPlatform('linux', () => {
-    withEnvSnapshot(['OD_CODEX_DISABLE_PLUGINS', 'OD_CODEX_SANDBOX', 'WSL_DISTRO_NAME'], () => {
-      delete process.env.OD_CODEX_DISABLE_PLUGINS;
-      delete process.env.OD_CODEX_SANDBOX;
+    withEnvSnapshot(['READABLE_CODEX_DISABLE_PLUGINS', 'READABLE_CODEX_SANDBOX', 'WSL_DISTRO_NAME'], () => {
+      delete process.env.READABLE_CODEX_DISABLE_PLUGINS;
+      delete process.env.READABLE_CODEX_SANDBOX;
       process.env.WSL_DISTRO_NAME = 'Ubuntu';
       assert.equal(codexNeedsDangerFullAccessSandbox('linux', process.env), true);
-      const args = codex.buildArgs('', [], [], {}, { cwd: '/tmp/od-project' });
+      const args = codex.buildArgs('', [], [], {}, { cwd: '/tmp/readable-project' });
       assert.deepEqual(args.slice(0, 5), [
         'exec',
         '--json',
@@ -215,15 +215,15 @@ test('codex args use danger-full-access sandbox on WSL because workspace-write s
   });
 });
 
-test('codex args allow OD_CODEX_SANDBOX danger-full-access override on Linux', () => {
+test('codex args allow READABLE_CODEX_SANDBOX danger-full-access override on Linux', () => {
   withPlatform('linux', () => {
-    withEnvSnapshot(['OD_CODEX_DISABLE_PLUGINS', 'OD_CODEX_SANDBOX', 'WSL_DISTRO_NAME'], () => {
-      delete process.env.OD_CODEX_DISABLE_PLUGINS;
-      process.env.OD_CODEX_SANDBOX = 'danger-full-access';
+    withEnvSnapshot(['READABLE_CODEX_DISABLE_PLUGINS', 'READABLE_CODEX_SANDBOX', 'WSL_DISTRO_NAME'], () => {
+      delete process.env.READABLE_CODEX_DISABLE_PLUGINS;
+      process.env.READABLE_CODEX_SANDBOX = 'danger-full-access';
       delete process.env.WSL_DISTRO_NAME;
 
       assert.equal(codexNeedsDangerFullAccessSandbox('linux', process.env), true);
-      const args = codex.buildArgs('', [], [], {}, { cwd: '/tmp/od-project' });
+      const args = codex.buildArgs('', [], [], {}, { cwd: '/tmp/readable-project' });
       assert.deepEqual(args.slice(0, 5), [
         'exec',
         '--json',
@@ -239,15 +239,15 @@ test('codex args allow OD_CODEX_SANDBOX danger-full-access override on Linux', (
   });
 });
 
-test('codex args ignore unknown OD_CODEX_SANDBOX values', () => {
+test('codex args ignore unknown READABLE_CODEX_SANDBOX values', () => {
   withPlatform('linux', () => {
-    withEnvSnapshot(['OD_CODEX_DISABLE_PLUGINS', 'OD_CODEX_SANDBOX', 'WSL_DISTRO_NAME'], () => {
-      delete process.env.OD_CODEX_DISABLE_PLUGINS;
-      process.env.OD_CODEX_SANDBOX = 'workspace-write';
+    withEnvSnapshot(['READABLE_CODEX_DISABLE_PLUGINS', 'READABLE_CODEX_SANDBOX', 'WSL_DISTRO_NAME'], () => {
+      delete process.env.READABLE_CODEX_DISABLE_PLUGINS;
+      process.env.READABLE_CODEX_SANDBOX = 'workspace-write';
       delete process.env.WSL_DISTRO_NAME;
 
       assert.equal(codexNeedsDangerFullAccessSandbox('linux', process.env), false);
-      const args = codex.buildArgs('', [], [], {}, { cwd: '/tmp/od-project' });
+      const args = codex.buildArgs('', [], [], {}, { cwd: '/tmp/readable-project' });
       assert.deepEqual(args.slice(0, 5), [
         'exec',
         '--json',
@@ -266,12 +266,12 @@ test('codex args use danger-full-access sandbox on Windows because workspace-wri
   // The agent cannot list files or run any shell-backed tool under that
   // policy. danger-full-access is Codex CLI's documented Windows-compatible
   // mode (issue #1721).
-  withEnvSnapshot(['OD_CODEX_DISABLE_PLUGINS', 'OD_CODEX_SANDBOX'], () => {
-    delete process.env.OD_CODEX_DISABLE_PLUGINS;
-    delete process.env.OD_CODEX_SANDBOX;
+  withEnvSnapshot(['READABLE_CODEX_DISABLE_PLUGINS', 'READABLE_CODEX_SANDBOX'], () => {
+    delete process.env.READABLE_CODEX_DISABLE_PLUGINS;
+    delete process.env.READABLE_CODEX_SANDBOX;
 
     withPlatform('win32', () => {
-      const args = codex.buildArgs('', [], [], {}, { cwd: '/tmp/od-project' });
+      const args = codex.buildArgs('', [], [], {}, { cwd: '/tmp/readable-project' });
 
       assert.deepEqual(args.slice(0, 5), [
         'exec',
@@ -292,13 +292,13 @@ test('codex args use danger-full-access sandbox on Windows because workspace-wri
   });
 });
 
-test('codex args keep plugins enabled when OD_CODEX_DISABLE_PLUGINS is unset', () => {
-  withEnvSnapshot(['OD_CODEX_DISABLE_PLUGINS', 'OD_CODEX_SANDBOX'], () => {
-    delete process.env.OD_CODEX_DISABLE_PLUGINS;
-    delete process.env.OD_CODEX_SANDBOX;
+test('codex args keep plugins enabled when READABLE_CODEX_DISABLE_PLUGINS is unset', () => {
+  withEnvSnapshot(['READABLE_CODEX_DISABLE_PLUGINS', 'READABLE_CODEX_SANDBOX'], () => {
+    delete process.env.READABLE_CODEX_DISABLE_PLUGINS;
+    delete process.env.READABLE_CODEX_SANDBOX;
 
     withPlatform('darwin', () => {
-      const args = codex.buildArgs('', [], [], {}, { cwd: '/tmp/od-project' });
+      const args = codex.buildArgs('', [], [], {}, { cwd: '/tmp/readable-project' });
 
       assert.equal(args.includes('--disable'), false);
       assert.equal(args.includes('plugins'), false);
@@ -306,13 +306,13 @@ test('codex args keep plugins enabled when OD_CODEX_DISABLE_PLUGINS is unset', (
   });
 });
 
-test('codex args keep plugins enabled when OD_CODEX_DISABLE_PLUGINS is not 1', () => {
-  withEnvSnapshot(['OD_CODEX_DISABLE_PLUGINS', 'OD_CODEX_SANDBOX'], () => {
-    process.env.OD_CODEX_DISABLE_PLUGINS = 'true';
-    delete process.env.OD_CODEX_SANDBOX;
+test('codex args keep plugins enabled when READABLE_CODEX_DISABLE_PLUGINS is not 1', () => {
+  withEnvSnapshot(['READABLE_CODEX_DISABLE_PLUGINS', 'READABLE_CODEX_SANDBOX'], () => {
+    process.env.READABLE_CODEX_DISABLE_PLUGINS = 'true';
+    delete process.env.READABLE_CODEX_SANDBOX;
 
     withPlatform('darwin', () => {
-      const args = codex.buildArgs('', [], [], {}, { cwd: '/tmp/od-project' });
+      const args = codex.buildArgs('', [], [], {}, { cwd: '/tmp/readable-project' });
 
       assert.equal(args.includes('--disable'), false);
       assert.equal(args.includes('plugins'), false);
@@ -352,15 +352,15 @@ test('codex model picker includes current OpenAI choices in priority order', asy
     [],
     [],
     { model: 'gpt-5.5', reasoning: 'xhigh' },
-    { cwd: '/tmp/od-project' },
+    { cwd: '/tmp/readable-project' },
   );
   assert.ok(args.includes('--model'));
   assert.ok(args.includes('gpt-5.5'));
   assert.ok(args.includes('model_reasoning_effort="xhigh"'));
 
-  const dir = mkdtempSync(join(tmpdir(), 'od-agents-codex-models-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-agents-codex-models-'));
   try {
-    await withEnvSnapshot(['PATH', 'OD_AGENT_HOME', 'CODEX_BIN'], async () => {
+    await withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME', 'CODEX_BIN'], async () => {
       writeFakeCodexBin(dir, `
 const args = process.argv.slice(2);
 if (args[0] === '--version') {
@@ -369,7 +369,7 @@ if (args[0] === '--version') {
 }
 process.exit(0);
 `);
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
       process.env.PATH = dir;
       delete process.env.CODEX_BIN;
 
@@ -416,9 +416,9 @@ test('codex parses live model catalog from debug models JSON', () => {
 });
 
 test('codex detection surfaces live debug models separately from fallback models', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-agents-codex-live-models-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-agents-codex-live-models-'));
   try {
-    await withEnvSnapshot(['PATH', 'OD_AGENT_HOME', 'CODEX_BIN'], async () => {
+    await withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME', 'CODEX_BIN'], async () => {
       writeFakeCodexBin(dir, `
 const args = process.argv.slice(2);
 if (args[0] === '--version') {
@@ -439,7 +439,7 @@ if (args[0] === 'debug' && args[1] === 'models') {
 }
 process.exit(2);
 `);
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
       process.env.PATH = dir;
       delete process.env.CODEX_BIN;
 
@@ -517,9 +517,9 @@ test('grok-build filters login headers from live model discovery output', () => 
 // and exit code 2 before any prompt is read. We deliver the prompt via
 // stdin pipe alone (gated by `promptViaStdin: true`). Regression of #237.
 test('codex args do not include the literal `-` stdin sentinel (regression of #237)', () => {
-  delete process.env.OD_CODEX_DISABLE_PLUGINS;
+  delete process.env.READABLE_CODEX_DISABLE_PLUGINS;
 
-  const baseArgs = codex.buildArgs('', [], [], {}, { cwd: '/tmp/od-project' });
+  const baseArgs = codex.buildArgs('', [], [], {}, { cwd: '/tmp/readable-project' });
   assert.equal(baseArgs.includes('-'), false);
 
   const withModel = codex.buildArgs(
@@ -527,7 +527,7 @@ test('codex args do not include the literal `-` stdin sentinel (regression of #2
     [],
     [],
     { model: 'gpt-5-codex' },
-    { cwd: '/tmp/od-project' },
+    { cwd: '/tmp/readable-project' },
   );
   assert.equal(withModel.includes('-'), false);
 
@@ -536,30 +536,30 @@ test('codex args do not include the literal `-` stdin sentinel (regression of #2
     [],
     [],
     { reasoning: 'high' },
-    { cwd: '/tmp/od-project' },
+    { cwd: '/tmp/readable-project' },
   );
   assert.equal(withReasoning.includes('-'), false);
 
-  process.env.OD_CODEX_DISABLE_PLUGINS = '1';
+  process.env.READABLE_CODEX_DISABLE_PLUGINS = '1';
   const withDisablePlugins = codex.buildArgs(
     '',
     [],
     [],
     {},
-    { cwd: '/tmp/od-project' },
+    { cwd: '/tmp/readable-project' },
   );
   assert.equal(withDisablePlugins.includes('-'), false);
 });
 
 test('codex args pass valid extraAllowedDirs with repeatable --add-dir flags', () => {
-  delete process.env.OD_CODEX_DISABLE_PLUGINS;
+  delete process.env.READABLE_CODEX_DISABLE_PLUGINS;
 
   const args = codex.buildArgs(
     '',
     [],
     ['/repo/skills', '', null, '/tmp/codex/generated_images', undefined] as unknown as string[],
     {},
-    { cwd: '/tmp/od-project' },
+    { cwd: '/tmp/readable-project' },
   );
 
   assert.deepEqual(

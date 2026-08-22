@@ -12,7 +12,7 @@ import {
   type HostedProviderStatusResponse,
   type HostedProviderTestResponse,
   type HostedSessionResponse,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import type { Express, RequestHandler } from 'express';
 
 import {

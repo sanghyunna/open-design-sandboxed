@@ -1,7 +1,7 @@
 // @dsp func-b655ed3a
-export const OPEN_DESIGN_GITHUB_REPO_URL = 'https://github.com/nexu-io/open-design';
+export const READABLE_GITHUB_REPO_URL = 'https://github.com/sanghyunna/readable-studio';
 
-export type SocialShareTargetKind = 'open-design-repo' | 'project-html';
+export type SocialShareTargetKind = 'readable-studio-repo' | 'project-html';
 
 export type SocialSharePlatform =
   | 'x'
@@ -160,14 +160,14 @@ function buildPlatformUrl(
 
 // @dsp func-df92db30
 export function buildSocialSharePayload(input: SocialShareRequest): SocialShareResponse {
-  const kind = input.kind === 'project-html' ? 'project-html' : 'open-design-repo';
+  const kind = input.kind === 'project-html' ? 'project-html' : 'readable-studio-repo';
   const url = normalizeSocialShareUrl(input.url)
-    ?? (kind === 'open-design-repo' ? OPEN_DESIGN_GITHUB_REPO_URL : '');
-  const fallbackTitle = kind === 'project-html' ? 'Open Design project' : 'Open Design';
+    ?? (kind === 'readable-studio-repo' ? READABLE_GITHUB_REPO_URL : '');
+  const fallbackTitle = kind === 'project-html' ? 'Readable Studio project' : 'Readable Studio';
   const title = cleanText(input.title, fallbackTitle);
   const fallbackText = kind === 'project-html'
-    ? `Built with Open Design: ${title}. Open Design repo: ${OPEN_DESIGN_GITHUB_REPO_URL}`
-    : 'Open Design is an open-source workspace for creating, editing, deploying, and handing off design artifacts.';
+    ? `Built with Readable Studio: ${title}. Readable Studio repo: ${READABLE_GITHUB_REPO_URL}`
+    : 'Readable Studio is an open-source workspace for creating, editing, deploying, and handing off design artifacts.';
   const text = cleanText(input.text, fallbackText);
   const copyText = cleanText(input.copyText, `${text}\n${url}`);
   const platforms = PLATFORM_DESCRIPTORS.map((descriptor) => ({
@@ -193,7 +193,7 @@ export function buildSocialSharePayload(input: SocialShareRequest): SocialShareR
     title,
     text,
     copyText,
-    githubRepoUrl: OPEN_DESIGN_GITHUB_REPO_URL,
+    githubRepoUrl: READABLE_GITHUB_REPO_URL,
     platforms,
   };
 }

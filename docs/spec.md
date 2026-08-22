@@ -1,149 +1,77 @@
-# Open Design — Product Spec
+# Readable Studio product specification
 
-**Status:** Draft v0.1 · 2026-04-24
-**Scope:** Product definition, scenarios, non-goals, high-level modules, and positioning against both [Anthropic's Claude Design][cd] and the existing open-source alternative ([Open CoDesign][ocod]).
+## Product statement
 
-[cd]: https://x.com/claudeai/status/2045156267690213649
-[ocod]: https://github.com/OpenCoworkAI/open-codesign
-[guizang]: https://github.com/op7418/guizang-ppt-skill
-[multica]: https://github.com/multica-ai/multica
-[ccsw]: https://github.com/farion1231/cc-switch
-[acd]: https://github.com/VoltAgent/awesome-claude-design
-[piai]: https://github.com/badlogic/pi-mono/tree/main/packages/ai
+Readable Studio turns source text into polished standalone HTML through AI generation and PowerPoint-like direct editing. It is designed for office workers creating AI-readable company documents without waiting for an agent to regenerate every minor revision. In enterprise AI transformation, it keeps governed company source, human editorial control, and AI-readable document structure in one inspectable workflow.
 
-Other docs:
-- Architecture → [`architecture.md`](architecture.md)
-- Skills protocol → [`skills-protocol.md`](skills-protocol.md)
-- Agent adapters → [`agent-adapters.md`](agent-adapters.md)
-- Modes → [`modes.md`](modes.md)
-- Automations self-evolution → [`../specs/current/automation-self-evolution.md`](../specs/current/automation-self-evolution.md)
-- Run reliability optimization plan → [`../specs/current/run-reliability-optimization-plan.md`](../specs/current/run-reliability-optimization-plan.md)
-- References & credits → [`references.md`](references.md)
-- Roadmap → [`roadmap.md`](roadmap.md)
-
----
-
-## 1. Product in one sentence
-
-> **A web app that turns natural-language briefs into editable, previewable design artifacts (prototypes, decks, templates, design systems) by orchestrating the code agent already installed on the user's machine.**
-
-## 2. Core bets (and why they're different)
-
-| # | Bet | [Anthropic Claude Design][cd] | [Open CoDesign][ocod] | OD |
-|---|---|---|---|---|
-| 1 | Where the product runs | claude.ai only | Local Electron app | **Next.js web app + local daemon + desktop loop** — `pnpm tools-dev` |
-| 2 | Who owns the agent loop | Anthropic, closed | [Open CoDesign][ocod] itself, via [`pi-ai`][piai] | **The user's existing code agent CLI** (Claude Code, Codex, Devin for Terminal, Cursor Agent, Gemini CLI, OpenCode, OpenClaw); direct Anthropic API as fallback |
-| 3 | What "design skills" are | Proprietary internal tools | TypeScript modules baked into the app | **File-based skills** that follow Claude Code's `SKILL.md` spec — forkable, versionable, shareable, installable by symlink |
-| 4 | How design systems are authored | Implicit in prompt | N/A | **`DESIGN.md` files** following the [awesome-claude-design][acd] 9-section schema |
-| 5 | Extension point | Anthropic only | Custom PRs | **Drop a folder into `skills/`** — composable by third parties |
-
-The differentiation is not "yet another design generator." It is **an integration shell that refuses to own the agent, the model, or the skill catalog** — all three are external and pluggable.
-
-## 3. Target users
-
-- **Indie devs / designers** who already pay for one coding agent and don't want a second subscription or a second model router just to get design output.
-- **Design system maintainers** who want to codify their system as a `DESIGN.md` and have every skill respect it automatically.
-- **Skill authors** who want to publish a design skill (e.g. "SaaS marketing page with glassmorphism") and have it run inside any compatible agent without porting.
-- **Teams embedding local AI tooling** through the web UI or `od` CLI while keeping keys and runtime data on their own machines.
-
-## 4. User scenarios
-
-### S1 — "Give me a prototype"
-User opens the web app, types *"Airbnb-style search page, use our internal design system"*, OD picks the `prototype-skill`, resolves the user's `DESIGN.md`, dispatches to Claude Code with both files plus the brief, streams tool calls into the UI, and renders the resulting HTML in an iframe preview. User clicks an element, drops a comment, the agent rewrites just that region.
-
-### S2 — "Make me a deck"
-User says *"8-slide magazine-style pitch deck for my seed round"*. OD routes to `deck-skill` (a fork of [`guizang-ppt-skill`][guizang]). Output is a single-file HTML deck; preview is the deck itself with arrow-key navigation; export is PDF/PPTX.
-
-### S3 — "Start from a template"
-User picks "SaaS landing — Stripe-ish" from a gallery. Template is a pre-filled artifact bundle plus a `DESIGN.md` reference. Agent only fills content; structure is already there. This is the fastest mode — useful for users who don't want to prompt at all.
-
-### S4 — "Set up our design system"
-User uploads a screenshot, brand guide PDF, or Figma link. OD runs `design-system-skill` which produces a `DESIGN.md` following the 9-section format. That file is then referenced by every subsequent generation — prototypes, decks, templates all pick up the tokens.
-
-### S5 — "Let the design agent evolve"
-User uploads or pastes source context such as a repo URL, artifact bundle, or chat log, then picks an Automation template like "Ingest into memory tree," "Extract design system," or "Crystallize this run into a skill." OD canonicalizes the source, optionally compresses it, proposes memory / skill / design-system changes, and only applies them after the configured review policy. Future agent runs consume those accepted nodes automatically.
-
-The first four scenarios map 1:1 to the four modes in [`modes.md`](modes.md).
-The fifth is the cross-product loop described in [`automation-self-evolution.md`](../specs/current/automation-self-evolution.md).
-
-## 5. High-level modules
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                        Web App (Next.js)                         │
-│  chat · artifact tree · iframe preview · comment mode · exports  │
-└────────────┬─────────────────────────────────┬───────────────────┘
-             │ HTTP + SSE (/api/chat)          │ HTTPS (BYOK direct)
-┌────────────▼──────────────────┐     ┌────────▼─────────────────┐
-│   Local Daemon (od daemon)   │     │   Anthropic Messages API │
-│   · agent detection           │     │   (fallback when no CLI) │
-│   · skill registry            │     └──────────────────────────┘
-│   · artifact store            │
-│   · design-system resolver    │
-└────────────┬──────────────────┘
-             │ spawn / stdio / SDK
-┌────────────▼──────────────────────────────────────────────────┐
-│  Code Agent CLIs on user's machine (one or more of):          │
-│  Claude Code · Codex · Cursor Agent · Gemini CLI · OpenCode   │
-└───────────────────────────────────────────────────────────────┘
+```text
+Source Text -> AI Generation -> Direct Editing -> Standalone HTML
 ```
 
-Module responsibilities:
+## Target users
 
-- **Web app** — chat UI, artifact tree, sandboxed iframe preview, comment mode, slider controls, export UI. Durable state lives in the daemon.
-- **Daemon** — long-running local process. Detects agents, registers skills, manages artifacts on disk, resolves the active design system, and brokers REST/SSE requests.
-- **Agent adapters** — one adapter per supported CLI; see [`agent-adapters.md`](agent-adapters.md).
-- **Skill registry** — scans `~/.claude/skills/`, `./skills/`, and `./.claude/skills/`; merges and exposes a typed catalog.
-- **Artifact store** — project-scoped folder (default `./.od/`) holding generated files, version snapshots (git-friendly), and per-artifact metadata.
-- **Design-system resolver** — loads the active `DESIGN.md`, injects it as skill context.
-- **Automations** — templates that orchestrate memory updates, skill crystallization, design-system extraction, token compression, and review gates; source packets enter through the Automations page, `/api/automation-ingestions`, and `od automation source`, while evolution proposals are reviewable through `/api/automation-proposals` and `od automation proposal`.
-- **Memory / evolution store** — editable Markdown-backed memory tree exposed through Settings, `/api/memory/tree`, and `od memory tree`; accepted tree nodes feed future daemon and BYOK/API-mode agent prompts, and accepted proposals can write reviewed memory, skill, and design-system drafts into user-owned runtime roots.
-- **Preview renderer** — sandboxed iframe with vendored React + Babel for JSX artifacts; plain iframe for HTML; PDF via the daemon's headless Chrome.
-- **Export pipeline** — HTML (inlined), PDF, PPTX, ZIP, Markdown.
+- office teams producing reports, briefs, plans, presentations, and recurring internal documents;
+- subject-matter experts who own content accuracy but do not want to edit frontend code;
+- company teams applying shared design systems and approved source material;
+- developers and external agents using the same local capabilities through the CLI and HTTP API.
 
-## 6. Non-goals
+## Core requirements
 
-- **We do not ship a model router.** If the user's agent supports 20 providers, great. If it only supports Anthropic, that's the ceiling. We don't layer our own provider abstraction on top of someone else's.
-- **We do not own hosted deployment or container orchestration in this repository.** The supported workspace boundary is the local web, daemon, desktop, and packaged runtime.
-- **We do not reinvent the agent loop.** No custom tool-use harness, no bespoke context-manager. Everything goes through the detected agent's native loop.
-- **We do not maintain a skill marketplace in v1.** Skills are git URLs and local folders. A browsable UI is v2.
-- **We do not try to compete with Figma.** Output is code (HTML/JSX) and content (`DESIGN.md`, Markdown, PPTX), not editable vector canvases.
-- **We do not implement auth / billing / orgs in MVP.** Single-user, single-machine. Multi-user is post-v1 and optional.
+### Source-grounded generation
 
-## 7. Why not just extend [Open CoDesign][ocod]?
+A project accepts pasted text and imported files. Agent prompts include the selected source, plugin/skill instructions, design system, and project context. Generated artifacts should preserve supplied facts and terminology. The product must not present an empty prompt as the only normal starting point.
 
-We seriously considered it. The concrete blockers:
+### Direct editing
 
-1. **It's Electron.** Porting to a web architecture requires ripping out ~40% of the code and rewriting the renderer/main IPC layer. At that point it's a rewrite.
-2. **It owns the agent loop.** [`pi-ai`][piai] is a perfectly fine provider abstraction, but it means every skill is written against `pi-ai`'s tool-use format — not against whatever Claude Code, Codex, or Cursor Agent natively speak. We can't reuse existing skills, and existing skills can't reuse us.
-3. **Skill format is proprietary.** Its 12 skills are TypeScript modules compiled into the app. A user cannot drop [`guizang-ppt-skill`][guizang] in and have it work; there's no `SKILL.md` loader.
-4. **No design system abstraction.** Design tokens live in prompts, not in a versioned file that can be shared across projects.
+The rendered preview supports source-backed element selection and direct changes to content and presentation. Required control families include text, typography, box model, geometry, move, resize, shape, page/section, snap guides, attributes, selected-element HTML, and source editing. Direct edits persist to project files and coexist with comments, tweaks, and agent revisions.
 
-We keep the good parts: comment mode, slider-emitted parameters, multi-frame preview, single-file HTML export, sandboxed iframe rendering. These are all UI ideas that are orthogonal to the agent layer and we'll absolutely borrow them. See [`references.md`](references.md) for the explicit borrow list.
+### Standalone HTML
 
-## 8. Positioning against Anthropic's [Claude Design][cd]
+The canonical handoff is one HTML file. Export inlines statically discoverable local HTML, CSS, JavaScript modules, images, and fonts. External HTTP(S) references and missing local references are preserved and reported. Runtime network capture, service-worker capture, and multi-page crawling are outside the contract.
 
-We are **not** trying to out-feature [Claude Design][cd]. Claude Design has Anthropic's model team, internal tooling, and a rendering pipeline we can't match. What we offer instead:
+### Integrated extension and automation surfaces
 
-- **Local-first.** Run on your machine through the web, desktop, or CLI surfaces. Secrets remain in daemon-owned configuration.
-- **BYO-agent.** If you're already paying for Cursor, that's your agent. If you've standardized on Codex inside your company, use Codex. No mandatory Anthropic subscription.
-- **Skills as files.** Version them in git. Fork them. Ship them to teammates as a repo. Run your team's branded deck skill without rebuilding a product.
-- **Design systems as files.** A `DESIGN.md` is an artifact you can review in a PR. Claude Design's "design system" lives in an ephemeral chat.
+Plugins, skills, design systems, templates, CLI commands, MCP tools, HTTP APIs, research, memory, and automation remain available. A plugin uses `SKILL.md` and may add `readable-studio.json` metadata. User-facing capabilities use the same daemon endpoints from the web UI and `readable` CLI.
 
-In short: Claude Design is a product; OD is a **substrate**.
+### Secondary exports
 
-## 9. Success criteria for v1
+Artifact manifests may expose PDF, PPTX, ZIP, and Markdown. These formats remain supported where implemented, but they do not replace standalone HTML as the canonical product thesis.
 
-- One developer can `git clone && corepack enable && pnpm install && pnpm tools-dev run web`, point at their Claude Code install, and produce a prototype in under 5 minutes.
-- A third party can author a skill in a separate git repo, publish it, and have a user install it by running `od skill add <git-url>` without touching OD's source.
-- A design system author can write a `DESIGN.md`, point OD at it, and have the style propagate across prototype / deck / template outputs.
-- The web UI and `od` CLI drive the same daemon contracts end-to-end.
-- Swapping the underlying agent from Claude Code to Codex requires zero skill changes.
+## Runtime shape
 
-## 10. Open questions (to resolve before coding)
+```text
+Readable Studio.exe
+  -> packaged Electron shell
+      -> local daemon
+      -> local Next.js web runtime
+          -> sandboxed preview + direct-edit bridge
+      -> enabled coding-agent CLI
+      -> local plugins / skills / design systems / data
+```
 
-- **Artifact versioning.** Git, or SQLite, or both? [Open CoDesign][ocod] uses SQLite; that's easier but less reviewable. Lean: write artifacts as plain files + a `.od/history.jsonl` log. Git is the user's business.
-- **Comment mode on non-Claude-Code agents.** Claude Code supports surgical edits via its tool loop. Codex and Gemini CLI are less graceful. Do we degrade to "regenerate whole file" for weaker agents? Lean: yes, document clearly in the adapter table.
-- **Skill trust model.** Skills can shell out via the agent. We should at minimum warn on install, and probably sandbox the agent's cwd to the project directory. Claude Code's permission mode handles this for us if we use it; Codex is looser. Needs a per-adapter note.
+Source development uses the same web and daemon services under `pnpm tools-dev`.
 
-Open questions that remain relevant should be tracked through the current roadmap and issue tracker.
+## Distribution
+
+The supported artifact is a Windows 10/11 x64 portable ZIP downloaded manually from GitHub Releases. Users extract the archive and run `Readable Studio.exe`. The destination computer does not need Node.js, pnpm, Git, an installer, or an updater.
+
+Portable data lives under `<exeDir>\ReadableStudioData\namespaces\<namespace>`. Source-mode daemon data defaults to `<repo>\.readable-studio`. `READABLE_DATA_DIR` accepts an absolute override.
+
+There is no product website, installer, updater, macOS package, Linux package, Nix package, or release-publishing workflow.
+
+## Success criteria
+
+- An office worker can start with supplied source, generate a structured draft, correct it directly, and export standalone HTML without editing code.
+- Minor text and layout corrections do not require another agent round trip.
+- The HTML output remains structured and usable by people and downstream tools.
+- UI and CLI expose the same product capabilities through shared contracts.
+- Plugin and design-system workflows remain portable and inspectable as files.
+- A clean Windows 10/11 x64 machine can run the extracted portable archive without a development toolchain.
+
+## Non-goals
+
+- automatic publication or hosted share URLs;
+- replacing professional vector illustration or slide authoring for every use case;
+- hiding source files behind an opaque canvas format;
+- treating AI output as authoritative when it conflicts with supplied company source;
+- supporting additional operating-system artifacts without a separate product decision.

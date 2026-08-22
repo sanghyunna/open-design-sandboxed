@@ -40,14 +40,14 @@ const ADAPTERS: readonly NightlyAdapter[] = [
 ];
 
 /**
- * Anchor the run at the project's `.od/` data dir by default; the
+ * Anchor the run at the project's `.readable-studio/` data dir by default; the
  * Home Manager / NixOS / Playwright runtimes that already set
- * `OD_DATA_DIR` keep their isolation here too.
+ * `READABLE_DATA_DIR` keep their isolation here too.
  */
 function resolveDataDir(): string {
-  const override = process.env.OD_DATA_DIR;
+  const override = process.env.READABLE_DATA_DIR;
   if (override && override.length > 0) return path.resolve(override);
-  return path.resolve(process.cwd(), '.od');
+  return path.resolve(process.cwd(), '.readable-studio');
 }
 
 function isoDay(d: Date): string {

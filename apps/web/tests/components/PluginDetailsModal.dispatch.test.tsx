@@ -10,7 +10,7 @@
 
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 
 import { PluginDetailsModal } from '../../src/components/PluginDetailsModal';
 import { PluginMetaSections } from '../../src/components/plugin-details/PluginMetaSections';
@@ -49,7 +49,7 @@ function make(args: MakeArgs): InstalledPluginRecord {
       title: args.title ?? args.id,
       ...(args.description ? { description: args.description } : {}),
       ...(args.tags ? { tags: args.tags } : {}),
-      od: {
+      readable: {
         kind: 'scenario',
         ...(args.mode ? { mode: args.mode } : {}),
         ...(args.preview ? { preview: args.preview } : {}),
@@ -227,7 +227,7 @@ describe('PluginDetailsModal dispatch', () => {
   });
 
   it('offers the use/use-with-query split menu in the scenario fallback when the plugin has a query', () => {
-    // Regression (#3997 review): a text/scenario plugin with `od.useCase.query`
+    // Regression (#3997 review): a text/scenario plugin with `readable.useCase.query`
     // must still offer "Use plugin only" vs "Replicate this content", same as the
     // html/design/media variants — not a single plain `use` button.
     const html = render(
@@ -374,7 +374,7 @@ describe('PluginDetailsModal common metadata coverage', () => {
     expect(html).not.toContain('plugin-meta-sections__heading');
   });
 
-  it('routes official plugin author and source links to the Open Design repo', () => {
+  it('routes official plugin author and source links to the Readable Studio repo', () => {
     const html = render(
       pluginWithMeta({
         id: 'official-link-meta',
@@ -383,8 +383,8 @@ describe('PluginDetailsModal common metadata coverage', () => {
       }),
     );
 
-    expect(html).toContain('href="https://github.com/nexu-io/open-design"');
-    expect(html).toContain('nexu-io/open-design');
+    expect(html).toContain('href="https://github.com/sanghyunna/readable-studio"');
+    expect(html).toContain('sanghyunna/readable-studio');
     expect(html).toContain('Official');
   });
 });

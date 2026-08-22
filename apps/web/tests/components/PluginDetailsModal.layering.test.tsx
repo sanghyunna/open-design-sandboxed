@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, render } from '@testing-library/react';
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { PluginDetailsModal } from '../../src/components/PluginDetailsModal';
@@ -23,7 +23,7 @@ function makePlugin(
       name: id,
       version: '0.1.0',
       title: id,
-      od: {
+      readable: {
         kind: 'scenario',
         ...(preview ? { preview } : {}),
         useCase: {

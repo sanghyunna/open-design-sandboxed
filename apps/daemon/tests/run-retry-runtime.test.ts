@@ -53,7 +53,7 @@ describe('same-run retry runtime', () => {
   });
 
   it('retries a transient first-token failure inside the same run and logs retry events', async () => {
-    binDir = await mkdtemp(path.join(os.tmpdir(), 'od-run-retry-runtime-bin-'));
+    binDir = await mkdtemp(path.join(os.tmpdir(), 'readable-run-retry-runtime-bin-'));
     const fakeClaude = await writeFlakyClaude(binDir, 'claude-flaky');
 
     delete process.env.POSTHOG_KEY;
@@ -61,7 +61,7 @@ describe('same-run retry runtime', () => {
     delete process.env.LANGFUSE_PUBLIC_KEY;
     delete process.env.LANGFUSE_SECRET_KEY;
     delete process.env.LANGFUSE_BASE_URL;
-    delete process.env.OPEN_DESIGN_TELEMETRY_RELAY_URL;
+    delete process.env.READABLE_TELEMETRY_RELAY_URL;
 
     started = await startServer({ port: 0, returnServer: true }) as StartedServer;
     await putConfig(started.url, {
@@ -104,7 +104,7 @@ describe('same-run retry runtime', () => {
   });
 
   it('retries a silent first-token stall caught by the inactivity watchdog', async () => {
-    binDir = await mkdtemp(path.join(os.tmpdir(), 'od-run-retry-stall-bin-'));
+    binDir = await mkdtemp(path.join(os.tmpdir(), 'readable-run-retry-stall-bin-'));
     const { bin: fakeClaude, argsLogPath } = await writeStallingClaude(binDir, 'claude-stall');
 
     delete process.env.POSTHOG_KEY;
@@ -112,12 +112,12 @@ describe('same-run retry runtime', () => {
     delete process.env.LANGFUSE_PUBLIC_KEY;
     delete process.env.LANGFUSE_SECRET_KEY;
     delete process.env.LANGFUSE_BASE_URL;
-    delete process.env.OPEN_DESIGN_TELEMETRY_RELAY_URL;
+    delete process.env.READABLE_TELEMETRY_RELAY_URL;
     // Trip the no-output inactivity watchdog quickly so the first (silent)
     // attempt stalls at first_token_wait and the same-run retry can fire. Kept
     // comfortably above node cold-start so the recovered retry attempt's own
     // watchdog does not also trip before it emits its first token.
-    process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS = '400';
+    process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS = '400';
 
     started = await startServer({ port: 0, returnServer: true }) as StartedServer;
     await putConfig(started.url, {
@@ -180,10 +180,10 @@ function snapshotEnv(): Record<string, string | undefined> {
     LANGFUSE_PUBLIC_KEY: process.env.LANGFUSE_PUBLIC_KEY,
     LANGFUSE_SECRET_KEY: process.env.LANGFUSE_SECRET_KEY,
     LANGFUSE_BASE_URL: process.env.LANGFUSE_BASE_URL,
-    OPEN_DESIGN_TELEMETRY_RELAY_URL: process.env.OPEN_DESIGN_TELEMETRY_RELAY_URL,
+    READABLE_TELEMETRY_RELAY_URL: process.env.READABLE_TELEMETRY_RELAY_URL,
     POSTHOG_KEY: process.env.POSTHOG_KEY,
     POSTHOG_HOST: process.env.POSTHOG_HOST,
-    OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS: process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS,
+    READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS: process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS,
   };
 }
 
@@ -294,9 +294,9 @@ async function createAndWaitForRun(url: string): Promise<RunStatus> {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      'x-od-analytics-device-id': 'retry-runtime-test',
-      'x-od-analytics-session-id': 'retry-runtime-session',
-      'x-od-analytics-client-type': 'web',
+      'x-readable-studio-analytics-device-id': 'retry-runtime-test',
+      'x-readable-studio-analytics-session-id': 'retry-runtime-session',
+      'x-readable-studio-analytics-client-type': 'web',
     },
     body: JSON.stringify({
       projectId,

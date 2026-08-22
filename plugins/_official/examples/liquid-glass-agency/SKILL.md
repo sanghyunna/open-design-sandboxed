@@ -2,7 +2,7 @@
 name: liquid-glass-agency
 description: "Use this plugin when the user wants a dark, luxury single-page landing for an AI web-design agency: cinematic video backgrounds, editorial Instrument Serif italic headings, liquid-glass (glassmorphism) cards and CTAs, BlurText word-by-word reveals, and section-by-section storytelling. Invoke for 'liquid glass agency', 'glass landing page', 'AI agency site', or when the user references the Liquid Glass Agency template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design
@@ -78,12 +78,12 @@ Both get a `::before` pseudo-element that paints a **thin glowing gradient borde
 
 ## Assets & Media URLs — locked
 
-- Hero background video (CloudFront MP4, kept remote): `https://plugin-assets.open-design.ai/plugins/liquid-glass-agency/hf_20260307_083826_e938b29f-a43a-41ec-a153-3d4730578ab8-b7258e.mp4`
+- Hero background video (CloudFront MP4, kept remote): `https://plugin-assets.readable-studio.ai/plugins/liquid-glass-agency/hf_20260307_083826_e938b29f-a43a-41ec-a153-3d4730578ab8-b7258e.mp4`
 - Hero poster: inlined `data:image/svg+xml` in the seed (desaturated-blue atmospheric still). In a fuller React build the original was `/images/hero_bg.jpeg`.
 - StartSection video (Mux HLS): `https://stream.mux.com/9JXDljEVWYwWu01PUkAemafDugK89o01BR6zqJ3aS9u00A.m3u8`
 - Stats section video (Mux HLS, rendered **desaturated** `filter: saturate(0)`): `https://stream.mux.com/NcU3HlHeF7CUL86azTTzpy3Tlb00d6iF3BmCdFslMJYM.m3u8`
 - CTA/Footer video (Mux HLS): `https://stream.mux.com/8wrHPCX2dC3msyYU9ObwqNdm00u3ViXvOSHUMRYSEe5Q.m3u8`
-- Feature GIFs (originals): `https://plugin-assets.open-design.ai/plugins/liquid-glass-agency/hero-finlytic-preview-CV9g0FHP-9d3cb6.gif` (row 1, right) and `https://plugin-assets.open-design.ai/plugins/liquid-glass-agency/hero-wealth-preview-B70idl_u-7969db.gif` (row 2, left). The seed ships inlined SVG mock previews in their place so the card never breaks; you may use the GIF URLs in a React port.
+- Feature GIFs (originals): `https://plugin-assets.readable-studio.ai/plugins/liquid-glass-agency/hero-finlytic-preview-CV9g0FHP-9d3cb6.gif` (row 1, right) and `https://plugin-assets.readable-studio.ai/plugins/liquid-glass-agency/hero-wealth-preview-B70idl_u-7969db.gif` (row 2, left). The seed ships inlined SVG mock previews in their place so the card never breaks; you may use the GIF URLs in a React port.
 - Logo icon: inlined SVG data URI in the seed (`h-12 w-12` ⇒ 48×48).
 
 **Note for the vanilla seed:** HLS `.m3u8` cannot play in `<video>` without `hls.js`. To keep the seed self-contained and dependency-free, every video-background section reuses the CloudFront MP4 (which plays natively) as a stand-in. In a React port, wire each section's Mux HLS URL through `hls.js`.

@@ -7,7 +7,7 @@ triggers:
   - "soft premium UI"
   - "luxury landing page"
   - "expensive website"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

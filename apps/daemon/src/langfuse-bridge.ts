@@ -12,7 +12,7 @@ import { createHash } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 
-import { modelIdForTracking } from '@open-design/contracts/analytics';
+import { modelIdForTracking } from '@readable-studio/contracts/analytics';
 
 import { readAppConfig } from './app-config.js';
 import type { AppVersionInfo } from './app-version.js';
@@ -204,10 +204,10 @@ function objectRegistrationTelemetryConfig(
     kind: 'relay',
     relayUrl,
     timeoutMs: parsePositiveInt(
-      env.OPEN_DESIGN_OBJECT_RELAY_TIMEOUT_MS ?? env.OPEN_DESIGN_TELEMETRY_TIMEOUT_MS,
+      env.READABLE_OBJECT_RELAY_TIMEOUT_MS ?? env.READABLE_TELEMETRY_TIMEOUT_MS,
       20_000,
     ),
-    retries: parseNonNegativeInt(env.OPEN_DESIGN_TELEMETRY_RETRIES, 1),
+    retries: parseNonNegativeInt(env.READABLE_TELEMETRY_RETRIES, 1),
   };
 }
 
@@ -553,7 +553,7 @@ function objectStorageRef(args: {
     ? args.projectId
     : 'unknown-project';
   return [
-    'od://objects',
+    'readable-studio://objects',
     'workspaces',
     'unknown',
     'projects',
@@ -700,7 +700,7 @@ function buildTraceSafeManifests(args: {
         ...(extension ? { extension } : {}),
         redacted: false,
         truncated: false,
-        stored_in_open_design: true,
+        stored_in_readable_studio: true,
         retention_policy: 'project_lifetime',
         access_scope: 'project',
         sensitivity: 'private',
@@ -773,7 +773,7 @@ function buildTraceSafeManifests(args: {
           : { export_status: 'unavailable' }),
         redacted: false,
         truncated: false,
-        stored_in_open_design: true,
+        stored_in_readable_studio: true,
         retention_policy: 'project_lifetime',
         access_scope: 'project',
         sensitivity: 'private',

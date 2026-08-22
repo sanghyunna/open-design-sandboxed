@@ -15,7 +15,7 @@ describe('daemon startup CLI parsing', () => {
   });
 
   it('uses environment defaults when startup flags are omitted', () => {
-    expect(parseDaemonCliStartupArgs([], { OD_BIND_HOST: '127.0.0.2', OD_PORT: '7345' })).toEqual({
+    expect(parseDaemonCliStartupArgs([], { READABLE_BIND_HOST: '127.0.0.2', READABLE_PORT: '7345' })).toEqual({
       ok: true,
       config: {
         host: '127.0.0.2',
@@ -29,7 +29,7 @@ describe('daemon startup CLI parsing', () => {
     expect(parseDaemonCliStartupArgs(['browser', 'snapshot', '--url', 'https://example.test/'], {})).toEqual({
       ok: false,
       kind: 'error',
-      message: 'unknown command: od browser',
+      message: 'unknown command: readable browser',
     });
   });
 

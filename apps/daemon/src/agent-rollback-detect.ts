@@ -2,13 +2,13 @@
 //
 // The agent requests a self-rollback by emitting a marker in its streamed text:
 //
-//   <od-rollback-request mode="files_only" reason="I accidentally deleted the hero section" />
+//   <readable-rollback-request mode="files_only" reason="I accidentally deleted the hero section" />
 //
 // The marker is stripped from user-visible output and converted into a structured
 // `rollback_request` SSE event. The actual restore still requires explicit user
 // confirmation; the marker is only a request.
 
-import type { RollbackMode } from '@open-design/contracts';
+import type { RollbackMode } from '@readable-studio/contracts';
 
 export interface DetectedRollbackRequest {
   mode: RollbackMode;
@@ -21,11 +21,11 @@ const ROLLBACK_MODE_VALUES = new Set<RollbackMode>([
   'files_and_chat',
 ]);
 
-const ROLLBACK_REQUEST_OPEN_RE = /<od-rollback-request\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/i;
-const ROLLBACK_REQUEST_CLOSE_RE = /<\/od-rollback-request>/i;
-const ROLLBACK_REQUEST_OPEN_RE_G = /<od-rollback-request\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
-const ROLLBACK_REQUEST_CLOSE_RE_G = /<\/od-rollback-request>/gi;
-const ROLLBACK_REQUEST_OPEN_START_RE = /<od-rollback-request\b/i;
+const ROLLBACK_REQUEST_OPEN_RE = /<readable-rollback-request\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/i;
+const ROLLBACK_REQUEST_CLOSE_RE = /<\/readable-rollback-request>/i;
+const ROLLBACK_REQUEST_OPEN_RE_G = /<readable-rollback-request\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
+const ROLLBACK_REQUEST_CLOSE_RE_G = /<\/readable-rollback-request>/gi;
+const ROLLBACK_REQUEST_OPEN_START_RE = /<readable-rollback-request\b/i;
 const MODE_DQ_RE = /\bmode\s*=\s*"([^"]+)"/i;
 const MODE_SQ_RE = /\bmode\s*=\s*'([^']+)'/i;
 const REASON_DQ_RE = /\breason\s*=\s*"([^"]*)"/i;
@@ -40,7 +40,7 @@ function parseRollbackMode(value: string): RollbackMode | null {
 }
 
 /**
- * Detect the first well-formed `<od-rollback-request>` marker in `text`.
+ * Detect the first well-formed `<readable-rollback-request>` marker in `text`.
  * Returns the requested mode and reason, or `null` if no valid marker is found.
  */
 export function detectAgentRollbackRequest(text: string): DetectedRollbackRequest | null {
@@ -57,7 +57,7 @@ export function detectAgentRollbackRequest(text: string): DetectedRollbackReques
 }
 
 /**
- * Remove all `<od-rollback-request>` markers (self-closing or with an explicit
+ * Remove all `<readable-rollback-request>` markers (self-closing or with an explicit
  * close tag) from `text` so they never reach the user-visible chat buffer.
  */
 export function stripAgentRollbackRequestMarkers(text: string): string {
@@ -75,7 +75,7 @@ export interface StreamingRollbackResult {
 }
 
 /**
- * Stateful detector that handles `<od-rollback-request>` markers split across
+ * Stateful detector that handles `<readable-rollback-request>` markers split across
  * stream chunks. It buffers a small amount of trailing text so a marker that
  * starts near a chunk boundary is still detected, and it never emits text that
  * is part of an incomplete marker.

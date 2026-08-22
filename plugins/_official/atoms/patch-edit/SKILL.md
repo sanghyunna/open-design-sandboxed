@@ -1,7 +1,7 @@
 ---
 name: patch-edit
 description: Apply one rewrite-plan step at a time as small reviewable file edits, never rewriting whole files when a localised change suffices.
-od:
+readable:
   scenario: code-migration
   mode: edit
 ---
@@ -36,7 +36,7 @@ project-cwd/
 
 The atom completes when every step in `plan/steps.json` is in a
 terminal state (`completed` / `skipped`) OR `iterations >=
-OD_MAX_DEVLOOP_ITERATIONS`. Use:
+READABLE_MAX_DEVLOOP_ITERATIONS`. Use:
 
 ```jsonc
 {

@@ -22,7 +22,7 @@ describe('design systems registry', () => {
   let root: string;
 
   beforeEach(async () => {
-    root = await mkdtemp(path.join(tmpdir(), 'od-design-systems-'));
+    root = await mkdtemp(path.join(tmpdir(), 'readable-design-systems-'));
   });
 
   afterEach(async () => {

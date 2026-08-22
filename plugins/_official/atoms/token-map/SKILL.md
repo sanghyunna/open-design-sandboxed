@@ -1,7 +1,7 @@
 ---
 name: token-map
-description: Map an extracted Figma / source-code token bag onto the active OD design system, producing a deterministic mapping the generate stage can consume.
-od:
+description: Map an extracted Figma / source-code token bag onto the active Readable Studio design system, producing a deterministic mapping the generate stage can consume.
+readable:
   scenario: figma-migration
   mode: token-map
 ---
@@ -10,7 +10,7 @@ od:
 
 Spec §10 / §21.3.1: every figma-migration / code-migration run
 crosses the same boundary — "the source has its own tokens; the
-target uses the active OD design system; we need a deterministic
+target uses the active Readable Studio design system; we need a deterministic
 mapping". This atom produces that mapping.
 
 ## Inputs
@@ -18,7 +18,7 @@ mapping". This atom produces that mapping.
 - `figma/tokens.json` from `figma-extract` (figma-migration), OR
 - `code/tokens.json` from `design-extract` (code-migration).
 - The active design system DESIGN.md (already injected into the
-  prompt; the atom reads from `.od-skills/design-system/DESIGN.md`).
+  prompt; the atom reads from `.readable-studio-skills/design-system/DESIGN.md`).
 
 ## Output
 

@@ -257,7 +257,7 @@ describe('DesignFilesPanel preview', () => {
 
   it('renders sketch files with the static sketch preview instead of a broken image', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
       items: [
         {
           kind: 'rect',

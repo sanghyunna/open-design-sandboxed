@@ -11,7 +11,7 @@ import { createPortal } from 'react-dom';
 import type {
   InstalledPluginRecord,
   McpServerConfig,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { useI18n, useT } from '../i18n';
 import { ComposerPluginPreview } from './ComposerPluginPreview';
 import { localizePluginTitle } from './plugins-home/localization';
@@ -345,7 +345,7 @@ export function ComposerPlusMenu({
       <button
         ref={triggerRef}
         type="button"
-        className={`icon-btn plus-menu__trigger od-tooltip${open ? ' is-active' : ''}`}
+        className={`icon-btn plus-menu__trigger readable-tooltip${open ? ' is-active' : ''}`}
         data-testid={triggerTestId}
         onClick={() => {
           if (open) {

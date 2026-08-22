@@ -1,57 +1,46 @@
-# Open Design roadmap
+# Readable Studio roadmap
 
-This page is the durable entry point for current roadmap material. It describes
-the repository's active product boundary; detailed work stays in
-[`specs/current/`](../specs/current/) and in the repository's issue tracker.
+## Product direction
+
+Readable Studio is a Windows document workspace for office workers:
+
+```text
+source text -> AI generation -> PowerPoint-like direct editing -> standalone HTML
+```
+
+The roadmap optimizes that complete loop. It does not optimize for more prompt turns, a hosted publishing destination, or additional operating-system packages.
 
 ## Current baseline
 
-- Windows is the primary supported platform. macOS, Linux, and WSL2 are
-  best-effort.
-- The shipped runtime is a local daemon, the Next.js web app, and the Electron
-  desktop/packaged shells.
-- User-facing capabilities must be available through both the web UI and the
-  `od` CLI, backed by the same daemon HTTP contracts.
-- Local development runs through `pnpm tools-dev`; local packaged validation
-  runs through `pnpm tools-pack` and deterministic updater fixtures from
-  `pnpm tools-serve`.
-- This workspace does not own hosted deployment, container orchestration, or a
-  release-publishing pipeline.
+- Windows 10/11 x64 portable ZIP is the only supported artifact.
+- Users manually download it from GitHub Releases, extract it, and run `Readable Studio.exe`.
+- The local desktop shell, web UI, daemon, enabled agent adapters, CLI, plugins, skills, design systems, preview, direct editing, and export pipeline operate as one product.
+- Standalone HTML is canonical; PDF, PPTX, ZIP, and Markdown remain artifact-dependent secondary outputs.
+- Source-mode data defaults to `.readable-studio`; portable data stays beside the executable under `ReadableStudioData\namespaces\<namespace>`.
 
 ## Active priorities
 
-- Continue the staged maintainability work in
-  [`specs/current/maintainability-roadmap.md`](../specs/current/maintainability-roadmap.md).
-- Improve run reliability, observability, and recovery without weakening the
-  local runtime boundary.
-- Keep contracts, UI, CLI, and end-to-end coverage aligned as capabilities
-  evolve.
-- Preserve Windows-native behavior while making best-effort platforms easier
-  to validate with package-scoped commands.
+1. **Source fidelity** - make imported business material, terminology, tables, and constraints easy to carry into a draft and audit afterward.
+2. **Office-worker editing** - deepen reliable text, typography, layout, geometry, page, and style controls without requiring HTML knowledge.
+3. **Fast handoff between AI and direct manipulation** - reserve agent runs for substantive work and make mechanical corrections immediate.
+4. **Standalone HTML quality** - improve deterministic inlining, warnings, accessibility, portability, and document structure.
+5. **Company document workflows** - strengthen reports, briefs, plans, decks, recurring templates, and review flows.
+6. **Integrated extensibility** - keep plugins, skills, design systems, CLI, HTTP APIs, and automation aligned with the same workflow.
+7. **Windows portable reliability** - keep build, extraction, startup, data portability, diagnostics, and local lifecycle reproducible.
 
-Current design work and accepted implementation plans are indexed under
-[`specs/current/`](../specs/current/) and [`docs/plans/`](plans/). An item in
-those directories is not a release promise; the associated issue or PR records
-its actual status.
+## Delivery principles
 
-## Delivery and validation
-
-Changes land through focused issues and pull requests. The repository-wide
-minimum validation is:
-
-```bash
-pnpm guard
-pnpm typecheck
-```
-
-Add package-scoped tests and builds for the files changed. There is no root
-aggregate build or test command, and no repository-owned release workflow.
+- UI and CLI capabilities land together against shared `/api/*` contracts.
+- Product language is maintained in English and Korean.
+- Portable builds remain local tooling; release assets are downloaded manually from GitHub Releases.
+- Changes are measured against capability parity so narrowing distribution never removes editing, plugin, CLI, or export behavior accidentally.
+- History, upstream citations, provenance, and legal text remain truthful rather than being rewritten to match current positioning.
 
 ## Non-goals
 
-- Reintroducing GitHub-hosted CI/CD, external release storage, or publishing
-  automation without an explicit maintainer decision.
-- Reintroducing Docker, Compose, Helm, Kubernetes, or cloud-provider deployment
-  assets as workspace maintenance surfaces.
-- Treating speculative schedules as commitments. New product directions should
-  begin as an issue or current spec with an owner and validation plan.
+- no product website or hosted document destination;
+- no automatic updater, installer, app store, or release-publishing automation;
+- no macOS, Linux, WSL, or Nix product distributions;
+- a prompt-only workflow for minor edits;
+- replacing the integrated CLI/plugin surface with a desktop-only interface;
+- claiming that standalone export captures runtime network traffic or arbitrary multi-page applications.

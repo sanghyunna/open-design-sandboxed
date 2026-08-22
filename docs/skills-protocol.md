@@ -4,9 +4,9 @@
 
 > Want to ship a skill upstream rather than read the protocol spec? See [`skills-contributing.md`](skills-contributing.md) — quick start, merge bar, PR template, common rejections. This file is the **what** (frontmatter grammar, discovery rules, mode semantics); that file is the **how** (clone to merged PR).
 
-A **Skill** is the atomic unit of design capability in OD. We adopt Claude Code's `SKILL.md` convention verbatim as the base format, then add optional fields for design-specific features (preview type, input schema, slider parameters). A skill written for plain Claude Code runs in OD. An OD skill that doesn't use our extensions runs in plain Claude Code.
+A **Skill** is the atomic unit of design capability in Readable Studio. We adopt Claude Code's `SKILL.md` convention verbatim as the base format, then add optional fields for design-specific features (preview type, input schema, slider parameters). A skill written for plain Claude Code runs in Readable Studio. An Readable Studio skill that doesn't use our extensions runs in plain Claude Code.
 
-> **Compatibility promise:** A skill like [`guizang-ppt-skill`](https://github.com/op7418/guizang-ppt-skill) works in OD **without modification**. It just drops into `~/.claude/skills/` and OD discovers it.
+> **Compatibility promise:** A skill like [`guizang-ppt-skill`](https://github.com/op7418/guizang-ppt-skill) works in Readable Studio **without modification**. It just drops into `~/.claude/skills/` and Readable Studio discovers it.
 
 ---
 
@@ -48,11 +48,11 @@ triggers:
 
 Body is free-form Markdown that describes the workflow the agent should follow — typically a numbered step list plus principles. This is what [guizang-ppt-skill](https://github.com/op7418/guizang-ppt-skill) does.
 
-**OD reads all of this as-is.** No changes required.
+**Readable Studio reads all of this as-is.** No changes required.
 
-## 2. OD extensions (optional)
+## 2. Readable Studio extensions (optional)
 
-Skills can declare additional front-matter fields to unlock OD-specific UI. All fields are optional; absent fields fall back to sensible defaults.
+Skills can declare additional front-matter fields to unlock Readable Studio-specific UI. All fields are optional; absent fields fall back to sensible defaults.
 
 ```yaml
 ---
@@ -60,9 +60,9 @@ name: magazine-web-ppt
 description: …
 triggers: […]
 
-# --- OD extensions below this line ---
+# --- Readable Studio extensions below this line ---
 
-od:
+readable:
   mode: deck                        # one of: prototype | deck | template | design-system
   preview:
     type: html                      # html | jsx | pptx | markdown
@@ -107,26 +107,26 @@ od:
 ---
 ```
 
-### 2.1 What OD uses each field for
+### 2.1 What Readable Studio uses each field for
 
 | Field | Used by |
 |---|---|
 | `zh_name` / `en_name` | localized picker title; falls back to `name` |
 | `zh_description` / `en_description` | localized picker description; falls back to `description` |
-| `od.mode` | routing (which mode picker the skill shows up under) |
-| `od.preview.type` | picking the right iframe renderer |
-| `od.example_prompt` | English fallback starter prompt used by picker CTA |
-| `od.example_prompt_i18n` | localized starter prompt map (for example `zh-CN`) |
-| `od.design_system.requires` | whether to inject `DESIGN.md` |
-| `od.design_system.sections` | pruning the injected DESIGN.md to relevant sections only (token savings) |
-| `od.craft.requires` | which brand-agnostic `craft/<slug>.md` references to inject (e.g. `typography`, `color`, `anti-ai-slop`); injected between DESIGN.md and the skill body |
-| `od.inputs` | rendering a typed form in the sidebar instead of only free-text |
-| `od.parameters` | rendering live sliders that re-prompt on change |
-| `od.outputs.primary` | which file the iframe loads |
-| `od.outputs.secondary` | which files export pipelines read (e.g. `slides.json` for PPTX) |
-| `od.capabilities_required` | gating: if the active agent lacks surgical edit, comment mode is disabled for this skill |
+| `readable.mode` | routing (which mode picker the skill shows up under) |
+| `readable.preview.type` | picking the right iframe renderer |
+| `readable.example_prompt` | English fallback starter prompt used by picker CTA |
+| `readable.example_prompt_i18n` | localized starter prompt map (for example `zh-CN`) |
+| `readable.design_system.requires` | whether to inject `DESIGN.md` |
+| `readable.design_system.sections` | pruning the injected DESIGN.md to relevant sections only (token savings) |
+| `readable.craft.requires` | which brand-agnostic `craft/<slug>.md` references to inject (e.g. `typography`, `color`, `anti-ai-slop`); injected between DESIGN.md and the skill body |
+| `readable.inputs` | rendering a typed form in the sidebar instead of only free-text |
+| `readable.parameters` | rendering live sliders that re-prompt on change |
+| `readable.outputs.primary` | which file the iframe loads |
+| `readable.outputs.secondary` | which files export pipelines read (e.g. `slides.json` for PPTX) |
+| `readable.capabilities_required` | gating: if the active agent lacks surgical edit, comment mode is disabled for this skill |
 
-### 2.2 If a skill omits `od:` entirely
+### 2.2 If a skill omits `readable:` entirely
 
 Defaults:
 - `mode`: inferred from name/description (best-effort keyword match) or "prototype"
@@ -151,15 +151,15 @@ Conflicts by `name` resolve to the higher-priority version. All locations are wa
 
 ### Symlink strategy (borrowed from [cc-switch](https://github.com/farion1231/cc-switch))
 
-`cc-switch` maintains a central skill dir at `~/.cc-switch/skills/` and symlinks it into each agent's expected location (`~/.claude/skills/`, `~/.codex/skills/`, etc.). OD can opt into the same model:
+`cc-switch` maintains a central skill dir at `~/.cc-switch/skills/` and symlinks it into each agent's expected location (`~/.claude/skills/`, `~/.codex/skills/`, etc.). Readable Studio can opt into the same model:
 
 ```
-~/.open-design/skills/
+~/.readable-studio/skills/
     magazine-web-ppt/      (canonical location)
 ~/.claude/skills/
-    magazine-web-ppt → ~/.open-design/skills/magazine-web-ppt
+    magazine-web-ppt → ~/.readable-studio/skills/magazine-web-ppt
 ~/.codex/skills/
-    magazine-web-ppt → ~/.open-design/skills/magazine-web-ppt
+    magazine-web-ppt → ~/.readable-studio/skills/magazine-web-ppt
 ```
 
 One install → every agent sees the skill. This is optional; users who only use one agent don't need it.
@@ -199,17 +199,17 @@ Each mode expects a slightly different skill shape. The required outputs and exp
 - **Preview:** `markdown` (render the resulting DESIGN.md with a sample-components preview).
 - **Primary output:** `DESIGN.md`.
 - **Typical workflow:** analyze input → draft 9 sections per awesome-claude-design schema → generate sample component preview → finalize.
-- **Post-run:** OD prompts the user to set this DESIGN.md as the project's active design system.
+- **Post-run:** Readable Studio prompts the user to set this DESIGN.md as the project's active design system.
 
 ## 5. The DESIGN.md as skill context
 
-Every non–design-system skill (modes 1–3) can consume the active `DESIGN.md`. OD injects it as:
+Every non–design-system skill (modes 1–3) can consume the active `DESIGN.md`. Readable Studio injects it as:
 
-1. **System-prompt prefix** (required sections only, per `od.design_system.sections`).
+1. **System-prompt prefix** (required sections only, per `readable.design_system.sections`).
 2. **File available in CWD** named `DESIGN.md` — skills can `Read` it directly via their agent.
 3. **Template variable** `{{ design_system }}` if the skill body references it in Mustache-style.
 
-The 9-section DESIGN.md format is **not invented by OD**; it's the [awesome-claude-design](https://github.com/VoltAgent/awesome-claude-design) convention, reproduced here for convenience:
+The 9-section DESIGN.md format is **not invented by Readable Studio**; it's the [awesome-claude-design](https://github.com/VoltAgent/awesome-claude-design) convention, reproduced here for convenience:
 
 ```markdown
 # <Brand Name>
@@ -231,7 +231,7 @@ Example: [`docs/examples/DESIGN.sample.md`](examples/DESIGN.sample.md).
 
 Some craft knowledge is **universal** — true regardless of brand. ALL CAPS always needs ≥0.06em letter-spacing; `var(--accent)` should appear at most 2 times per screen; `#6366f1` is always the AI-default tell. These rules don't belong in any one `DESIGN.md` because they apply across every brand.
 
-OD ships these as a third axis at `<projectRoot>/craft/`:
+Readable Studio ships these as a third axis at `<projectRoot>/craft/`:
 
 ```
 craft/
@@ -244,14 +244,14 @@ craft/
 A skill opts in by listing the slugs it needs:
 
 ```yaml
-od:
+readable:
   craft:
     requires: [typography, color, anti-ai-slop]
 ```
 
 Resolution at compose time:
 
-1. `apps/daemon/src/skills.ts` reads `od.craft.requires` from front-matter and surfaces it on the skill record.
+1. `apps/daemon/src/skills.ts` reads `readable.craft.requires` from front-matter and surfaces it on the skill record.
 2. `apps/daemon/src/craft.ts` reads each `<slug>.md` from `CRAFT_DIR`. Missing files are dropped silently — a skill can forward-reference `craft/motion.md` before we ship it. See [`craft/README.md`](../craft/README.md) for the canonical slug list and the rationale behind the silent-fallback choice.
 3. `apps/daemon/src/prompts/system.ts` injects the concatenated craft body **between** the active DESIGN.md and the skill body. Brand tokens in DESIGN.md win on conflict; craft rules cover everything DESIGN.md does not override.
 
@@ -260,27 +260,27 @@ The split keeps DESIGN.md authors free of universal-craft duplication and keeps 
 ## 6. Skill installation
 
 ```sh
-od skill add https://github.com/op7418/guizang-ppt-skill
-# → clones into ~/.open-design/skills/magazine-web-ppt
+readable skill add https://github.com/op7418/guizang-ppt-skill
+# → clones into ~/.readable-studio/skills/magazine-web-ppt
 # → symlinks into ~/.claude/skills/ (and any other active agent dirs)
 # → re-indexes registry
 
-od skill add ./path/to/my-skill
+readable skill add ./path/to/my-skill
 # → symlinks local dir (no copy) into skills registry
 
-od skill list
+readable skill list
 # → table: name, mode, source, agent compatibility
 
-od skill remove <name>
+readable skill remove <name>
 # → unlinks; does not delete the source
 ```
 
-## 7. Worked example — running `guizang-ppt-skill` under OD
+## 7. Worked example — running `guizang-ppt-skill` under Readable Studio
 
 The skill is unchanged. Here's the full path:
 
-1. User: `od skill add https://github.com/op7418/guizang-ppt-skill`
-2. Registry indexes it. No `od:` block in front-matter → defaults applied:
+1. User: `readable skill add https://github.com/op7418/guizang-ppt-skill`
+2. Registry indexes it. No `readable:` block in front-matter → defaults applied:
    - `mode`: inferred from body mentioning "PPT" → `deck`.
    - `preview.type`: sniffed from `assets/template.html` → `html`.
    - `preview.entry`: `index.html` (convention).
@@ -289,12 +289,12 @@ The skill is unchanged. Here's the full path:
 4. User types "给我做一份杂志风 8 页投资人 PPT".
 5. Daemon dispatches to active agent (Claude Code) with:
    - system message: skill's `SKILL.md` body
-   - cwd: `./.od/artifacts/2026-04-24-pitch-deck/`
+   - cwd: `./.readable-studio/artifacts/2026-04-24-pitch-deck/`
    - files already placed in cwd: `template.html` (from skill's `assets/`)
 6. Agent runs its 6-step workflow (clarify → copy template → populate → self-check → preview → refine).
-7. OD streams the agent's tool calls as UI events; artifact dir grows.
+7. Readable Studio streams the agent's tool calls as UI events; artifact dir grows.
 8. Agent signals done; daemon sets preview iframe to `index.html`.
-9. User clicks "Export PPTX" — export pipeline notices the skill has no `slides.json` output (the upstream skill doesn't produce one). OD falls back to "print to PDF then page-to-slide PPTX," which is uglier but works. This is a known limitation documented per-skill.
+9. User clicks "Export PPTX" — export pipeline notices the skill has no `slides.json` output (the upstream skill doesn't produce one). Readable Studio falls back to "print to PDF then page-to-slide PPTX," which is uglier but works. This is a known limitation documented per-skill.
 
 ## 8. Writing a new skill — minimal example
 
@@ -314,7 +314,7 @@ description: |
 triggers:
   - "saas landing"
   - "marketing page"
-od:
+readable:
   mode: prototype
   preview:
     type: html
@@ -351,7 +351,7 @@ od:
 
 ## 9. Testing skills
 
-A skill ships with optional test inputs that OD uses for CI:
+A skill ships with optional test inputs that Readable Studio uses for CI:
 
 ```
 <skill-root>/
@@ -361,10 +361,10 @@ A skill ships with optional test inputs that OD uses for CI:
     └── basic.expected.regex.txt       # text regex assertions against the primary output
 ```
 
-`od skill test <name>` runs the skill against each case using a cheap model (e.g. Haiku 4.5) and asserts on the manifest + regex. Low-fidelity but catches structural regressions.
+`readable skill test <name>` runs the skill against each case using a cheap model (e.g. Haiku 4.5) and asserts on the manifest + regex. Low-fidelity but catches structural regressions.
 
 ## 10. Open questions
 
-- **Skill signing.** Can we verify a skill hasn't been tampered with between publish and install? Simplest answer: `od skill add` records the git commit SHA; reinstall-on-update warns on signature change. Deferred to v1.
+- **Skill signing.** Can we verify a skill hasn't been tampered with between publish and install? Simplest answer: `readable skill add` records the git commit SHA; reinstall-on-update warns on signature change. Deferred to v1.
 - **Skill composition.** Can a `prototype-skill` call a `deck-skill` for a sub-artifact? Not in v1; skills are leaf-level. Composition would require a meta-skill concept, which is speculative.
 - **Parameter stability.** When sliders change, should the agent re-plan or just re-render? Lean: re-render (fast path), with an "also re-plan" button for larger changes.

@@ -6,7 +6,7 @@
 // terminal outcome wins, attribution carried from the amr_entry click.
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AmrEntryAttribution } from '@open-design/contracts/analytics';
+import type { AmrEntryAttribution } from '@readable-studio/contracts/analytics';
 
 // Spy on the analytics client so the user_id ordering contract is
 // observable without a live PostHog instance.
@@ -21,8 +21,8 @@ import {
 } from '../src/analytics/amr-auth';
 
 const attribution: AmrEntryAttribution = {
-  entryId: 'od-amr-test-entry',
-  sourceProduct: 'open_design',
+  entryId: 'readable-amr-test-entry',
+  sourceProduct: 'readable_studio',
   sourceDetail: 'inline_model_switcher_amr_row',
   occurredAt: new Date().toISOString(),
 };
@@ -47,7 +47,7 @@ describe('amr-auth single-flight tracking', () => {
       page_name: 'chat_panel',
       area: 'amr_auth',
       result: 'success',
-      entry_id: 'od-amr-test-entry',
+      entry_id: 'readable-amr-test-entry',
       source_detail: 'inline_model_switcher_amr_row',
     });
     expect(props.duration_ms).toBeGreaterThanOrEqual(1500);

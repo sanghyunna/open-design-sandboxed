@@ -1,4 +1,4 @@
-import type { ApiErrorCode } from '@open-design/contracts';
+import type { ApiErrorCode } from '@readable-studio/contracts';
 
 export class HostedRuntimeError extends Error {
   readonly code: ApiErrorCode;

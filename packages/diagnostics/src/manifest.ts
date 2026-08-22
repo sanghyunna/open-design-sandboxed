@@ -31,6 +31,7 @@ export interface DiagnosticsContext {
 }
 
 export interface DiagnosticsManifest {
+  schema: "readable-studio.diagnostics-manifest.v1";
   exportedAt: string;
   app: DiagnosticsAppInfo;
   source: string;
@@ -67,6 +68,7 @@ export function buildManifest(context: DiagnosticsContext, files: CollectedFile[
     if (file.error) warnings.push(`${file.name}: ${file.error}`);
   }
   return {
+    schema: "readable-studio.diagnostics-manifest.v1",
     exportedAt: new Date().toISOString(),
     app: context.app,
     source: context.source,

@@ -1,14 +1,14 @@
-# Architecture Boundaries
+# Readable Studio architecture boundaries
 
 ## Purpose
 
-This document defines the architectural boundaries for the local Open Design app. These boundaries are architectural constraints; some enforcement details can be implemented later through the relevant roadmap workstreams.
+This document defines the architectural constraints for Readable Studio's end-to-end document workflow: source text enters the local workspace, an agent generates a draft, the user edits the rendered document directly, and the current source exports as standalone HTML.
 
-## Product Shape
+## Product shape
 
-Open Design is a local-first application. The near-term Electron version is a shell around the same `apps/web` and `apps/daemon` architecture.
+Readable Studio ships as a Windows 10/11 x64 portable ZIP. Its Electron shell uses the same `apps/web` and `apps/daemon` architecture as source development; it does not introduce a separate privileged application layer. The web layer and daemon keep the same responsibilities in both modes.
 
-Electron does not introduce a separate privileged application layer. The web layer and daemon keep the same responsibilities in browser and Electron modes.
+Standalone HTML is the canonical deliverable. PDF, PPTX, ZIP, and Markdown remain artifact-dependent export capabilities. Plugins, skills, design systems, direct editing, and the `readable` CLI remain integrated against the daemon boundary.
 
 ## Web Boundary
 
@@ -16,7 +16,7 @@ Electron does not introduce a separate privileged application layer. The web lay
 
 `apps/web` must not directly access local privileged capabilities:
 
-- `.od` state
+- `.readable-studio` state
 - SQLite storage
 - workspace filesystem reads or writes
 - agent CLI processes
@@ -29,7 +29,7 @@ The web layer communicates with daemon-owned capabilities through API DTOs and s
 
 `apps/daemon` is the sole local capability server. It owns privileged local runtime behavior:
 
-- `.od` state
+- `.readable-studio` state
 - SQLite storage, schema, migrations, and storage layout
 - workspace filesystem access
 - agent CLI invocation
@@ -77,11 +77,11 @@ Users cannot provide free-form shell commands for daemon execution.
 
 Agent invocations should use controlled command templates and argument construction. User-provided content may enter prompts, files, or configuration fields, while command structure remains daemon-controlled.
 
-Plugin or custom-agent command extension is outside the current scope.
+Plugin and agent extensions must enter through the typed plugin/runtime contracts; they do not grant users a free-form shell surface.
 
 ## Security Baseline
 
-The app is local-first. Daemon should bind locally, and local API authentication can be deferred.
+The app is local. The daemon binds to loopback and owns authorization gates required by desktop and packaged runtime modes.
 
 Daemon output should redact sensitive values by default, including tokens, API keys, environment secrets, and Authorization-like headers.
 
@@ -104,8 +104,8 @@ The following policy details can be finalized in later workstreams:
 
 - multiple workspace support
 - workspace registry location
-- artifact, cache, and log directory layout
-- Electron workspace picker behavior
+- future changes to artifact, cache, and log layout within the namespace boundary
+- workspace picker behavior
 - task concurrency limits
 - timeout defaults
 - queueing strategy

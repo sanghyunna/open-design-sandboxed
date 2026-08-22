@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import type { HostedMessagesResponse, HostedSessionResponse } from '@open-design/contracts';
+import type { HostedMessagesResponse, HostedSessionResponse } from '@readable-studio/contracts';
 
 import { createSmokeSuite } from '@/smoke-suite';
 import { T } from '@/timeouts';
@@ -11,7 +11,7 @@ test('[P0] hosted composition accepts a credential and edits owned project conte
   await suite.with.hosted(async (hosted) => {
     const user = hosted.identity('a');
     await page.context().addCookies([{
-      name: '__Host-od-hosted',
+      name: '__Host-readable-hosted',
       value: 'a',
       domain: new URL(hosted.webUrl).hostname,
       path: '/',
@@ -79,7 +79,7 @@ test('[P0] hosted composition accepts a credential and edits owned project conte
 <script>
 try { void fetch('/api/hosted/provider', { method: 'DELETE' }); } catch {}
 try { new WebSocket('ws://' + location.host + '/api/hosted/provider'); } catch {}
-try { parent.postMessage({ type: 'od:file-save', path: 'index.html', content: 'forged' }, '*'); } catch {}
+try { parent.postMessage({ type: 'readable-studio:file-save', path: 'index.html', content: 'forged' }, '*'); } catch {}
 try { document.forms[0].submit(); } catch {}
 try { top.location = '/api/hosted/provider'; } catch {}
 </script>

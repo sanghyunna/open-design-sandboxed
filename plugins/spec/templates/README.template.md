@@ -13,15 +13,15 @@ One paragraph explaining what this plugin helps a user do.
 ## Try It
 
 ```bash
-od plugin validate .
-od plugin install .
-od plugin apply plugin-id --input artifact=prototype --input audience=founders --input topic=onboarding
+readable plugin validate .
+readable plugin install .
+readable plugin apply plugin-id --input artifact=prototype --input audience=founders --input topic=onboarding
 ```
 
 ## Files
 
 - `SKILL.md` - portable agent instructions.
-- `open-design.json` - versioned Open Design marketplace and apply metadata.
+- `readable-studio.json` - versioned Readable Studio marketplace and apply metadata.
 - `examples/` - sample output or fixture prompts.
 - `evals/` - repeatable quality checks.
 

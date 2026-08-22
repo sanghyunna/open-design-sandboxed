@@ -20,14 +20,14 @@ const TOOLTIP_GAP = 7;
 
 function isTooltipTarget(el: Element | null): el is HTMLElement {
   return el instanceof HTMLElement
-    && el.classList.contains('od-tooltip')
+    && el.classList.contains('readable-tooltip')
     && Boolean(el.dataset.tooltip?.trim())
     && el.getAttribute('aria-expanded') !== 'true';
 }
 
 function readTooltipTarget(start: EventTarget | null): HTMLElement | null {
   if (!(start instanceof Element)) return null;
-  const candidate = start.closest('.od-tooltip[data-tooltip]');
+  const candidate = start.closest('.readable-tooltip[data-tooltip]');
   return isTooltipTarget(candidate) ? candidate : null;
 }
 
@@ -95,7 +95,7 @@ export function TooltipLayer() {
       if (!suppressed.target.hasAttribute('title')) {
         suppressed.target.setAttribute('title', suppressed.title);
       }
-      suppressed.target.removeAttribute('data-od-tooltip-native-title');
+      suppressed.target.removeAttribute('data-readable-tooltip-native-title');
     }
     suppressedTitleRef.current = null;
   }, []);
@@ -105,7 +105,7 @@ export function TooltipLayer() {
     restoreNativeTitle();
     const title = target.getAttribute('title');
     if (!title) return;
-    target.setAttribute('data-od-tooltip-native-title', title);
+    target.setAttribute('data-readable-tooltip-native-title', title);
     target.removeAttribute('title');
     suppressedTitleRef.current = { target, title };
   }, [restoreNativeTitle]);
@@ -293,7 +293,7 @@ export function TooltipLayer() {
   return createPortal(
     <div
       ref={tooltipRef}
-      className="od-tooltip-layer"
+      className="readable-tooltip-layer"
       role="tooltip"
       style={{
         transform: `translate3d(${state.style.x}px, ${state.style.y}px, 0)`,

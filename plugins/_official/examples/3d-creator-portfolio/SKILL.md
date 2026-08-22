@@ -2,7 +2,7 @@
 name: 3d-creator-portfolio
 description: "Use this plugin when the user wants a dark, premium 3D-creator / designer portfolio landing page: a full-viewport hero with a gradient-text headline and a mouse-following magnetic 3D portrait, a scroll-driven horizontal image marquee, an About section with corner 3D decorations and character-by-character scroll-reveal text, a white Services list, and sticky-stacking project cards. Invoke for '3D creator portfolio', 'designer landing page', 'creative portfolio with magnetic hero', or when the user references the Jack 3D Creator template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

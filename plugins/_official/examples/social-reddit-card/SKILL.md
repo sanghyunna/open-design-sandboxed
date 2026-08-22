@@ -18,7 +18,7 @@ example_tagline: "Reddit dark mode + vote rail"
 example_desc: "An AITA-style story · 12.3k upvotes · 1.2k comments"
 example_source_url: "https://github.com/nexu-io/html-anything"
 example_source_label: "html-frames · reddit-post"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

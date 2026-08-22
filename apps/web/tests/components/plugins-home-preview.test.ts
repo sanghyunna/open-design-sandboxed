@@ -1,14 +1,14 @@
 // Plugins-home preview classifier — pure derivation contract.
 //
 // The home gallery picks a hero surface (image / video / iframe /
-// design-system patch / text fallback) per plugin from `od.preview`,
-// `od.useCase.exampleOutputs[]`, and the design-system tag/mode
+// design-system patch / text fallback) per plugin from `readable.preview`,
+// `readable.useCase.exampleOutputs[]`, and the design-system tag/mode
 // signal. This suite locks the discriminator + payload so a future
 // manifest tweak can not silently reroute a tile to the wrong
 // surface.
 
 import { describe, expect, it } from 'vitest';
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 import { inferPluginPreview } from '../../src/components/plugins-home/preview';
 
 interface MakeArgs {
@@ -35,7 +35,7 @@ function make(args: MakeArgs): InstalledPluginRecord {
       version: '0.1.0',
       title: args.title ?? args.id,
       ...(args.tags ? { tags: args.tags } : {}),
-      od: {
+      readable: {
         kind: 'scenario',
         ...(args.mode ? { mode: args.mode } : {}),
         ...(args.designSystemRef

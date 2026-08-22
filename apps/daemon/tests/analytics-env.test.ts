@@ -17,7 +17,7 @@ describe('analytics disabled environment', () => {
   it('returns a no-op analytics service even when POSTHOG_KEY is set', async () => {
     const { createAnalyticsService } = await import('../src/analytics.js');
     const analytics = createAnalyticsService({
-      dataDir: '/tmp/open-design-test',
+      dataDir: '/tmp/readable-studio-test',
       env: {
         POSTHOG_KEY: 'phc_test',
       },

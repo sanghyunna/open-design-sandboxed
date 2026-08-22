@@ -12,6 +12,7 @@ type VersionTranslation = {
 export type WinExecutableVersionSnapshot = {
   fixedFileVersion: string;
   fixedProductVersion: string;
+  machine: "x64" | "unsupported";
   stringTables: Array<{
     translation: VersionTranslation;
     values: Record<string, string>;
@@ -40,7 +41,8 @@ export function resolveWinExecutableVersionTargets(packagedVersion: string): Win
 }
 
 export async function readWinExecutableVersionSnapshot(executablePath: string): Promise<WinExecutableVersionSnapshot> {
-  const executable = NtExecutable.from(await readFile(executablePath), { ignoreCert: true });
+  const executableBytes = await readFile(executablePath);
+  const executable = NtExecutable.from(executableBytes, { ignoreCert: true });
   const resource = NtExecutableResource.from(executable);
   const version = Resource.VersionInfo.fromEntries(resource.entries)[0];
   if (version == null) {
@@ -59,6 +61,7 @@ export async function readWinExecutableVersionSnapshot(executablePath: string): 
       version.fixedInfo.productVersionMS,
       version.fixedInfo.productVersionLS,
     ),
+    machine: readExecutableMachine(executableBytes),
     stringTables,
   };
 }
@@ -78,7 +81,11 @@ export async function rewriteWinExecutableVersion(executablePath: string, packag
   for (const translation of translations) {
     version.setStringValues(translation, {
       ...version.getStringValues(translation),
+      FileDescription: "Readable Studio",
       FileVersion: targets.fileVersion,
+      InternalName: "Readable Studio",
+      OriginalFilename: "Readable Studio.exe",
+      ProductName: "Readable Studio",
       ProductVersion: targets.productVersion,
     });
   }
@@ -87,6 +94,9 @@ export async function rewriteWinExecutableVersion(executablePath: string, packag
   await writeFile(executablePath, Buffer.from(executable.generate()));
 
   const snapshot = await readWinExecutableVersionSnapshot(executablePath);
+  if (snapshot.machine !== "x64") {
+    throw new Error(`expected Windows x64 executable in ${executablePath}`);
+  }
   if (snapshot.fixedFileVersion !== targets.numericVersion) {
     throw new Error(
       `expected Windows executable fixed FileVersion ${targets.numericVersion} in ${executablePath}, received ${snapshot.fixedFileVersion}`,
@@ -125,6 +135,15 @@ function collectVersionTranslations(version: Resource.VersionInfo): VersionTrans
     });
   }
   return [...unique.values()];
+}
+
+function readExecutableMachine(bytes: Buffer): "x64" | "unsupported" {
+  if (bytes.length < 0x40) return "unsupported";
+  const peOffset = bytes.readUInt32LE(0x3c);
+  if (peOffset + 6 > bytes.length || bytes.toString("ascii", peOffset, peOffset + 4) !== "PE\0\0") {
+    return "unsupported";
+  }
+  return bytes.readUInt16LE(peOffset + 4) === 0x8664 ? "x64" : "unsupported";
 }
 
 function fixedVersionToString(ms: number, ls: number): string {

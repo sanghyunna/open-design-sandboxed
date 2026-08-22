@@ -9,7 +9,7 @@ import { runBuildTest, writeBuildTestReport } from '../src/plugins/atoms/build-t
 let tmp: string;
 
 beforeEach(async () => {
-  tmp = await mkdtemp(path.join(os.tmpdir(), 'od-build-test-'));
+  tmp = await mkdtemp(path.join(os.tmpdir(), 'readable-build-test-'));
 });
 
 afterEach(async () => {

@@ -238,7 +238,7 @@ test("design-system project manifest schema accepts import-project optional inde
 });
 
 test("design-system design tokens guard rejects stale derived JSON", async () => {
-  const root = mkdtempSync(path.join(os.tmpdir(), "od-design-tokens-guard-"));
+  const root = mkdtempSync(path.join(os.tmpdir(), "readable-design-tokens-guard-"));
   try {
     writeDerivedTokenFixture(root);
     const okViolations: string[] = [];
@@ -261,7 +261,7 @@ test("design-system design tokens guard rejects stale derived JSON", async () =>
 });
 
 test("design-system design tokens guard rejects stale token source line references", async () => {
-  const root = mkdtempSync(path.join(os.tmpdir(), "od-design-token-source-guard-"));
+  const root = mkdtempSync(path.join(os.tmpdir(), "readable-design-token-source-guard-"));
   try {
     writeDerivedTokenFixture(root);
     const report = JSON.parse(readFileSync(path.join(root, REPORT_PATH), "utf8")) as {
@@ -290,7 +290,7 @@ test("design-system design tokens guard rejects stale token source line referenc
 });
 
 test("design-system design tokens guard rejects prefix token source line references", async () => {
-  const root = mkdtempSync(path.join(os.tmpdir(), "od-design-tokens-prefix-guard-"));
+  const root = mkdtempSync(path.join(os.tmpdir(), "readable-design-tokens-prefix-guard-"));
   try {
     writeDerivedTokenFixture(root);
     const report = JSON.parse(readFileSync(path.join(root, REPORT_PATH), "utf8")) as {
@@ -318,7 +318,7 @@ test("design-system design tokens guard rejects prefix token source line referen
 });
 
 test("design-system tailwind v4 guard rejects swapped canonical mappings", async () => {
-  const root = mkdtempSync(path.join(os.tmpdir(), "od-tailwind-guard-"));
+  const root = mkdtempSync(path.join(os.tmpdir(), "readable-tailwind-guard-"));
   try {
     writeDerivedTokenFixture(root);
     const okViolations: string[] = [];
@@ -341,7 +341,7 @@ test("design-system tailwind v4 guard rejects swapped canonical mappings", async
 });
 
 test("design-system components manifest guard rejects undeclared token references", async () => {
-  const root = mkdtempSync(path.join(os.tmpdir(), "od-components-manifest-guard-"));
+  const root = mkdtempSync(path.join(os.tmpdir(), "readable-components-manifest-guard-"));
   try {
     const fixtureHtml = [
       "<!doctype html>",

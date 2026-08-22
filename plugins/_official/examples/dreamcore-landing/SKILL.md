@@ -2,7 +2,7 @@
 name: dreamcore-landing
 description: "Use this plugin when the user wants a single-page immersive parallax landing page with a scroll-driven portal/curtain entrance and a curved arc card slider — a 'dreamcore' / 'reverie' hero that scales a portal image toward the viewer as the user scrolls into a second dream-world scene. Invoke for 'parallax landing', 'scroll cinematic hero', 'portal zoom landing', 'arc card slider', or when the user references the Dreamcore Landing template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design
@@ -35,14 +35,14 @@ This is the authoritative build brief. Follow it exactly — the layer z-order, 
 These are large stable CDN stills; **do not inline them and do not swap the host**.
 
 ```
-PORTAL_BG     = https://plugin-assets.open-design.ai/plugins/dreamcore-landing/image_1_vdzwae-464f73.webp
-CURTAIN_LEFT  = https://plugin-assets.open-design.ai/plugins/dreamcore-landing/curtain_left_znkmva-f9eb4c.webp
-CURTAIN_RIGHT = https://plugin-assets.open-design.ai/plugins/dreamcore-landing/curtain_right_paeyym-9fa947.webp
-WORLD_BG      = https://plugin-assets.open-design.ai/plugins/dreamcore-landing/image_2_gkcdlx-5f252f.webp
-BOTTOM_CLOUDS = https://plugin-assets.open-design.ai/plugins/dreamcore-landing/bottom_clouds_xskut6-c56b42.webp
-CARD_IMAGES[0] = https://plugin-assets.open-design.ai/plugins/dreamcore-landing/hf_20260525_160507_2ccbb4eb-1469-484f-af25-59168ad9a233-0c7429.webp&w=1280&q=85
-CARD_IMAGES[1] = https://plugin-assets.open-design.ai/plugins/dreamcore-landing/hf_20260525_160644_072a7f68-a101-4ded-a332-7d37707dbdd1-bfae0e.webp&w=1280&q=85
-CARD_IMAGES[2] = https://plugin-assets.open-design.ai/plugins/dreamcore-landing/hf_20260525_160706_1c153d04-0dfb-4ac9-a4ef-e74f301c329c-8b9d4e.webp&w=1280&q=85
+PORTAL_BG     = https://plugin-assets.readable-studio.ai/plugins/dreamcore-landing/image_1_vdzwae-464f73.webp
+CURTAIN_LEFT  = https://plugin-assets.readable-studio.ai/plugins/dreamcore-landing/curtain_left_znkmva-f9eb4c.webp
+CURTAIN_RIGHT = https://plugin-assets.readable-studio.ai/plugins/dreamcore-landing/curtain_right_paeyym-9fa947.webp
+WORLD_BG      = https://plugin-assets.readable-studio.ai/plugins/dreamcore-landing/image_2_gkcdlx-5f252f.webp
+BOTTOM_CLOUDS = https://plugin-assets.readable-studio.ai/plugins/dreamcore-landing/bottom_clouds_xskut6-c56b42.webp
+CARD_IMAGES[0] = https://plugin-assets.readable-studio.ai/plugins/dreamcore-landing/hf_20260525_160507_2ccbb4eb-1469-484f-af25-59168ad9a233-0c7429.webp&w=1280&q=85
+CARD_IMAGES[1] = https://plugin-assets.readable-studio.ai/plugins/dreamcore-landing/hf_20260525_160644_072a7f68-a101-4ded-a332-7d37707dbdd1-bfae0e.webp&w=1280&q=85
+CARD_IMAGES[2] = https://plugin-assets.readable-studio.ai/plugins/dreamcore-landing/hf_20260525_160706_1c153d04-0dfb-4ac9-a4ef-e74f301c329c-8b9d4e.webp&w=1280&q=85
 ```
 
 ## Architecture

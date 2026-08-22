@@ -2,7 +2,7 @@
 // and `/api/plugins/:id/example/:name` sandbox envelope.
 //
 // Tests that:
-//   - the preview endpoint resolves `od.preview.entry`, falls back
+//   - the preview endpoint resolves `readable.preview.entry`, falls back
 //     to common defaults, and serves with the §9.2 CSP + nosniff
 //     headers (so the marketplace iframe can't reach back into
 //     /api/*).
@@ -17,7 +17,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import Database from 'better-sqlite3';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { startServer } from '../src/server.js';
 
@@ -25,17 +25,17 @@ type StartedServer = { server: http.Server; url: string };
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(here, '../../..');
-const serverRuntimeDataRoot = process.env.OD_DATA_DIR
-  ? path.resolve(projectRoot, process.env.OD_DATA_DIR)
-  : path.join(projectRoot, '.od');
+const serverRuntimeDataRoot = process.env.READABLE_DATA_DIR
+  ? path.resolve(projectRoot, process.env.READABLE_DATA_DIR)
+  : path.join(projectRoot, '.readable-studio');
 
 const PLUGIN_ID = `phase2b-preview-${Date.now()}`;
 let pluginRoot: string;
 let server: http.Server | undefined;
 let baseUrl: string;
 
-beforeEach(async () => {
-  pluginRoot = await mkdtemp(path.join(os.tmpdir(), 'od-preview-'));
+beforeAll(async () => {
+  pluginRoot = await mkdtemp(path.join(os.tmpdir(), 'readable-preview-'));
   const folder = path.join(pluginRoot, PLUGIN_ID);
   await mkdir(path.join(folder, 'preview'), { recursive: true });
   await mkdir(path.join(folder, 'examples', 'desk-warm'), { recursive: true });
@@ -56,16 +56,17 @@ beforeEach(async () => {
     path.join(folder, 'examples', 'wrapped', 'inner.html'),
     '<!DOCTYPE html><title>wrapped</title><img src="./hero.png"><p>wrapped body</p>',
   );
+  await writeFile(path.join(folder, 'examples', 'wrapped', 'hero.png'), Buffer.from('plugin-image'));
   await writeFile(
-    path.join(folder, 'open-design.json'),
+    path.join(folder, 'readable-studio.json'),
     JSON.stringify({
-      $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+      $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
       name: PLUGIN_ID,
       title: 'Preview fixture',
       version: '1.0.0',
       description: 'fixture',
       license: 'MIT',
-      od: {
+      readable: {
         kind: 'skill',
         capabilities: ['prompt:inject'],
         preview: { entry: 'preview/index.html' },
@@ -111,9 +112,9 @@ beforeEach(async () => {
       throw new Error(`installer did not finalize:\n${raw}`);
     }
   }
-});
+}, 30_000);
 
-afterEach(async () => {
+afterAll(async () => {
   await new Promise((resolve, reject) => {
     if (!server) return resolve(undefined);
     server.close((error?: Error) => (error ? reject(error) : resolve(undefined)));
@@ -131,7 +132,7 @@ afterEach(async () => {
   }
 
   await rm(pluginRoot, { recursive: true, force: true });
-});
+}, 30_000);
 
 describe('GET /api/plugins/:id/preview', () => {
   it('serves preview/index.html with the §9.2 sandbox CSP', async () => {
@@ -190,5 +191,61 @@ describe('GET /api/plugins/:id/example/:name', () => {
   it('returns 404 for an unknown example name', async () => {
     const resp = await fetch(`${baseUrl}/api/plugins/${PLUGIN_ID}/example/missing-thing`);
     expect(resp.status).toBe(404);
+  });
+});
+
+describe('POST /api/exports/standalone-html plugin sources', () => {
+  it('uses the same resolver for preview and named example assets', async () => {
+    const preview = await fetch(`${baseUrl}/api/exports/standalone-html`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source: { kind: 'plugin', pluginId: PLUGIN_ID } }),
+    });
+    expect(preview.status).toBe(200);
+    expect(await preview.text()).toContain('preview body');
+
+    const example = await fetch(`${baseUrl}/api/exports/standalone-html`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source: { kind: 'plugin', pluginId: PLUGIN_ID, exampleName: 'wrapped' } }),
+    });
+    expect(example.status).toBe(200);
+    const body = await example.text();
+    expect(body).toContain('wrapped body');
+    expect(body).toContain('src="data:image/png;base64,');
+    expect(body).not.toContain('/api/plugins/');
+  });
+
+  it('maps an oversized plugin preview to PAYLOAD_TOO_LARGE', async () => {
+    const db = new Database(path.join(serverRuntimeDataRoot, 'app.sqlite'));
+    const installed = db.prepare('SELECT fs_path AS fsPath FROM installed_plugins WHERE id = ?').get(PLUGIN_ID) as { fsPath: string };
+    db.close();
+    const previewPath = path.join(installed.fsPath, 'preview', 'index.html');
+    try {
+      await writeFile(previewPath, Buffer.alloc(5 * 1024 * 1024 + 1));
+      expect((await fetch(`${baseUrl}/api/plugins/${PLUGIN_ID}/preview`)).status).toBe(413);
+      const response = await fetch(`${baseUrl}/api/exports/standalone-html`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ source: { kind: 'plugin', pluginId: PLUGIN_ID } }),
+      });
+      expect(response.status).toBe(413);
+      expect((await response.json()) as unknown).toMatchObject({ error: { code: 'PAYLOAD_TOO_LARGE' } });
+    } finally {
+      await writeFile(previewPath, '<!DOCTYPE html><title>preview</title><p>preview body</p>');
+    }
+  });
+
+  it('maps an oversized named example to 413 on the preview route', async () => {
+    const db = new Database(path.join(serverRuntimeDataRoot, 'app.sqlite'));
+    const installed = db.prepare('SELECT fs_path AS fsPath FROM installed_plugins WHERE id = ?').get(PLUGIN_ID) as { fsPath: string };
+    db.close();
+    const examplePath = path.join(installed.fsPath, 'examples', 'desk-warm', 'index.html');
+    try {
+      await writeFile(examplePath, Buffer.alloc(5 * 1024 * 1024 + 1));
+      expect((await fetch(`${baseUrl}/api/plugins/${PLUGIN_ID}/example/desk-warm`)).status).toBe(413);
+    } finally {
+      await writeFile(examplePath, '<!DOCTYPE html><title>desk-warm</title><p>example body</p>');
+    }
   });
 });

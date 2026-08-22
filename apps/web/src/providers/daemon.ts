@@ -26,7 +26,7 @@ import type {
   ResearchOptions,
   RunContextSelection,
   SseErrorPayload,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import type { StreamHandlers } from './anthropic';
 
 const ROLLBACK_MODE_VALUES = new Set(['files_only', 'chat_only', 'files_and_chat']);
@@ -66,7 +66,7 @@ export function latestUserPromptFromHistory(history: ChatMessage[]): string {
 function truncateForTranscript(content: string): string {
   if (content.length <= MAX_TRANSCRIPT_MESSAGE_CHARS) return content;
   const omitted = content.length - MAX_TRANSCRIPT_MESSAGE_CHARS;
-  return `${content.slice(0, MAX_TRANSCRIPT_MESSAGE_CHARS)}\n\n[Open Design truncated ${omitted} chars from this prior message before sending it to the agent. Full content remains in persisted history.]`;
+  return `${content.slice(0, MAX_TRANSCRIPT_MESSAGE_CHARS)}\n\n[Readable Studio truncated ${omitted} chars from this prior message before sending it to the agent. Full content remains in persisted history.]`;
 }
 
 function escapeTranscriptRoleDelimiters(content: string): string {
@@ -125,7 +125,7 @@ function buildPriorRunContextWarning(history: ChatMessage[]): string | null {
 
   return [
     '## context warning',
-    `Open Design detected ${notes.join(', ')}.`,
+    `Readable Studio detected ${notes.join(', ')}.`,
     'Keep this turn compact: summarize prior tool output, read large references from temp files, and quote only task-relevant lines.',
   ].join('\n');
 }
@@ -141,7 +141,7 @@ function scopeHistoryToAgent(history: ChatMessage[], targetAgentId?: string): Ch
   return history;
 }
 
-// Strip OD-specific markup that the agent emitted on a prior turn but
+// Strip Readable Studio-specific markup that the agent emitted on a prior turn but
 // that the model would otherwise pattern-match as a template to echo.
 // Today this is `<question-form>` blocks (and the `<ask-question>` alias the
 // UI parser and the daemon open-tag matcher both accept) and the ```json
@@ -269,7 +269,7 @@ export interface DaemonReattachOptions {
 }
 
 // @dsp func-a0453828
-export const RUNS_CHANGED_EVENT = 'open-design:runs-changed';
+export const RUNS_CHANGED_EVENT = 'readable-studio:runs-changed';
 
 function notifyRunsChanged() {
   if (typeof window === 'undefined') return;
@@ -588,7 +588,7 @@ export async function streamViaDaemon({
         // telemetry trace can be tagged 'client:desktop' vs 'client:web'.
         // The daemon falls back to a User-Agent sniff when this header is
         // absent (e.g. third-party clients), so omitting it in tests is OK.
-        'X-OD-Client': detectClientType(),
+        'X-Readable-Studio-Client': detectClientType(),
       },
       body,
     });

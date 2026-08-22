@@ -8,8 +8,8 @@
 # Prereqs
 # -------
 # - `wrangler login` once (OAuth, no token to manage). The logged-in
-#   account must have access to the powerformer R2 namespace where the
-#   `open-design-mocks` bucket lives.
+#   account must have access to the powerformer R2 namespace named by
+#   `storage.bucket` in the immutable recording manifest.
 # - That's it. Bucket is public-read, manifest is in repo; consumers
 #   pull via `fetch-recordings.sh`.
 #
@@ -31,8 +31,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 MOCKS_DIR="$(cd "$HERE/.." && pwd -P)"
 MANIFEST="$MOCKS_DIR/manifest.json"
 LIB="$HERE/lib/manifest-utils.mjs"
-BUCKET='open-design-mocks'
-KEY_PREFIX='recordings/v1/'
+BUCKET="$(node -e 'const m=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));process.stdout.write(m.storage.bucket)' "$MANIFEST")"
+KEY_PREFIX="$(node -e 'const m=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));process.stdout.write(m.storage.object_prefix)' "$MANIFEST")"
 # powerformer hosts the bucket; pin so wrangler doesn't ask which
 # account in non-interactive mode when the OAuth login spans several.
 export CLOUDFLARE_ACCOUNT_ID='64ad4569ffd912432d6b86d5656484c4'

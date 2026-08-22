@@ -1,11 +1,12 @@
 // Plan §3.F2 / spec §11.7 — daemon lifecycle endpoints.
 //
-// `od daemon status` and `od daemon stop` (both Phase 1.5) talk to the
+// `readable daemon status` and `readable daemon stop` (both Phase 1.5) talk to the
 // new /api/daemon/status + /api/daemon/shutdown routes. This suite spins
 // the real Express app via `startServer` and asserts the public shape so
 // the CLI can rely on it without re-checking each release.
 
 import type http from 'node:http';
+import { createRuntimeDescriptor } from '@readable-studio/sidecar-proto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startServer } from '../src/server.js';
 
@@ -34,8 +35,9 @@ describe('GET /api/daemon/status', () => {
     const resp = await fetch(`${baseUrl}/api/daemon/status`);
     expect(resp.status).toBe(200);
     const body = (await resp.json()) as {
+      descriptor: unknown;
       ok: boolean;
-      version: unknown;
+      version: string;
       bindHost: unknown;
       port: unknown;
       sandboxMode: boolean;
@@ -46,7 +48,8 @@ describe('GET /api/daemon/status', () => {
       namespace?: unknown;
     };
     expect(body.ok).toBe(true);
-    expect(typeof body.version === 'string' || typeof body.version === 'object').toBe(true);
+    expect(body.descriptor).toEqual(createRuntimeDescriptor(body.version));
+    expect(typeof body.version).toBe('string');
     expect(typeof body.bindHost).toBe('string');
     expect(typeof body.port).toBe('number');
     expect(body.port).toBe(Number(new URL(baseUrl).port));
@@ -64,14 +67,16 @@ describe('GET /api/ready', () => {
     const resp = await fetch(`${baseUrl}/api/ready`);
     expect(resp.status).toBe(200);
     const body = (await resp.json()) as {
+      descriptor: unknown;
       ok: boolean;
       ready: boolean;
-      version: unknown;
+      version: string;
     };
 
     expect(body.ok).toBe(true);
     expect(body.ready).toBe(true);
-    expect(typeof body.version === 'string' || typeof body.version === 'object').toBe(true);
+    expect(body.descriptor).toEqual(createRuntimeDescriptor(body.version));
+    expect(typeof body.version).toBe('string');
     expect(body).not.toHaveProperty('dataDir');
     expect(body).not.toHaveProperty('sandboxMode');
     expect(body).not.toHaveProperty('sandbox');

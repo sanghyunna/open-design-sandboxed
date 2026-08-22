@@ -1,7 +1,7 @@
 ---
 name: direction-picker
 description: 3-5 direction picker that lets the user choose before final generation.
-od:
+readable:
   scenario: general
   mode: planning
 ---

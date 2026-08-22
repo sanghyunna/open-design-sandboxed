@@ -1,7 +1,7 @@
 ---
 name: figma-extract
 description: Pull a Figma file's node tree, design tokens, and embedded assets into the project cwd as a structured snapshot.
-od:
+readable:
   scenario: figma-migration
   mode: extract
 ---
@@ -17,7 +17,7 @@ authoritative on-disk record subsequent stages (`token-map`,
 
 | Source | Required | Notes |
 | --- | --- | --- |
-| Figma file URL or `node-id` | yes | Provide via the `figma-oauth` GenUI surface or `od plugin apply --input fileUrl=…` |
+| Figma file URL or `node-id` | yes | Provide via the `figma-oauth` GenUI surface or `readable plugin apply --input fileUrl=…` |
 | Figma OAuth token | yes | Routed through `oauth-prompt` with `oauth.route='mcp'` and `mcpServerId='figma'`; the daemon never stores the token in SQLite |
 
 ## Output

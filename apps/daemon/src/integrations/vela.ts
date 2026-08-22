@@ -3,12 +3,12 @@ import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
-import { createCommandInvocation } from '@open-design/platform';
+import { createCommandInvocation } from '@readable-studio/platform';
 import type {
   AmrEntryAttribution,
   TrackingAmrEntrySource,
   TrackingPageName,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 
 import { resolveAgentLaunch } from '../runtimes/launch.js';
 import { spawnEnvForAgent } from '../runtimes/env.js';
@@ -37,13 +37,13 @@ type AmrEntrySourcePageName = Extract<
 >;
 
 export interface AmrEntryAnalyticsPayload {
-  pageName: 'open_design';
+  pageName: 'readable_studio';
   sourcePageName: AmrEntrySourcePageName;
   area: 'amr_entry';
   element: TrackingAmrEntrySource;
   action: 'click_amr_entry';
   entryId: string;
-  sourceProduct: 'open_design';
+  sourceProduct: 'readable_studio';
   sourceDetail: TrackingAmrEntrySource;
   entryOccurredAt: string;
 }
@@ -396,7 +396,7 @@ export function parseVelaLoginAttribution(input: unknown): AmrEntryAttribution |
   if (
     typeof value.entryId !== 'string'
     || value.entryId.length === 0
-    || value.sourceProduct !== 'open_design'
+    || value.sourceProduct !== 'readable_studio'
     || typeof value.sourceDetail !== 'string'
     || !AMR_ENTRY_SOURCES.has(value.sourceDetail as TrackingAmrEntrySource)
     || typeof value.occurredAt !== 'string'
@@ -417,9 +417,9 @@ function velaLoginAttributionEnv(
 ): Record<string, string> {
   if (!attribution) return {};
   return {
-    OPEN_DESIGN_AMR_ENTRY_ID: attribution.entryId,
-    OPEN_DESIGN_AMR_ENTRY_SOURCE: attribution.sourceDetail,
-    OPEN_DESIGN_AMR_ENTRY_AT: attribution.occurredAt,
-    OPEN_DESIGN_AMR_ORIGIN: attribution.sourceProduct,
+    READABLE_AMR_ENTRY_ID: attribution.entryId,
+    READABLE_AMR_ENTRY_SOURCE: attribution.sourceDetail,
+    READABLE_AMR_ENTRY_AT: attribution.occurredAt,
+    READABLE_AMR_ORIGIN: attribution.sourceProduct,
   };
 }

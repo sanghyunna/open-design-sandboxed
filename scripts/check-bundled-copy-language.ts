@@ -48,7 +48,7 @@ export const intentionalCatalogueCopyDivergences: readonly CatalogueCopyPath[] =
   {
     derivedRoot: "design-templates",
     filePath: "example.html",
-    ids: ["critique", "html-ppt-zhangzara-sakura-chroma", "kami-landing", "open-design-landing"],
+    ids: ["critique", "html-ppt-zhangzara-sakura-chroma", "kami-landing", "readable-landing"],
   },
 ];
 const intentionalHanPaths = new Set([
@@ -63,6 +63,15 @@ const intentionalHanPaths = new Set([
   "design-templates/guizang-ppt/LICENSE",
 ]);
 const hanScriptPattern = /\p{Script=Han}/gu;
+const retiredSlug = ["open", "design"].join("-");
+const retiredDisplay = ["Open", "Design"].join(" ");
+const retiredScheme = ["od", "://"].join("");
+const retiredHostGlobal = ["__", "od", "__"].join("");
+const retiredIdentityPattern = new RegExp(
+  `${retiredDisplay}|${retiredSlug}|${retiredScheme}|${retiredHostGlobal}`,
+  "gu",
+);
+const immutableAssetLocatorPattern = /https:\/\/plugin-assets\.readable-studio\.ai\/[A-Za-z0-9_?&=./%+@,:;-]+/gu;
 const explicitLocaleKeyPattern = /^(\s*)(?:["']?)(zh-CN|zh-TW)(?:["']?)\s*:/;
 const scopedChineseScalarKeyPattern = /^(\s*)(?:["']?)(zh_name|zh_description)(?:["']?)\s*:\s*(?![>|](?:\s|$))/;
 const localeTagPattern = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i;
@@ -250,9 +259,9 @@ function maskNamedManifestLocalizedMaps(source: string, manifestStart: number): 
 }
 
 function maskManifestUseCaseQuery(source: string, masked: string, manifestStart: number): string {
-  const odStart = directJsonObjectValueStart(source, manifestStart, "od");
-  if (odStart === undefined || source[odStart] !== "{") return masked;
-  const useCaseStart = directJsonObjectValueStart(source, odStart, "useCase");
+  const readableStart = directJsonObjectValueStart(source, manifestStart, "readable");
+  if (readableStart === undefined || source[readableStart] !== "{") return masked;
+  const useCaseStart = directJsonObjectValueStart(source, readableStart, "useCase");
   if (useCaseStart === undefined || source[useCaseStart] !== "{") return masked;
   const queryStart = directJsonObjectValueStart(source, useCaseStart, "query");
   return queryStart !== undefined && source[queryStart] === "{"
@@ -261,9 +270,9 @@ function maskManifestUseCaseQuery(source: string, masked: string, manifestStart:
 }
 
 function maskManifestExampleOutputTitles(source: string, masked: string, manifestStart: number): string {
-  const odStart = directJsonObjectValueStart(source, manifestStart, "od");
-  if (odStart === undefined || source[odStart] !== "{") return masked;
-  const useCaseStart = directJsonObjectValueStart(source, odStart, "useCase");
+  const readableStart = directJsonObjectValueStart(source, manifestStart, "readable");
+  if (readableStart === undefined || source[readableStart] !== "{") return masked;
+  const useCaseStart = directJsonObjectValueStart(source, readableStart, "useCase");
   if (useCaseStart === undefined || source[useCaseStart] !== "{") return masked;
   const outputsStart = directJsonObjectValueStart(source, useCaseStart, "exampleOutputs");
   if (outputsStart === undefined || source[outputsStart] !== "[") return masked;
@@ -305,8 +314,15 @@ function maskExplicitJsonLocaleValues(source: string): string {
 
 function sourceWithoutExplicitLocalizedValues(repositoryPath: string, source: string): string {
   if (path.basename(repositoryPath) === "SKILL.md") return maskExplicitYamlLocaleValues(source);
-  if (path.basename(repositoryPath) === "open-design.json") return maskExplicitJsonLocaleValues(source);
+  if (path.basename(repositoryPath) === "readable-studio.json") return maskExplicitJsonLocaleValues(source);
   return source;
+}
+
+function sourceWithoutImmutableIdentity(repositoryPath: string, source: string): string {
+  const withoutAssetLocators = source.replace(immutableAssetLocatorPattern, "");
+  if (!repositoryPath.startsWith(`${pluginExamplesRoot}/`)) return withoutAssetLocators;
+  const pluginId = repositoryPath.slice(pluginExamplesRoot.length + 1).split("/", 1)[0];
+  return pluginId ? withoutAssetLocators.replaceAll(pluginId, "") : withoutAssetLocators;
 }
 
 export function collectBundledCopyLanguageViolationsFromSource(
@@ -316,11 +332,18 @@ export function collectBundledCopyLanguageViolationsFromSource(
   if (intentionalHanPaths.has(repositoryPath)) return [];
 
   const checkedSource = sourceWithoutExplicitLocalizedValues(repositoryPath, source);
-  return [...checkedSource.matchAll(hanScriptPattern)].map((match) => ({
+  const languageViolations = [...checkedSource.matchAll(hanScriptPattern)].map((match) => ({
     filePath: repositoryPath,
     lineNumber: lineNumberForIndex(source, match.index ?? 0),
     character: match[0],
   }));
+  const identitySource = sourceWithoutImmutableIdentity(repositoryPath, checkedSource);
+  const identityViolations = [...identitySource.matchAll(retiredIdentityPattern)].map((match) => ({
+    filePath: repositoryPath,
+    lineNumber: lineNumberForIndex(identitySource, match.index ?? 0),
+    character: match[0],
+  }));
+  return [...languageViolations, ...identityViolations];
 }
 
 export async function collectBundledCopyLanguageViolations(
@@ -340,7 +363,9 @@ export async function collectBundledCopyLanguageViolations(
 
       let source: string;
       try {
-        source = new TextDecoder("utf-8", { fatal: true }).decode(await readFile(fullPath));
+        const bytes = await readFile(fullPath);
+        if (bytes.includes(0)) continue;
+        source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       } catch {
         continue;
       }

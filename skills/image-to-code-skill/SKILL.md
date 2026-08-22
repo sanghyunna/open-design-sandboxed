@@ -7,7 +7,7 @@ triggers:
   - "reference image to frontend"
   - "generate then code"
   - "visual implementation"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

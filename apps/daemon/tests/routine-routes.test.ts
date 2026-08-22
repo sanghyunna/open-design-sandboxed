@@ -33,7 +33,7 @@ describe('routine routes', () => {
   }
 
   beforeEach(() => {
-    tempDir = mkdtempSync(path.join(os.tmpdir(), 'od-routine-routes-'));
+    tempDir = mkdtempSync(path.join(os.tmpdir(), 'readable-routine-routes-'));
   });
 
   afterEach(() => {
@@ -144,7 +144,7 @@ describe('routine routes', () => {
           target: { mode: 'reuse', projectId: 'proj-1' },
           context: {
             skillIds: ['live-artifact'],
-            pluginIds: ['od-new-generation'],
+            pluginIds: ['readable-new-generation'],
             mcpServerIds: ['figma-mcp'],
           },
           enabled: true,
@@ -169,7 +169,7 @@ describe('routine routes', () => {
       expect(json.routine.target).toEqual({ mode: 'reuse', projectId: 'proj-1' });
       expect(json.routine.context).toEqual({
         skillIds: ['live-artifact'],
-        pluginIds: ['od-new-generation'],
+        pluginIds: ['readable-new-generation'],
         mcpServerIds: ['figma-mcp'],
       });
       expect(json.routine.nextRunAt).toBe(new Date('2026-05-13T01:00:00.000Z').getTime());

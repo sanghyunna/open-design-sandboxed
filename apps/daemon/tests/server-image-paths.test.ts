@@ -6,7 +6,7 @@ test('selectPromptImagePaths uses staged AMR paths in prompt text', () => {
   expect(
     selectPromptImagePaths(
       'amr',
-      ['/tmp/od-uploads/original.png'],
+      ['/tmp/readable-uploads/original.png'],
       ['/project/.amr-attachments/staged.png'],
     ),
   ).toEqual(['/project/.amr-attachments/staged.png']);
@@ -16,17 +16,17 @@ test('selectPromptImagePaths keeps original paths for non-AMR agents', () => {
   expect(
     selectPromptImagePaths(
       'opencode',
-      ['/tmp/od-uploads/original.png'],
+      ['/tmp/readable-uploads/original.png'],
       ['/project/.amr-attachments/staged.png'],
     ),
-  ).toEqual(['/tmp/od-uploads/original.png']);
+  ).toEqual(['/tmp/readable-uploads/original.png']);
 });
 
 test('resolveSafePromptImagePaths rejects images larger than 1 MB', () => {
   const result = resolveSafePromptImagePaths(
-    ['/tmp/od-uploads/too-large.png', '/tmp/od-uploads/ok.png'],
+    ['/tmp/readable-uploads/too-large.png', '/tmp/readable-uploads/ok.png'],
     {
-      uploadDir: '/tmp/od-uploads',
+      uploadDir: '/tmp/readable-uploads',
       existsSync: () => true,
       statSync: (inputPath: string) => ({
         isFile: () => true,
@@ -35,17 +35,17 @@ test('resolveSafePromptImagePaths rejects images larger than 1 MB', () => {
     },
   );
 
-  expect(result.safeImages).toEqual(['/tmp/od-uploads/ok.png']);
+  expect(result.safeImages).toEqual(['/tmp/readable-uploads/ok.png']);
   expect(result.oversizedImages).toEqual([
-    { path: '/tmp/od-uploads/too-large.png', sizeBytes: 1024 * 1024 + 1 },
+    { path: '/tmp/readable-uploads/too-large.png', sizeBytes: 1024 * 1024 + 1 },
   ]);
 });
 
 test('resolveSafePromptImagePaths keeps images at or below 1 MB', () => {
   const result = resolveSafePromptImagePaths(
-    ['/tmp/od-uploads/exactly-1mb.png'],
+    ['/tmp/readable-uploads/exactly-1mb.png'],
     {
-      uploadDir: '/tmp/od-uploads',
+      uploadDir: '/tmp/readable-uploads',
       existsSync: () => true,
       statSync: () => ({
         isFile: () => true,
@@ -54,13 +54,13 @@ test('resolveSafePromptImagePaths keeps images at or below 1 MB', () => {
     },
   );
 
-  expect(result.safeImages).toEqual(['/tmp/od-uploads/exactly-1mb.png']);
+  expect(result.safeImages).toEqual(['/tmp/readable-uploads/exactly-1mb.png']);
   expect(result.oversizedImages).toEqual([]);
 });
 
 test('resolveSafePromptImagePaths surfaces stat failures instead of dropping the image', () => {
-  const result = resolveSafePromptImagePaths(['/tmp/od-uploads/unreadable.png'], {
-    uploadDir: '/tmp/od-uploads',
+  const result = resolveSafePromptImagePaths(['/tmp/readable-uploads/unreadable.png'], {
+    uploadDir: '/tmp/readable-uploads',
     existsSync: () => true,
     statSync: () => {
       throw Object.assign(new Error('EACCES: permission denied'), {
@@ -72,6 +72,6 @@ test('resolveSafePromptImagePaths surfaces stat failures instead of dropping the
   expect(result.safeImages).toEqual([]);
   expect(result.oversizedImages).toEqual([]);
   expect(result.failedImages).toEqual([
-    { path: '/tmp/od-uploads/unreadable.png', error: 'EACCES: permission denied' },
+    { path: '/tmp/readable-uploads/unreadable.png', error: 'EACCES: permission denied' },
   ]);
 });

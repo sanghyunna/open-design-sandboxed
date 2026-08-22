@@ -1,4 +1,4 @@
-# Open Design · 2026 Roadmap
+# Readable Studio · 2026 Roadmap
 
 > Klein Blue theme, two-page preview: S01 Cover + S06 KPI Tower
 

@@ -8,7 +8,7 @@ triggers:
   - "color science"
   - "oklch palette"
   - "contrast check"
-od:
+readable:
   mode: design-system
   category: design-systems
   upstream: "https://github.com/meodai/skill.color-expert"
@@ -29,7 +29,7 @@ Color science expert skill with 286K words of reference material covering OKLCH/
 
 ## How to use
 
-This catalogue entry advertises the skill in Open Design so the agent
+This catalogue entry advertises the skill in Readable Studio so the agent
 discovers it during planning. To run the full upstream workflow with
 its original assets, scripts, and references, install the upstream
 bundle into your active agent's skills directory:

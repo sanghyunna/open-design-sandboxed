@@ -9,7 +9,7 @@ triggers:
   - "footer overlap"
   - "verify pptx"
   - "html to pptx"
-od:
+readable:
   mode: utility
   scenario: engineering
 ---

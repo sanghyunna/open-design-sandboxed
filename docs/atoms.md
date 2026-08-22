@@ -1,18 +1,18 @@
 # First-party atom catalog
 
-> The atomic capabilities Open Design exposes to plugins.
+> The atomic capabilities Readable Studio exposes to plugins.
 > Source of truth: [`apps/daemon/src/plugins/atoms.ts`](../apps/daemon/src/plugins/atoms.ts).
 > Live discovery: `GET /api/atoms`.
 
-A **plugin** assembles atoms into ordered stages (`od.pipeline.stages[].atoms[]`).
-The Open Design daemon is responsible for resolving each atom into a system-prompt
+A **plugin** assembles atoms into ordered stages (`readable.pipeline.stages[].atoms[]`).
+The Readable Studio daemon is responsible for resolving each atom into a system-prompt
 fragment, tool gating, and (when applicable) GenUI surface declarations. Plugins
 never own the atom implementations; they only reference them by id.
 
 ## Reading this document
 
-- **id** - what you write inside `od.pipeline.stages[*].atoms[]` and
-  `od.context.atoms[]`. Stable across daemon versions.
+- **id** - what you write inside `readable.pipeline.stages[*].atoms[]` and
+  `readable.context.atoms[]`. Stable across daemon versions.
 - **status** - `implemented` means the id is accepted by the daemon catalog.
 - **task kinds** - which product scenarios (`new-generation`, `code-migration`,
   `figma-migration`, `tune-collab`) the atom is intended for. Plugins may
@@ -44,11 +44,11 @@ never own the atom implementations; they only reference them by id.
 ## Planned atoms
 
 There are no reserved planned atoms in the v1 catalog. Unknown atom ids are
-reported by `od plugin doctor` as errors.
+reported by `readable plugin doctor` as errors.
 
 ## How the daemon resolves an atom
 
-1. The plugin manifest's `od.pipeline.stages[*].atoms[]` is parsed into a
+1. The plugin manifest's `readable.pipeline.stages[*].atoms[]` is parsed into a
    `PipelineStage[]` by `apps/daemon/src/plugins/pipeline.ts`.
 2. At run time, `apps/daemon/src/plugins/pipeline-runner.ts` walks the stages.
    For each stage entry it:
@@ -76,6 +76,6 @@ The closed v1 `until` vocabulary is:
 3. Add `plugins/_official/atoms/<atom>/SKILL.md`.
 4. Update this document and the plugin spec tables in the same PR.
 5. The atom is now reachable via:
-   - `od.pipeline.stages[*].atoms[]` references in any plugin,
+   - `readable.pipeline.stages[*].atoms[]` references in any plugin,
    - `GET /api/atoms` discovery,
-   - `od plugin doctor` validation.
+   - `readable plugin doctor` validation.

@@ -12,9 +12,9 @@ import {
 import { createPortal, flushSync } from 'react-dom';
 import {
   clearHostBrowserData,
-  isOpenDesignHostAvailable,
-} from '@open-design/host';
-import type { TrackingReferenceBoardCategory } from '@open-design/contracts/analytics';
+  isReadableStudioHostAvailable,
+} from '@readable-studio/host';
+import type { TrackingReferenceBoardCategory } from '@readable-studio/contracts/analytics';
 import { useAnalytics } from '../analytics/provider';
 import {
   trackReferenceBoardClick,
@@ -226,7 +226,7 @@ export interface BrowserPageInfo {
 }
 
 const EMPTY_URL = 'about:blank';
-const DESIGN_BROWSER_PARTITION = 'persist:open-design-design-browser';
+const DESIGN_BROWSER_PARTITION = 'persist:readable-studio-design-browser';
 const HISTORY_LIMIT = 80;
 const HISTORY_SUGGESTION_LIMIT = 20;
 const EMPTY_PREVIEW_COMMENTS: PreviewComment[] = [];
@@ -627,7 +627,7 @@ export function browserUsePrompt(action: BrowserUseAction, context: BrowserUsePr
   return [
     '@agent-browser',
     '',
-    'Use the selected Open Design Browser tab as the bound target.',
+    'Use the selected Readable Studio Browser tab as the bound target.',
     'Browser tab context:',
     `- tab: ${tabLabel}`,
     `- title: ${title}`,
@@ -706,7 +706,7 @@ export function DesignBrowserPanel({
   sendDisabled = false,
 }: DesignBrowserPanelProps) {
   const t = useT();
-  const desktopHostAvailable = isOpenDesignHostAvailable();
+  const desktopHostAvailable = isReadableStudioHostAvailable();
   const initialState = initialBrowserState(initialUrl, initialTitle);
   // `loadUrl` is the navigation target bound to the <webview>/<iframe> `src`.
   // It changes ONLY on user-initiated navigation. `currentUrl` is the committed
@@ -1703,7 +1703,7 @@ export function DesignBrowserPanel({
               <span title={activeBrowserPreviewImage.file.name}>{activeBrowserPreviewImage.file.name}</span>
               <button
                 type="button"
-                className="icon-only od-tooltip"
+                className="icon-only readable-tooltip"
                 onClick={() => setBrowserPreviewIndex(null)}
                 aria-label={t('common.close')}
                 title={t('common.close')}
@@ -2013,7 +2013,7 @@ function IconTooltipButton({
 } & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <span
-      className={['db-tooltip-anchor od-tooltip', wrapperClassName].filter(Boolean).join(' ')}
+      className={['db-tooltip-anchor readable-tooltip', wrapperClassName].filter(Boolean).join(' ')}
       data-tooltip={label}
       data-tooltip-placement="bottom"
     >
@@ -2650,7 +2650,7 @@ function DesignBrowserStart({
     <div className="db-start">
       <div className="db-start-hero">
         <div className="db-start-hero-copy">
-          <div className="db-kicker">Open Design browser</div>
+          <div className="db-kicker">Readable Studio browser</div>
           <h2>Reference Board</h2>
           <p className="db-start-sub">
             A curated set of references across inspiration, real product UI,
@@ -2839,7 +2839,7 @@ export function saveHistory(projectId: string, history: BrowserHistoryEntry[]) {
 }
 
 function historyStorageKey(projectId: string): string {
-  return `od:design-browser:${projectId}:history:v1`;
+  return `readable:design-browser:${projectId}:history:v1`;
 }
 
 export function isHistoryEntry(value: unknown): value is BrowserHistoryEntry {

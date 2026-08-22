@@ -13,8 +13,8 @@
 // needs to commit.
 
 import { useMemo, useState } from 'react';
-import { VisuallyHidden } from '@open-design/components';
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import { VisuallyHidden } from '@readable-studio/components';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 import { useI18n } from '../../i18n';
 import type { PluginShareAction } from '../../state/projects';
 import { Icon } from '../Icon';
@@ -81,7 +81,7 @@ export function PluginCard({
         .slice(0, MAX_VISIBLE_TAGS),
     [record.manifest?.tags],
   );
-  const hasQuery = Boolean(record.manifest?.od?.useCase?.query);
+  const hasQuery = Boolean(record.manifest?.readable?.useCase?.query);
   const sharePendingAction =
     pendingShareAction?.pluginId === record.id ? pendingShareAction.action : null;
   const shareBusy = sharePendingAction !== null;
@@ -314,18 +314,18 @@ export function PluginCard({
               <button
                 type="button"
                 className="plugins-home__action plugins-home__action--secondary plugins-home__action--compact"
-                onClick={() => onShareAction(record, 'contribute-open-design')}
+                onClick={() => onShareAction(record, 'contribute-readable-studio')}
                 disabled={pendingAny || shareBusy}
-                aria-busy={sharePendingAction === 'contribute-open-design' ? 'true' : undefined}
-                aria-label={`Contribute ${title} to Open Design`}
-                title="Contribute plugin to Open Design with a pull request"
-                data-testid={`plugins-home-contribute-open-design-${record.id}`}
+                aria-busy={sharePendingAction === 'contribute-readable-studio' ? 'true' : undefined}
+                aria-label={`Contribute ${title} to Readable Studio`}
+                title="Contribute plugin to Readable Studio with a pull request"
+                data-testid={`plugins-home-contribute-readable-studio-${record.id}`}
               >
                 <Icon
-                  name={sharePendingAction === 'contribute-open-design' ? 'spinner' : 'share'}
+                  name={sharePendingAction === 'contribute-readable-studio' ? 'spinner' : 'share'}
                   size={12}
                 />
-                <span>{sharePendingAction === 'contribute-open-design' ? 'Starting…' : 'Contribute'}</span>
+                <span>{sharePendingAction === 'contribute-readable-studio' ? 'Starting…' : 'Contribute'}</span>
               </button>
             </div>
           ) : null}

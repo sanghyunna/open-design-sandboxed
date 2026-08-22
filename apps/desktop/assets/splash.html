@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Open Design</title>
+    <title>Readable Studio</title>
     <style>
       html,
       body {
@@ -18,10 +18,11 @@
       }
       video {
         background: #f2f4f5;
-        height: auto;
-        max-height: 100%;
-        max-width: 100%;
-        width: auto;
+        display: block;
+        height: 100%;
+        object-fit: cover;
+        object-position: center center;
+        width: 100%;
       }
     </style>
   </head>
@@ -30,6 +31,7 @@
       id="splash"
       autoplay
       muted
+      loop
       playsinline
       disablepictureinpicture
       src="splash.mp4"
@@ -42,8 +44,17 @@
           var attempt = video.play();
           if (attempt && typeof attempt.catch === "function") attempt.catch(function () {});
         };
+        var markFinished = function () {
+          document.documentElement.setAttribute("data-readable-splash-finished", "1");
+        };
+        var markFirstLoopFinished = function () {
+          if (Number.isFinite(video.duration) && video.currentTime >= video.duration - 0.25) markFinished();
+        };
         video.addEventListener("loadedmetadata", function () { video.currentTime = 0; });
         video.addEventListener("loadeddata", play);
+        video.addEventListener("timeupdate", markFirstLoopFinished);
+        video.addEventListener("ended", markFinished);
+        video.addEventListener("error", markFinished);
         play();
       })();
     </script>

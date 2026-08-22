@@ -1,6 +1,6 @@
 // Spec §23.3.3 — bundled-scenario pipeline fallback.
 //
-// When a consumer plugin omits `od.pipeline`, the runtime consults the
+// When a consumer plugin omits `readable.pipeline`, the runtime consults the
 // caller's bundled scenario list (passed via RegistryView.scenarios)
 // and returns the matching scenario's pipeline. The match is by
 // `taskKind`. Scenario plugins themselves never fall back (a scenario
@@ -10,7 +10,7 @@
 // This module is pure — no fs, no SQLite, no network — so the daemon's
 // apply path stays pure even when the fallback fires.
 
-import type { PluginManifest, PluginPipeline } from '@open-design/contracts';
+import type { PluginManifest, PluginPipeline } from '@readable-studio/contracts';
 import type { ScenarioRegistryEntry } from './resolve.js';
 
 export interface ResolvePipelineInput {
@@ -20,7 +20,7 @@ export interface ResolvePipelineInput {
 
 export interface ResolvePipelineResult {
   pipeline: PluginPipeline | undefined;
-  // 'declared' = the manifest carried `od.pipeline` itself.
+  // 'declared' = the manifest carried `readable.pipeline` itself.
   // 'scenario' = the manifest omitted it; we fell back to a scenario.
   // 'none'     = no declared pipeline AND no matching scenario.
   source: 'declared' | 'scenario' | 'none';
@@ -33,14 +33,14 @@ export interface ResolvePipelineResult {
 
 // @dsp func-5b27bf99
 export function resolveAppliedPipeline(input: ResolvePipelineInput): ResolvePipelineResult {
-  const declared = input.manifest.od?.pipeline;
+  const declared = input.manifest.readable?.pipeline;
   if (declared && Array.isArray(declared.stages) && declared.stages.length > 0) {
     return { pipeline: declared, source: 'declared' };
   }
   // Scenario plugins never fall back to themselves.
-  const kind = input.manifest.od?.kind;
+  const kind = input.manifest.readable?.kind;
   if (kind === 'scenario') return { pipeline: undefined, source: 'none' };
-  const taskKind = (input.manifest.od?.taskKind ?? 'new-generation') as ScenarioRegistryEntry['taskKind'];
+  const taskKind = (input.manifest.readable?.taskKind ?? 'new-generation') as ScenarioRegistryEntry['taskKind'];
   const scenarios = input.scenarios ?? [];
   for (const candidate of scenarios) {
     if (candidate.taskKind !== taskKind) continue;

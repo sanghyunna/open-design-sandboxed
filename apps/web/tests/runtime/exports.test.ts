@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { installMockOpenDesignHost } from '@open-design/host/testing';
+import { installMockReadableStudioHost } from '@readable-studio/host/testing';
 import {
   archiveFilenameFrom,
   archiveRootFromFilePath,
@@ -60,10 +60,10 @@ async function storedZipEntry(blob: Blob, entryName: string): Promise<string> {
 }
 
 function expectSingleStepStandaloneDeckNavigation(html: string) {
-  expect(html).toContain('data-od-standalone-deck-nav-dedupe');
-  expect(html.indexOf('data-od-standalone-deck-nav-dedupe')).toBeLessThan(html.indexOf('function onKey'));
+  expect(html).toContain('data-readable-standalone-deck-nav-dedupe');
+  expect(html.indexOf('data-readable-standalone-deck-nav-dedupe')).toBeLessThan(html.indexOf('function onKey'));
 
-  const guardBody = html.match(/<script data-od-standalone-deck-nav-dedupe>\n?([\s\S]*?)<\/script>/)?.[1];
+  const guardBody = html.match(/<script data-readable-standalone-deck-nav-dedupe>\n?([\s\S]*?)<\/script>/)?.[1];
   const deckBody = html.match(/<script>function onKey([\s\S]*?)<\/script>/)?.[0]
     .replace(/^<script>/, '')
     .replace(/<\/script>$/, '');
@@ -265,6 +265,18 @@ describe('buildDesignHandoffContent', () => {
     expect(content).toContain('Build product screens and domain-specific in-app modules');
   });
 
+  it('uses the canonical standalone title when an export title is empty', () => {
+    // Given: an export request without a user-provided title.
+    // When: the machine-readable manifest is generated.
+    const manifest = JSON.parse(buildDesignManifestContent({
+      title: '',
+      entryFile: 'index.html',
+    }));
+
+    // Then: the generated title carries the canonical product identity.
+    expect(manifest.title).toBe('Readable Studio artifact');
+  });
+
   it('builds a machine-readable design manifest for coding tools', () => {
     const manifest = JSON.parse(buildDesignManifestContent({
       title: 'Checkout Design',
@@ -272,7 +284,7 @@ describe('buildDesignHandoffContent', () => {
       files: ['index.html', 'src/app.css', 'src/app.js'],
     }));
 
-    expect(manifest.schema).toBe('open-design.design-manifest.v1');
+    expect(manifest.schema).toBe('readable-studio.design-manifest.v1');
     expect(manifest.entryFile).toBe('index.html');
     expect(manifest.sourceFiles.css).toEqual(['src/app.css']);
     expect(manifest.sourceFiles.scriptsAndComponents).toEqual(['src/app.js']);
@@ -434,52 +446,82 @@ describe('exportProjectAsHtml', () => {
     vi.restoreAllMocks();
   });
 
-  it('downloads daemon-inlined project HTML instead of the raw source body', async () => {
+  it('downloads daemon-bundled project HTML through the shared POST endpoint', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('<!doctype html><p>inlined</p>', {
-      headers: { 'content-type': 'text/html' },
+      headers: {
+        'content-type': 'text/html',
+        'x-readable-studio-external-reference-count': '2',
+        'x-readable-studio-missing-local-reference-count': '1',
+        'x-readable-studio-skipped-system-font-count': '0',
+      },
       status: 200,
     })));
 
-    await exportProjectAsHtml({
+    const summary = await exportProjectAsHtml({
       projectId: 'proj 1',
       filePath: 'screens/main page.html',
-      fallbackHtml: '<script type="module" src="/src/main.tsx"></script>',
-      fallbackTitle: 'Main Page',
+      title: 'Main Page',
     });
 
-    expect(fetch).toHaveBeenCalledWith('/api/projects/proj%201/export/screens/main%20page.html?inline=1');
+    expect(fetch).toHaveBeenCalledWith('/api/exports/standalone-html', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source: { kind: 'project', projectId: 'proj 1', filePath: 'screens/main page.html' } }),
+    });
     expect(capturedFilename).toBe('Main-Page.html');
     expect(await capturedBlob!.text()).toBe('<!doctype html><p>inlined</p>');
+    expect(summary).toEqual({
+      outputBytes: capturedBlob!.size,
+      externalReferenceCount: 2,
+      missingLocalReferenceCount: 1,
+      skippedSystemFontCount: 0,
+    });
   });
 
-  it('falls back to the source HTML export when the daemon inline endpoint fails', async () => {
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('nope', { status: 500 })));
+  it('rejects instead of downloading source HTML when bundling fails', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: { code: 'BUNDLE_FAILED', message: 'bad module' } }), {
+      status: 422,
+      headers: { 'content-type': 'application/json' },
+    })));
 
-    await exportProjectAsHtml({
+    await expect(exportProjectAsHtml({
       projectId: 'proj-1',
       filePath: 'index.html',
-      fallbackHtml: '<main>fallback</main>',
-      fallbackTitle: 'Fallback',
-    });
+      title: 'Fallback',
+    })).rejects.toMatchObject({ name: 'BUNDLE_FAILED', message: 'bad module' });
 
-    expect(capturedFilename).toBe('Fallback.html');
-    expect(await capturedBlob!.text()).toContain('<main>fallback</main>');
+    expect(capturedFilename).toBeUndefined();
+    expect(capturedBlob).toBeUndefined();
   });
 
-  it('injects standalone deck key dedupe into fallback HTML exports', async () => {
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('nope', { status: 500 })));
+  it('rejects an invalid summary header before starting a download', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('<!doctype html>', {
+      status: 200,
+      headers: {
+        'x-readable-studio-external-reference-count': 'not-a-number',
+        'x-readable-studio-missing-local-reference-count': '0',
+        'x-readable-studio-skipped-system-font-count': '0',
+      },
+    })));
 
-    await exportProjectAsHtml({
+    await expect(exportProjectAsHtml({
       projectId: 'proj-1',
-      filePath: 'deck.html',
-      fallbackHtml: duplicateDeckHtml(),
-      fallbackTitle: 'Deck',
-    });
+      filePath: 'index.html',
+      title: 'Invalid',
+    })).rejects.toThrow('Invalid export response header');
+    expect(capturedFilename).toBeUndefined();
+  });
 
-    const html = await capturedBlob!.text();
-    expectSingleStepStandaloneDeckNavigation(html);
+  it('rejects a network failure without starting a fallback download', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('network down'); }));
+
+    await expect(exportProjectAsHtml({
+      projectId: 'proj-1',
+      filePath: 'index.html',
+      title: 'Offline',
+    })).rejects.toThrow('network down');
+    expect(capturedFilename).toBeUndefined();
+    expect(capturedBlob).toBeUndefined();
   });
 
   it('injects standalone deck key dedupe into fallback ZIP exports', async () => {
@@ -588,8 +630,8 @@ describe('sandboxed preview Blob exports', () => {
     });
     vi.stubGlobal('window', {
       location: {
-        href: 'https://open-design.test/plugins/example',
-        origin: 'https://open-design.test',
+        href: 'https://readable-studio.test/plugins/example',
+        origin: 'https://readable-studio.test',
       },
       open: (_url: string, _target: string, features?: string) => {
         openCalls.push([_url, _target]);
@@ -622,7 +664,7 @@ describe('sandboxed preview Blob exports', () => {
 
     expect(capturedBlob).toBeDefined();
     const wrapper = await capturedBlob!.text();
-    expect(wrapper).toContain('&lt;base href=&quot;https://open-design.test/&quot;&gt;');
+    expect(wrapper).toContain('&lt;base href=&quot;https://readable-studio.test/&quot;&gt;');
   });
 
   it('passes srcdoc options through the sandboxed new-tab wrapper', async () => {
@@ -638,7 +680,7 @@ describe('sandboxed preview Blob exports', () => {
     expect(wrapper).toContain('sandbox="allow-scripts"');
     expect(wrapper).not.toContain('allow-same-origin');
     expect(wrapper).toContain('&lt;base href=&quot;/artifacts/project/assets/&quot;&gt;');
-    expect(wrapper).toContain('od:slide');
+    expect(wrapper).toContain('readable-studio:slide');
   });
 
   it('can build a print wrapper without granting same-origin access', () => {
@@ -738,7 +780,7 @@ describe('sandboxed preview Blob exports', () => {
 
   it('uses the desktop native print bridge when the host PDF bridge is available', async () => {
     const printPdfMock = vi.fn().mockResolvedValue({ ok: true });
-    const restoreHost = installMockOpenDesignHost({
+    const restoreHost = installMockReadableStudioHost({
       host: { pdf: { print: printPdfMock } },
     });
 
@@ -757,11 +799,11 @@ describe('sandboxed preview Blob exports', () => {
     expect(htmlArg).toContain('&lt;script&gt;window.parent.document.body.innerHTML=&quot;owned&quot;&lt;/script&gt;');
     expect(htmlArg).not.toContain('<script>window.parent.document.body.innerHTML="owned"</script>');
     // Verify the readiness handshake is present — the sandboxed iframe posts
-    // 'OD_PRINT_READY' to the parent once fonts and images are loaded.
-    expect(htmlArg).toContain('OD_PRINT_READY');
+    // 'READABLE_STUDIO_PRINT_READY' to the parent once fonts and images are loaded.
+    expect(htmlArg).toContain('READABLE_STUDIO_PRINT_READY');
     // Verify the parent-wrapper cache script is present so the handshake is
-    // never missed even if 'OD_PRINT_READY' fires before the listener attaches.
-    expect(htmlArg).toContain('__odPrintReady');
+    // never missed even if 'READABLE_STUDIO_PRINT_READY' fires before the listener attaches.
+    expect(htmlArg).toContain('__readableStudioPrintReady');
     // Verify the print script is NOT injected — Electron renders via the
     // native printToPDF path, so a self-printing document would trigger a
     // second print dialog.
@@ -770,7 +812,7 @@ describe('sandboxed preview Blob exports', () => {
 
   it('passes deck intent through the desktop native print bridge', async () => {
     const printPdfMock = vi.fn().mockResolvedValue({ ok: true });
-    const restoreHost = installMockOpenDesignHost({
+    const restoreHost = installMockReadableStudioHost({
       host: { pdf: { print: printPdfMock } },
     });
 
@@ -787,7 +829,7 @@ describe('sandboxed preview Blob exports', () => {
 
   it('injects image-waiting logic into the print-ready handshake for the desktop bridge', async () => {
     const printPdfMock = vi.fn().mockResolvedValue({ ok: true });
-    const restoreHost = installMockOpenDesignHost({
+    const restoreHost = installMockReadableStudioHost({
       host: { pdf: { print: printPdfMock } },
     });
 
@@ -816,24 +858,24 @@ describe('sandboxed preview Blob exports', () => {
     expect(htmlArg).toContain('requestAnimationFrame');
     // The original font- and load-waiting logic must still be present.
     expect(htmlArg).toContain('document.fonts');
-    expect(htmlArg).toContain('OD_PRINT_READY');
+    expect(htmlArg).toContain('READABLE_STUDIO_PRINT_READY');
     // The handshake posts an object with a per-export nonce to prevent
     // spoofing by untrusted artifact code.
-    expect(htmlArg).toContain("type:'OD_PRINT_READY'");
+    expect(htmlArg).toContain("type:'READABLE_STUDIO_PRINT_READY'");
     expect(htmlArg).toContain("nonce:'");
     // The cache script also validates the nonce and event source.
-    expect(htmlArg).toContain("e.data.type==='OD_PRINT_READY'");
+    expect(htmlArg).toContain("e.data.type==='READABLE_STUDIO_PRINT_READY'");
     expect(htmlArg).toContain("e.data.nonce===");
     expect(htmlArg).toContain('e.source===');
     // The parent cache should still be injected.
-    expect(htmlArg).toContain('__odPrintReady');
+    expect(htmlArg).toContain('__readableStudioPrintReady');
     // No window.print() since the desktop bridge handles printing natively.
     expect(htmlArg).not.toContain('window.print()');
   });
 
   it('injects the readiness cache for non-sandboxed desktop exports too', async () => {
     const printPdfMock = vi.fn().mockResolvedValue({ ok: true });
-    const restoreHost = installMockOpenDesignHost({
+    const restoreHost = installMockReadableStudioHost({
       host: { pdf: { print: printPdfMock } },
     });
 
@@ -851,9 +893,9 @@ describe('sandboxed preview Blob exports', () => {
     expect(htmlArg).not.toContain('sandbox="allow-scripts"');
     expect(htmlArg).toContain('<main>Trusted local document</main>');
     // The readiness handshake must still be injected.
-    expect(htmlArg).toContain('OD_PRINT_READY');
+    expect(htmlArg).toContain('READABLE_STUDIO_PRINT_READY');
     // The cache must be present so waitForPrintReadyHandshake never hangs.
-    expect(htmlArg).toContain('__odPrintReady');
+    expect(htmlArg).toContain('__readableStudioPrintReady');
     // No window.print() since the desktop bridge handles printing natively.
     expect(htmlArg).not.toContain('window.print()');
   });
@@ -920,7 +962,7 @@ describe('requestPreviewSnapshot', () => {
 
     // Simulate the bridge responding — source must match iframe.contentWindow
     window.dispatchEvent(
-      { type: 'message', source: contentWindow, data: { type: 'od:snapshot:result', id, dataUrl: 'data:image/png;base64,abc', w: 100, h: 50 } } as unknown as Event,
+      { type: 'message', source: contentWindow, data: { type: 'readable-studio:snapshot:result', id, dataUrl: 'data:image/png;base64,abc', w: 100, h: 50 } } as unknown as Event,
     );
 
     const result = await promise;
@@ -936,7 +978,7 @@ describe('requestPreviewSnapshot', () => {
     const { id } = postMessageMock.mock.calls[0]![0] as { type: string; id: string };
 
     window.dispatchEvent(
-      { type: 'message', source: contentWindow, data: { type: 'od:snapshot:result', id, error: 'snapshot image failed' } } as unknown as Event,
+      { type: 'message', source: contentWindow, data: { type: 'readable-studio:snapshot:result', id, error: 'snapshot image failed' } } as unknown as Event,
     );
 
     const result = await promise;
@@ -967,7 +1009,7 @@ describe('requestPreviewSnapshot', () => {
 
     // Correct source but wrong id — should be ignored
     window.dispatchEvent(
-      { type: 'message', source: contentWindow, data: { type: 'od:snapshot:result', id: 'wrong-id', dataUrl: 'data:image/png;base64,abc', w: 100, h: 50 } } as unknown as Event,
+      { type: 'message', source: contentWindow, data: { type: 'readable-studio:snapshot:result', id: 'wrong-id', dataUrl: 'data:image/png;base64,abc', w: 100, h: 50 } } as unknown as Event,
     );
 
     vi.advanceTimersByTime(150);
@@ -987,7 +1029,7 @@ describe('requestPreviewSnapshot', () => {
 
     // Correct id but wrong source — should be ignored
     window.dispatchEvent(
-      { type: 'message', source: { other: true }, data: { type: 'od:snapshot:result', id, dataUrl: 'data:image/png;base64,abc', w: 100, h: 50 } } as unknown as Event,
+      { type: 'message', source: { other: true }, data: { type: 'readable-studio:snapshot:result', id, dataUrl: 'data:image/png;base64,abc', w: 100, h: 50 } } as unknown as Event,
     );
 
     vi.advanceTimersByTime(150);

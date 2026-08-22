@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type {
   ProjectConversationCreatedSsePayload,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 export interface ProjectFileChangeEvent {
   type: 'file-changed';
   path: string;

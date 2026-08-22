@@ -34,7 +34,7 @@
   </style>
 </head>
 <body>
-  <article class="wrap" data-od-id="article">
+  <article class="wrap" data-readable-id="article">
     <nav class="top"><a href="#">← Filebase blog</a></nav>
     <div class="eyebrow">Engineering</div>
     <h1>Why we rewrote our sync engine in Rust</h1>
@@ -43,7 +43,7 @@
       <span>By Mira Hassan · April 22, 2026 · 8 min read</span>
     </div>
     <p class="lede">For two years our Go sync engine was good enough. Then video editors started joining the customer list, and the GC pauses we'd been politely ignoring turned into bug reports we couldn't ignore.</p>
-    <div class="hero-figure" data-od-id="hero-figure"></div>
+    <div class="hero-figure" data-readable-id="hero-figure"></div>
 
     <p>The decision wasn't sudden. We'd been watching the GC pause distribution shift for six months before we admitted what the data was telling us. P50 latency was great. P99 was a horror movie. Customers syncing 30 GB of <code>.psd</code> files in active editing sessions were the ones writing in.</p>
 

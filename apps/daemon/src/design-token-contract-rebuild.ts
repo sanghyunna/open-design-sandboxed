@@ -1,7 +1,7 @@
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { DesignSystemTokenContractRebuildDecision } from '@open-design/contracts';
+import type { DesignSystemTokenContractRebuildDecision } from '@readable-studio/contracts';
 import type { DesignSystemRevisionFileChange } from './design-systems.js';
 
 export type DesignTokenContractRebuildPreparation = {
@@ -214,14 +214,14 @@ function renderFeedback(
 ): string {
   const weak = decision.weakTokens?.slice(0, 6).map((token) => `- ${token.name}: ${token.confidence}; ${token.reason}`);
   return [
-    'Rebuild the OD TOKEN_SCHEMA token contract from the imported source evidence.',
+    'Rebuild the Readable Studio TOKEN_SCHEMA token contract from the imported source evidence.',
     '',
     `Generated at: ${generatedAt}`,
     `Report: ${decision.reportPath ?? 'source/token-contract.report.json'}`,
     `Decision: ${decision.reason}`,
     '',
     'Requirements:',
-    '- Keep the target token names aligned to OD TOKEN_SCHEMA; do not introduce a parallel role vocabulary.',
+    '- Keep the target token names aligned to Readable Studio TOKEN_SCHEMA; do not introduce a parallel role vocabulary.',
     '- Prefer source-backed values over fallback values, and preserve source references in the review notes.',
     '- Treat fallback-heavy or low-confidence A1 slots as review blockers until evidence is cited.',
     '- Do not overwrite active source evidence; this revision must remain reviewable before activation.',
@@ -329,7 +329,7 @@ async function readManifest(
     const parsed = JSON.parse(raw) as unknown;
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
     const record = parsed as Record<string, unknown>;
-    if (record.schemaVersion !== 'od-design-system-project/v1' || record.id !== expectedId) return null;
+    if (record.schemaVersion !== 'readable.design-system-project/v1' || record.id !== expectedId) return null;
     const sourceFiles = record.sourceFiles;
     if (!sourceFiles || typeof sourceFiles !== 'object' || Array.isArray(sourceFiles)) return {};
     const sourceRecord = sourceFiles as Record<string, unknown>;

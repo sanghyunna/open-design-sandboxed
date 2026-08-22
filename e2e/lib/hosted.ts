@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import type {
   HostedRuntimeCapacitySnapshot,
   HostedRuntimeMeasurement,
-} from '@open-design/daemon/hosted-server';
+} from '@readable-studio/daemon/hosted-server';
 
 import type { SmokeSuite } from './smoke-suite.ts';
 import {
@@ -146,7 +146,7 @@ export async function runHostedSuite(
     toolsDevRoot: toolsRoot,
   };
   // Keep the fixed hosted storage suffixes below Windows' legacy path ceiling.
-  const runtimeRoot = join(process.env.RUNNER_TEMP ?? tmpdir(), 'od-h', suiteHash);
+  const runtimeRoot = join(process.env.RUNNER_TEMP ?? tmpdir(), 'readable-h', suiteHash);
   const fixturePath = fileURLToPath(new URL('./hosted-acceptance-server.ts', import.meta.url));
   let webUrl = '';
   let daemonUrl = '';
@@ -154,8 +154,8 @@ export async function runHostedSuite(
   const clients = new Map<HostedIdentity, HostedHttpClient>();
 
   const envFor = (candidate: ToolsDevRuntime): Record<string, string> => ({
-    OD_HOSTED_PUBLIC_ORIGIN: `http://127.0.0.1:${candidate.webPort}`,
-    OD_WEB_COMPOSITION: 'hosted',
+    READABLE_HOSTED_PUBLIC_ORIGIN: `http://127.0.0.1:${candidate.webPort}`,
+    READABLE_WEB_COMPOSITION: 'hosted',
   });
 
   const stopChild = async (kind: HostedRestartKind): Promise<void> => {
@@ -345,7 +345,7 @@ function createIdentityClient(
     requestHeaders.set('authorization', headers.authorization);
     if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
       requestHeaders.set('origin', currentOrigin());
-      requestHeaders.set('x-open-design-csrf', await getCsrf());
+      requestHeaders.set('x-readable-studio-csrf', await getCsrf());
     }
     return await fetch(localUrl(currentOrigin(), path), { ...init, headers: requestHeaders, method });
   };
@@ -532,7 +532,7 @@ function writeCapacityToolUse(
   });
   writeSse(response, 'content_block_start', {
     type: 'content_block_start', index: 0,
-    content_block: { type: 'tool_use', id: 'toolu_hosted_capacity', name: 'od_hosted_broker', input: {} },
+    content_block: { type: 'tool_use', id: 'toolu_hosted_capacity', name: 'readable_hosted_broker', input: {} },
   });
   writeSse(response, 'content_block_delta', {
     type: 'content_block_delta', index: 0,

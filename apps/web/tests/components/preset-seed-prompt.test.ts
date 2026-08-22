@@ -6,7 +6,7 @@
 // description).
 
 import { describe, expect, it } from 'vitest';
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 import { examplePresetSeedPrompt } from '../../src/components/plugins-home/presetSeedPrompt';
 
 function fixture(overrides: {
@@ -27,7 +27,7 @@ function fixture(overrides: {
       name: overrides.id,
       version: '0.1.0',
       ...(overrides.description ? { description: overrides.description } : {}),
-      od: {
+      readable: {
         ...(overrides.query ? { useCase: { query: overrides.query } } : {}),
         ...(overrides.inputs ? { inputs: overrides.inputs } : {}),
       },

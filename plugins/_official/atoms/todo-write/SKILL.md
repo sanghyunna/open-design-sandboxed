@@ -1,7 +1,7 @@
 ---
 name: todo-write
 description: TodoWrite-driven plan that the agent commits to before generation.
-od:
+readable:
   scenario: general
   mode: planning
 ---
@@ -18,7 +18,7 @@ teaches the agent to:
 3. Mark a todo complete only after the matching artifact lands.
 4. Surface blockers as todos — never silently skip.
 
-The Open Design daemon does not enforce a particular tool name; the
+The Readable Studio daemon does not enforce a particular tool name; the
 agent is free to use TodoWrite (Claude Code) or an in-prompt list.
 The atom's job is to keep "make a plan first" in the system prompt so
 non-trivial workflows don't skip the planning step.

@@ -4,7 +4,7 @@
 // (validation/preview/save match the floating panel). B/I/U are selection-level
 // rich text that drive the execCommand bridge via onRichFormat.
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Button } from '@open-design/components';
+import { Button } from '@readable-studio/components';
 import { useT } from '../i18n';
 import type { ManualEditStyles, ManualEditTarget } from '../edit-mode/types';
 import { RemixIcon } from './RemixIcon';
@@ -65,7 +65,7 @@ function TextBar({
     <Button
       variant="subtle"
       size="icon"
-      className={`od-tooltip${pressed ? ` ${styles.pressed}` : ''}`}
+      className={`readable-tooltip${pressed ? ` ${styles.pressed}` : ''}`}
       aria-label={label}
       aria-pressed={pressed}
       data-tooltip={label}
@@ -83,7 +83,7 @@ function TextBar({
       <Button
         variant="subtle"
         size="icon"
-        className={`od-tooltip${pressed ? ` ${styles.pressed}` : ''}`}
+        className={`readable-tooltip${pressed ? ` ${styles.pressed}` : ''}`}
         aria-label={label}
         aria-pressed={pressed}
         data-tooltip={label}
@@ -523,7 +523,7 @@ function Stepper({
     <span className={styles.stepper}>
       <button
         type="button"
-        className={`${styles.step} od-tooltip`}
+        className={`${styles.step} readable-tooltip`}
         aria-label={decreaseLabel}
         data-tooltip={decreaseLabel}
         disabled={!numeric}
@@ -541,7 +541,7 @@ function Stepper({
       />
       <button
         type="button"
-        className={`${styles.step} od-tooltip`}
+        className={`${styles.step} readable-tooltip`}
         aria-label={increaseLabel}
         data-tooltip={increaseLabel}
         disabled={!numeric}
@@ -576,7 +576,7 @@ function ColorControl({
     <span className={styles.colorWrap} ref={ref}>
       <button
         type="button"
-        className={`${styles.swatch} od-tooltip`}
+        className={`${styles.swatch} readable-tooltip`}
         style={{ '--swatch-color': value || 'transparent' } as CSSProperties}
         aria-label={label}
         data-tooltip={label}

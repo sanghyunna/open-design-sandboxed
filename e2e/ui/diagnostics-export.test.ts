@@ -8,7 +8,7 @@ import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
 const execFileAsync = promisify(execFile);
-const STORAGE_KEY = 'open-design:config';
+const STORAGE_KEY = 'readable-studio:config';
 
 test.describe.configure({ timeout: 45_000 });
 
@@ -40,7 +40,7 @@ test('[P1] diagnostics export zip includes the primary daemon, web, and desktop 
   expect(response.ok(), await response.text()).toBeTruthy();
   expect(response.headers()['content-type']).toContain('application/zip');
 
-  const tmpRoot = await mkdtemp(path.join(tmpdir(), 'od-diagnostics-e2e-'));
+  const tmpRoot = await mkdtemp(path.join(tmpdir(), 'readable-diagnostics-e2e-'));
   try {
     const zipPath = path.join(tmpRoot, 'diagnostics.zip');
     await writeFile(zipPath, Buffer.from(await response.body()));
@@ -75,7 +75,7 @@ test('[P1] diagnostics export zip includes the primary daemon, web, and desktop 
 async function gotoEntryHome(page: Page) {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForLoadingToClear(page);
-  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Open Design' });
+  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Readable Studio' });
   if (await privacyDialog.isVisible().catch(() => false)) {
     await privacyDialog.getByRole('button', { name: /I get it|not now|got it|don't share/i }).click();
   }
@@ -83,7 +83,7 @@ async function gotoEntryHome(page: Page) {
 }
 
 async function waitForLoadingToClear(page: Page) {
-  await expect(page.getByText('Loading Open Design…')).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.locator('.readable-loading-shell')).toHaveCount(0, { timeout: 15_000 });
 }
 
 async function unzipList(zipPath: string): Promise<string[]> {

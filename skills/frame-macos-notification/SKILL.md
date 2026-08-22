@@ -18,7 +18,7 @@ example_tagline: "Big Sur frosted-glass banner"
 example_desc: "App icon, title, and two-line body for a video-corner overlay"
 example_source_url: "https://hyperframes.heygen.com/catalog"
 example_source_label: "hyperframes · macos-notification"
-od:
+readable:
   mode: video
   surface: video
   scenario: video

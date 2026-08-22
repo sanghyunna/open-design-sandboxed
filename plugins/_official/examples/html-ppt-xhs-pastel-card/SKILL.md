@@ -9,7 +9,7 @@ triggers:
 - "Slow Life"
   - "Lifestyle"
   - "Personal growth"
-od:
+readable:
   mode: deck
   scenario: personal
   featured: 33

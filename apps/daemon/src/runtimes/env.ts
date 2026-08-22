@@ -2,8 +2,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { mergeProxyAwareEnv, resolveSystemProxyEnv } from '@open-design/platform';
-import { SIDECAR_ENV } from '@open-design/sidecar-proto';
+import { mergeProxyAwareEnv, resolveSystemProxyEnv } from '@readable-studio/platform';
+import { SIDECAR_ENV } from '@readable-studio/sidecar-proto';
 import { resolveProjectRelativePath } from '../home-expansion.js';
 import { expandConfiguredEnv } from './paths.js';
 import { resolveAmrOpenCodeExecutable } from './executables.js';
@@ -75,7 +75,7 @@ export function spawnEnvForAgent(
     expandConfiguredEnv(configuredEnv),
   );
   const protectedKeys = new Set([
-    'OD_API_TOKEN',
+    'READABLE_API_TOKEN',
     SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN,
   ]);
   for (const key of Object.keys(env)) {
@@ -97,9 +97,9 @@ export function spawnEnvForAgent(
       const home = os.homedir();
       if (home) env.HOME = home;
     }
-    if (!env.OPENCODE_TEST_HOME?.trim() && env.OD_DATA_DIR?.trim()) {
+    if (!env.OPENCODE_TEST_HOME?.trim() && env.READABLE_DATA_DIR?.trim()) {
       env.OPENCODE_TEST_HOME = path.join(
-        env.OD_DATA_DIR.trim(),
+        env.READABLE_DATA_DIR.trim(),
         'amr',
         'opencode-home',
       );
@@ -143,7 +143,7 @@ export function spawnEnvForAgent(
   return reapplySandboxRuntimeEnv(env, sandboxRuntime);
 }
 
-export function openDesignAmrTraceEnv(input: {
+export function readableStudioAmrTraceEnv(input: {
   agentId: string;
   runId: string;
   conversationId?: string | null;
@@ -153,17 +153,17 @@ export function openDesignAmrTraceEnv(input: {
 
   const runId = input.runId.trim();
   if (!runId) {
-    throw new Error('OPEN_DESIGN_RUN_ID requires a non-empty run id for AMR runs');
+    throw new Error('READABLE_RUN_ID requires a non-empty run id for AMR runs');
   }
   if (!Number.isFinite(input.runAttempt) || input.runAttempt < 0) {
-    throw new Error('OPEN_DESIGN_RUN_ATTEMPT requires a non-negative finite attempt index');
+    throw new Error('READABLE_RUN_ATTEMPT requires a non-negative finite attempt index');
   }
 
   const conversationId = input.conversationId?.trim();
   return {
-    OPEN_DESIGN_RUN_ID: runId,
-    OPEN_DESIGN_RUN_ATTEMPT: String(Math.floor(input.runAttempt)),
-    ...(conversationId ? { OPEN_DESIGN_SESSION_ID: conversationId } : {}),
+    READABLE_RUN_ID: runId,
+    READABLE_RUN_ATTEMPT: String(Math.floor(input.runAttempt)),
+    ...(conversationId ? { READABLE_SESSION_ID: conversationId } : {}),
   };
 }
 
@@ -180,7 +180,7 @@ function sandboxRuntimeConfigForBaseEnv(
   baseEnv: RuntimeEnvMap,
 ): SandboxRuntimeConfig | null {
   if (!isSandboxModeEnabled(baseEnv)) return null;
-  const dataDir = baseEnv.OD_DATA_DIR?.trim();
+  const dataDir = baseEnv.READABLE_DATA_DIR?.trim();
   if (!dataDir) return null;
   const resolvedDataDir = resolveProjectRelativePath(
     dataDir,

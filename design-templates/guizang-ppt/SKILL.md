@@ -16,7 +16,7 @@ triggers:
   - "web PPT"
   - "product launch"
   - "presentation PPT"
-od:
+readable:
   mode: deck
   scenario: marketing
   default_for: deck

@@ -25,7 +25,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import Database from 'better-sqlite3';
-import type { AppliedPluginSnapshot, PipelineStage } from '@open-design/contracts';
+import type { AppliedPluginSnapshot, PipelineStage } from '@readable-studio/contracts';
 import { migratePlugins } from '../src/plugins/persistence.js';
 import {
   PERMISSIVE_DEFAULT_SIGNALS,
@@ -45,7 +45,7 @@ let db: Database.Database;
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-atom-reg-'));
+  tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-atom-reg-'));
   db = new Database(path.join(tmpDir, 'test.sqlite'));
   db.exec(`
     CREATE TABLE projects (id TEXT PRIMARY KEY, name TEXT);

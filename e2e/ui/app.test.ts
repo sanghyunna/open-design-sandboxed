@@ -9,7 +9,7 @@ import { T } from '@/timeouts';
 import { automatedUiScenarios } from '@/playwright/resources';
 import type { UiScenario } from '@/playwright/resources';
 
-const STORAGE_KEY = 'open-design:config';
+const STORAGE_KEY = 'readable-studio:config';
 const ACTIVE_ARTIFACT_PREVIEW_SELECTOR = '[data-testid="artifact-preview-frame"]:visible, [data-testid="artifact-preview-frame-url-load"]:visible, [data-testid="artifact-preview-frame-srcdoc"]:visible';
 const APP_OWNED_SCENARIO_FLOWS = new Set([
   'design-files-upload',
@@ -422,7 +422,7 @@ test('[P0] @critical element comment sends to chat with Enter from the primary a
 
   await page.getByTestId('board-mode-toggle').click();
   await page.getByTestId('comment-panel-toggle').click();
-  await artifactPreviewFrame(page).locator('[data-od-id="hero-title"]').click();
+  await artifactPreviewFrame(page).locator('[data-readable-id="hero-title"]').click();
 
   const popover = page.getByTestId('comment-popover');
   await expect(popover).toBeVisible();
@@ -463,9 +463,9 @@ test('[P0] sending preview comments opens the refreshed follow-up artifact', asy
     throw new Error('comment-attachment-flow scenario fixture is missing');
   }
   const revisedHtml =
-    '<!doctype html><html><body><main data-od-id="hero-section">' +
-    '<h1 data-od-id="hero-title" data-screen-label="Hero title">Revised headline</h1>' +
-    '<p data-od-id="hero-copy">Preview copy refreshed after comment send.</p>' +
+    '<!doctype html><html><body><main data-readable-id="hero-section">' +
+    '<h1 data-readable-id="hero-title" data-screen-label="Hero title">Revised headline</h1>' +
+    '<p data-readable-id="hero-copy">Preview copy refreshed after comment send.</p>' +
     '</main></body></html>';
 
   await routeMockAgents(page);
@@ -523,7 +523,7 @@ test('[P0] sending preview comments opens the refreshed follow-up artifact', asy
   await page.getByTestId('board-mode-toggle').click();
   await page.getByTestId('comment-panel-toggle').click();
   const frame = artifactPreviewFrame(page);
-  await frame.locator('[data-od-id="hero-title"]').click();
+  await frame.locator('[data-readable-id="hero-title"]').click();
   await expect(page.getByTestId('comment-popover')).toBeVisible();
   await page.getByTestId('comment-popover-input').fill('Make the headline more specific.');
   await page.getByTestId('comment-popover-save').click();
@@ -673,7 +673,7 @@ async function seedHtmlArtifact(
       name: fileName,
       content,
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: fileName,
         entry: fileName,
@@ -723,10 +723,10 @@ function manualEditHtml(): string {
   <head><meta charset="utf-8"><title>Manual Edit</title></head>
   <body>
     <main>
-      <section data-od-id="hero" data-od-label="Hero section">
-        <h1 data-od-id="hero-title" data-od-label="Hero title">Original Hero</h1>
-        <a data-od-id="cta" data-od-label="Primary CTA" href="/start">Start now</a>
-        <img data-od-id="hero-image" data-od-label="Hero image" src="/hero.png" alt="Hero" style="width:64px;height:64px;">
+      <section data-readable-id="hero" data-readable-label="Hero section">
+        <h1 data-readable-id="hero-title" data-readable-label="Hero title">Original Hero</h1>
+        <a data-readable-id="cta" data-readable-label="Primary CTA" href="/start">Start now</a>
+        <img data-readable-id="hero-image" data-readable-label="Hero image" src="/hero.png" alt="Hero" style="width:64px;height:64px;">
       </section>
     </main>
   </body>
@@ -737,21 +737,21 @@ function deckHtml(): string {
   return `<!doctype html>
 <html>
   <body>
-    <section class="slide" data-od-id="slide-1"><h1>Slide One</h1></section>
-    <section class="slide" data-od-id="slide-2" hidden><h1>Slide Two</h1></section>
+    <section class="slide" data-readable-id="slide-1"><h1>Slide One</h1></section>
+    <section class="slide" data-readable-id="slide-2" hidden><h1>Slide Two</h1></section>
     <script>
       let active = 0;
       const slides = Array.from(document.querySelectorAll('.slide'));
       function render() { slides.forEach((slide, index) => { slide.hidden = index !== active; }); }
       window.addEventListener('message', (event) => {
-        if (!event.data || event.data.type !== 'od:slide') return;
+        if (!event.data || event.data.type !== 'readable-studio:slide') return;
         if (event.data.action === 'next') active = Math.min(slides.length - 1, active + 1);
         if (event.data.action === 'prev') active = Math.max(0, active - 1);
         render();
-        window.parent.postMessage({ type: 'od:slide-state', active, count: slides.length }, '*');
+        window.parent.postMessage({ type: 'readable-studio:slide-state', active, count: slides.length }, '*');
       });
       render();
-      window.parent.postMessage({ type: 'od:slide-state', active, count: slides.length }, '*');
+      window.parent.postMessage({ type: 'readable-studio:slide-state', active, count: slides.length }, '*');
     </script>
   </body>
 </html>`;
@@ -945,7 +945,7 @@ async function runCommentAttachmentFlow(
   await page.getByTestId('board-mode-toggle').click();
   await page.getByTestId('comment-panel-toggle').click();
   const frame = artifactPreviewFrame(page);
-  await frame.locator('[data-od-id="hero-title"]').click();
+  await frame.locator('[data-readable-id="hero-title"]').click();
   await expect(page.getByTestId('comment-popover')).toBeVisible();
   await page.getByTestId('comment-popover-input').fill('Make the headline more specific.');
   await page.getByTestId('comment-popover-save').click();
@@ -1043,7 +1043,7 @@ async function seedDeckArtifact(
   slides: string[],
 ) {
   const slideHtml = slides
-    .map((slide, index) => `<section class="slide" data-od-id="slide-${index + 1}"${index === 0 ? '' : ' hidden'}><h1>${slide}</h1></section>`)
+    .map((slide, index) => `<section class="slide" data-readable-id="slide-${index + 1}"${index === 0 ? '' : ' hidden'}><h1>${slide}</h1></section>`)
     .join('\n');
   await seedProjectFile(
     page,
@@ -1052,7 +1052,7 @@ async function seedDeckArtifact(
     `<!doctype html><html><body>${slideHtml}</body></html>`,
     undefined,
     {
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
       kind: 'deck',
       title,
       entry: fileName,
@@ -1096,7 +1096,7 @@ async function createProjectNameOnly(
 async function gotoEntryHome(page: Page) {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForLoadingToClear(page);
-  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Open Design' });
+  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Readable Studio' });
   if (await privacyDialog.isVisible()) {
     await privacyDialog.getByRole('button', { name: /I get it|not now|got it|don't share/i }).click();
     await expect(privacyDialog).toHaveCount(0);
@@ -1113,7 +1113,7 @@ async function openNewProjectModal(page: Page) {
 }
 
 async function waitForLoadingToClear(page: Page) {
-  await page.getByText('Loading Open Design…').waitFor({ state: 'hidden', timeout: T.medium });
+  await page.locator('.readable-loading-shell').waitFor({ state: 'hidden', timeout: T.medium });
 }
 
 async function getCurrentProjectContext(

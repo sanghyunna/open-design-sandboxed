@@ -1,6 +1,6 @@
 // Plugin-local SKILL.md loader (Stage A of plugin-driven-flow-plan).
 //
-// Plugins that declare `od.context.skills[{ path: './SKILL.md' }]` ship
+// Plugins that declare `readable.context.skills[{ path: './SKILL.md' }]` ship
 // their own skill body inside their plugin folder. Those files never
 // register against the global skills registry, so the
 // `composeSystemPrompt` skill slot would otherwise be empty.
@@ -16,7 +16,7 @@
 
 import path from 'node:path';
 import { promises as fsp } from 'node:fs';
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 import { pickFirstLocalSkillPath } from './apply.js';
 
 export interface PluginLocalSkill {

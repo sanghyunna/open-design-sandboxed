@@ -124,7 +124,7 @@ describe('RecentProjectsStrip', () => {
     await waitFor(() => {
       const deckIframe = deckCard?.querySelector('iframe') as HTMLIFrameElement | null;
       expect(deckIframe?.getAttribute('srcdoc')).toContain('First slide');
-      expect(deckIframe?.getAttribute('srcdoc')).toContain('od-recent-deck-real-preview');
+      expect(deckIframe?.getAttribute('srcdoc')).toContain('readable-recent-deck-real-preview');
       expect(deckIframe?.getAttribute('srcdoc')).toContain('.page-flip-controls');
       expect(deckIframe?.getAttribute('srcdoc')).toContain('[aria-label="Pagination"]');
       expect(deckIframe?.getAttribute('srcdoc')).not.toContain('<script');

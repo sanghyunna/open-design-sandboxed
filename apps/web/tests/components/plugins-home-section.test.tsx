@@ -10,7 +10,7 @@
 
 import { describe, expect, it, afterEach, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 import type { ComponentProps } from 'react';
 import { PluginsHomeSection } from '../../src/components/PluginsHomeSection';
 import { I18nProvider } from '../../src/i18n';
@@ -42,7 +42,7 @@ function makePlugin(overrides: {
       ...(overrides.description ? { description: overrides.description } : {}),
       ...(overrides.descriptionI18n ? { description_i18n: overrides.descriptionI18n } : {}),
       ...(overrides.tags ? { tags: overrides.tags } : {}),
-      od: {
+      readable: {
         kind: overrides.kind ?? 'scenario',
         ...(overrides.mode ? { mode: overrides.mode } : {}),
         ...(overrides.featured ? { featured: true } : {}),

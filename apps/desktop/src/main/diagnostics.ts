@@ -6,15 +6,15 @@ import { BrowserWindow, app, dialog, ipcMain, shell } from "electron";
 
 import {
   APP_KEYS,
-  OPEN_DESIGN_SIDECAR_CONTRACT,
+  SIDECAR_CONTRACT,
   SIDECAR_MODES,
   type SidecarStamp,
-} from "@open-design/sidecar-proto";
+} from "@readable-studio/sidecar-proto";
 import {
   resolveLogFilePath,
   resolveRuntimeNamespaceRoot,
   type SidecarRuntimeContext,
-} from "@open-design/sidecar";
+} from "@readable-studio/sidecar";
 import {
   DIAGNOSTICS_FILENAME_PREFIX,
   buildAgentCliLogSources,
@@ -22,7 +22,7 @@ import {
   buildRunEventLogSources,
   diagnosticsFileName,
   type LogSource,
-} from "@open-design/diagnostics";
+} from "@readable-studio/diagnostics";
 
 export const DESKTOP_DIAGNOSTICS_IPC_CHANNEL = "diagnostics:export-to-file";
 
@@ -85,7 +85,7 @@ function buildSidecarLogSources(runtime: SidecarRuntimeContext<SidecarStamp>): L
   // accounts for that (a plain `resolveNamespaceRoot` here resolved every
   // daemon/web log to an ENOENT phantom path and captured none of them).
   const namespaceRoot = resolveRuntimeNamespaceRoot({
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
     runtime,
     runtimeMode: SIDECAR_MODES.RUNTIME,
   });
@@ -94,7 +94,7 @@ function buildSidecarLogSources(runtime: SidecarRuntimeContext<SidecarStamp>): L
   for (const appKey of apps) {
     const absolutePath = resolveLogFilePath({
       app: appKey,
-      contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+      contract: SIDECAR_CONTRACT,
       runtimeRoot: namespaceRoot,
     });
     sources.push({
@@ -134,7 +134,7 @@ export async function exportDiagnosticsToFile(
   const defaultPath = join(downloadsDir, filename);
 
   const dialogOptions = {
-    title: "Export Open Design diagnostics",
+    title: "Export Readable Studio diagnostics",
     defaultPath,
     filters: [{ name: "Zip archive", extensions: ["zip"] }],
   };
@@ -148,13 +148,13 @@ export async function exportDiagnosticsToFile(
 
   try {
     // The packaged daemon writes its runtime data at `<namespaceRoot>/data`
-    // (OD_DATA_DIR), with per-run event logs under `data/runs` and the
+    // (READABLE_DATA_DIR), with per-run event logs under `data/runs` and the
     // AMR-managed OpenCode home under `data/amr`. Derive both so this export
     // — the one users actually trigger from the desktop UI — carries the same
     // run/agent diagnostics the daemon HTTP export does, instead of only the
     // three sidecar logs.
     const namespaceRoot = resolveRuntimeNamespaceRoot({
-      contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+      contract: SIDECAR_CONTRACT,
       runtime,
       runtimeMode: SIDECAR_MODES.RUNTIME,
     });
@@ -177,7 +177,7 @@ export async function exportDiagnosticsToFile(
     ];
     const result = await buildDiagnosticsZip({
       context: {
-        app: { name: "open-design", version: app.getVersion(), packaged: app.isPackaged },
+        app: { name: "Readable Studio", version: app.getVersion(), packaged: app.isPackaged },
         source: "desktop-ipc",
         namespace: runtime.namespace,
         extra: {
@@ -191,11 +191,11 @@ export async function exportDiagnosticsToFile(
       sources,
       redaction: { username: safeUsername() },
       crashReports: {
-        // Restrict to Open Design's own process names. A generic "Electron"
+        // Restrict to Readable Studio's own process names. A generic "Electron"
         // substring would sweep up crash reports from any other Electron app
         // on the host (VS Code, Slack, …) and leak unrelated user data into
         // the support bundle.
-        matchSubstrings: ["Open Design", "open-design"],
+        matchSubstrings: ["Readable Studio", "readable-studio"],
         withinDays: 7,
         maxReports: 10,
         homeDir: homedir(),

@@ -6,6 +6,7 @@ import {
   HOSTED_LOCALES,
   HOSTED_MESSAGE_KEYS,
   HOSTED_MESSAGES,
+  HOSTED_RUN_KEYS,
   HostedI18nProvider,
   hostedDirection,
   resolveHostedLocale,
@@ -42,6 +43,20 @@ describe('hosted-only i18n', () => {
       for (const key of HOSTED_MESSAGE_KEYS) {
         expect(translateHosted(locale, key).trim(), `${locale}.${key}`).not.toBe('');
       }
+    }
+  });
+
+  it('resolves canonical product identity without copied English run fallbacks', () => {
+    for (const locale of HOSTED_LOCALES) {
+      expect(
+        translateHosted(locale, 'hosted.provider.eyebrow'),
+        `${locale}.hosted.provider.eyebrow`,
+      ).toContain('Readable Studio');
+      if (locale === 'en') continue;
+      const copiedFallbacks = HOSTED_RUN_KEYS.filter(
+        (key) => translateHosted(locale, key) === translateHosted('en', key),
+      ).filter((key) => !(locale === 'fr' && key === 'hosted.run.conversation'));
+      expect(copiedFallbacks, `${locale} copied hosted run fallbacks`).toEqual([]);
     }
   });
 

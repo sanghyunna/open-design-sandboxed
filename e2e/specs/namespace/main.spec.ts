@@ -40,7 +40,7 @@ type SseEvent = {
 };
 
 describe('namespace isolation spec', () => {
-  test('keeps namespace in lifecycle infrastructure while daemon clients use URL or concrete IPC transport', async () => {
+  test('rejects old identity inputs while keeping namespace in lifecycle infrastructure', async () => {
     const suite = await createSmokeSuite('namespace-isolation');
 
     await suite.with.toolsDev(async ({ runtime, status, webUrl }) => {
@@ -52,25 +52,38 @@ describe('namespace isolation spec', () => {
       expect(daemonStatus).not.toHaveProperty('namespace');
 
       const installInfo = await requestJson<McpInstallInfoResponse>(webUrl, '/api/mcp/install-info');
-      const ipcPath = installInfo.env.OD_SIDECAR_IPC_PATH;
+      const ipcPath = installInfo.env.READABLE_SIDECAR_IPC_PATH;
       if (typeof ipcPath !== 'string' || ipcPath.length === 0) {
-        throw new Error('MCP install-info did not include OD_SIDECAR_IPC_PATH');
+        throw new Error('MCP install-info did not include READABLE_SIDECAR_IPC_PATH');
       }
-      expect(ipcPath).toEqual(expect.any(String));
+      const expectedIpcPath = process.platform === 'win32'
+        ? `\\\\.\\pipe\\readable-studio-${suite.namespace}-daemon`
+        : `/tmp/readable-studio/ipc/${suite.namespace}/daemon.sock`;
+      expect(ipcPath).toBe(expectedIpcPath);
       expect(installInfo.args).not.toContain('--daemon-url');
-      expect(installInfo.env.OD_DATA_DIR).toBe(suite.dataDir);
-      expect(installInfo.env).not.toHaveProperty('OD_NAMESPACE');
-      expect(installInfo.env).not.toHaveProperty('OD_SIDECAR_NAMESPACE');
-      expect(installInfo.env).not.toHaveProperty('OD_SIDECAR_IPC_BASE');
+      expect(installInfo.env.READABLE_DATA_DIR).toBe(suite.dataDir);
+      expect(installInfo.env).not.toHaveProperty('READABLE_NAMESPACE');
+      expect(installInfo.env).not.toHaveProperty('READABLE_SIDECAR_NAMESPACE');
+      expect(installInfo.env).not.toHaveProperty('READABLE_SIDECAR_IPC_BASE');
+      expect(installInfo.env).not.toHaveProperty('READABLE_SIDECAR_IPC_PATH');
+
+      const legacyIdentityResult = await runDaemonCliExpectFailure(
+        ['daemon', 'status', '--json'],
+        {
+          READABLE_SIDECAR_IPC_PATH: ipcPath,
+          READABLE_SIDECAR_NAMESPACE: suite.namespace,
+        },
+      );
+      expect(`${legacyIdentityResult.stdout}\n${legacyIdentityResult.stderr}`.trim()).not.toBe('');
 
       const cliStatus = await runDaemonCliJson<DaemonStatusResponse>(
         ['daemon', 'status', '--json'],
         {
-          OD_DATA_DIR: suite.dataDir,
-          OD_NAMESPACE: 'wrong-daemon-namespace',
-          OD_SIDECAR_IPC_BASE: path.join(suite.scratchDir, 'wrong-ipc-base'),
-          OD_SIDECAR_IPC_PATH: ipcPath,
-          OD_SIDECAR_NAMESPACE: 'wrong-sidecar-namespace',
+          READABLE_DATA_DIR: suite.dataDir,
+          READABLE_NAMESPACE: 'wrong-daemon-namespace',
+          READABLE_SIDECAR_IPC_BASE: path.join(suite.scratchDir, 'wrong-ipc-base'),
+          READABLE_SIDECAR_IPC_PATH: ipcPath,
+          READABLE_SIDECAR_NAMESPACE: 'wrong-sidecar-namespace',
         },
       );
       expect(cliStatus.port).toBe(runtime.daemonPort);
@@ -79,7 +92,7 @@ describe('namespace isolation spec', () => {
 
       const rejected = await runDaemonCliExpectFailure(
         ['daemon', 'status', '--json', '--namespace', 'should-not-parse'],
-        { OD_SIDECAR_IPC_PATH: ipcPath },
+        { READABLE_SIDECAR_IPC_PATH: ipcPath },
       );
       expect(`${rejected.stdout}\n${rejected.stderr}`).toContain('unknown flag: --namespace');
 
@@ -101,7 +114,7 @@ describe('namespace isolation spec', () => {
 
       const pluginInfo = await requestJson<InstalledPlugin>(webUrl, '/api/plugins/e2e-namespace-plugin');
       expect(pluginInfo.fsPath).toBe(expectedPluginRoot);
-      await access(path.join(expectedPluginRoot, 'open-design.json'));
+      await access(path.join(expectedPluginRoot, 'readable-studio.json'));
       expect(await readFile(path.join(expectedPluginRoot, 'SKILL.md'), 'utf8')).toContain('E2E namespace plugin');
 
       await suite.report.json('summary.json', {
@@ -118,17 +131,43 @@ describe('namespace isolation spec', () => {
       });
     });
   }, 180_000);
+
+  test('isolates two concurrent Readable Studio namespaces', async () => {
+    const suites = [
+      await createSmokeSuite('namespace-concurrent-a'),
+      await createSmokeSuite('namespace-concurrent-b'),
+    ] as const;
+
+    const snapshots = await Promise.all(suites.map(async (suite) => {
+      const collected: Array<{ dataDir: string; ipcPath: string; namespace: string }> = [];
+      await suite.with.toolsDev(async ({ webUrl }) => {
+        const installInfo = await requestJson<McpInstallInfoResponse>(webUrl, '/api/mcp/install-info');
+        const ipcPath = installInfo.env.READABLE_SIDECAR_IPC_PATH;
+        if (ipcPath == null) throw new Error(`missing Readable Studio IPC path for ${suite.namespace}`);
+        collected.push({ dataDir: suite.dataDir, ipcPath, namespace: suite.namespace });
+      });
+      const [snapshot] = collected;
+      if (snapshot == null) throw new Error(`namespace snapshot was not collected for ${suite.namespace}`);
+      return snapshot;
+    }));
+
+    const [first, second] = snapshots;
+    if (first == null || second == null) throw new Error('expected two namespace snapshots');
+    expect(first.namespace).not.toBe(second.namespace);
+    expect(first.dataDir).not.toBe(second.dataDir);
+    expect(first.ipcPath).not.toBe(second.ipcPath);
+  }, 180_000);
 });
 
 async function writeLocalPluginFixture(root: string): Promise<string> {
   const pluginRoot = path.join(root, 'plugin-source');
   await mkdir(pluginRoot, { recursive: true });
   await writeFile(
-    path.join(pluginRoot, 'open-design.json'),
+    path.join(pluginRoot, 'readable-studio.json'),
     JSON.stringify(
       {
         name: 'e2e-namespace-plugin',
-        od: {
+        readable: {
           inputs: [{ name: 'topic', required: true, type: 'string' }],
           kind: 'skill',
           taskKind: 'new-generation',
@@ -182,8 +221,8 @@ async function runDaemonCli(
     ...process.env,
     ...env,
   };
-  delete mergedEnv.OD_DAEMON_URL;
-  delete mergedEnv.OD_PORT;
+  delete mergedEnv.READABLE_DAEMON_URL;
+  delete mergedEnv.READABLE_PORT;
 
   const { stderr, stdout } = await execFileAsync(
     process.execPath,

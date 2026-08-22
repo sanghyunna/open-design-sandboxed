@@ -19,9 +19,14 @@ import { injectStandaloneDeckKeyDedupe } from './standalone-deck-nav';
 import { randomUUID } from '../utils/uuid';
 import {
   captureHostPage,
-  isOpenDesignHostAvailable,
+  isReadableStudioHostAvailable,
   printHostPdf,
-} from '@open-design/host';
+} from '@readable-studio/host';
+import {
+  STANDALONE_HTML_EXPORT_HEADERS,
+  type StandaloneHtmlExportSummary,
+  type StandaloneHtmlSource,
+} from '@readable-studio/contracts';
 
 const DESIGN_HANDOFF_FILENAME = 'DESIGN-HANDOFF.md';
 const DESIGN_MANIFEST_FILENAME = 'DESIGN-MANIFEST.json';
@@ -51,35 +56,56 @@ function triggerDownload(blob: Blob, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-// @dsp func-f4e4308d
-export function exportAsHtml(html: string, title: string): void {
-  const doc = injectStandaloneDeckKeyDedupe(buildSrcdoc(html));
-  const blob = new Blob([doc], { type: 'text/html;charset=utf-8' });
-  triggerDownload(blob, `${safeFilename(title, 'artifact')}.html`);
+// @dsp func-40a5435e
+export class StandaloneHtmlExportError extends Error {
+  constructor(message: string, public readonly code = 'STANDALONE_HTML_EXPORT_FAILED') {
+    super(message);
+    this.name = code;
+  }
 }
 
-// @dsp func-40a5435e
-export async function exportProjectAsHtml(opts: {
+export async function exportStandaloneHtml(options: {
+  source: StandaloneHtmlSource;
+  title: string;
+}): Promise<StandaloneHtmlExportSummary> {
+  const response = await fetch('/api/exports/standalone-html', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ source: options.source }),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { error?: { code?: string; message?: string } } | null;
+    throw new StandaloneHtmlExportError(
+      body?.error?.message ?? `HTML export request failed (${response.status})`,
+      body?.error?.code ?? `HTTP_${response.status}`,
+    );
+  }
+  const count = (name: string) => {
+    const raw = response.headers.get(name);
+    const value = raw == null ? NaN : Number(raw);
+    if (!Number.isSafeInteger(value) || value < 0) throw new StandaloneHtmlExportError(`Invalid export response header: ${name}`);
+    return value;
+  };
+  const blob = await response.blob();
+  const summary = {
+    outputBytes: blob.size,
+    externalReferenceCount: count(STANDALONE_HTML_EXPORT_HEADERS.externalReferenceCount),
+    missingLocalReferenceCount: count(STANDALONE_HTML_EXPORT_HEADERS.missingLocalReferenceCount),
+    skippedSystemFontCount: count(STANDALONE_HTML_EXPORT_HEADERS.skippedSystemFontCount),
+  };
+  triggerDownload(blob, `${safeFilename(options.title, 'artifact')}.html`);
+  return summary;
+}
+
+export function exportProjectAsHtml(opts: {
   projectId: string;
   filePath: string;
-  fallbackHtml: string;
-  fallbackTitle: string;
-}): Promise<void> {
-  const segments = opts.filePath
-    .split('/')
-    .filter(Boolean)
-    .map((segment) => encodeURIComponent(segment))
-    .join('/');
-  const url = `/api/projects/${encodeURIComponent(opts.projectId)}/export/${segments}?inline=1`;
-  try {
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`html export request failed (${resp.status})`);
-    const blob = await resp.blob();
-    triggerDownload(blob, `${safeFilename(opts.fallbackTitle, 'artifact')}.html`);
-  } catch (err) {
-    console.warn('[exportProjectAsHtml] falling back to source HTML export:', err);
-    exportAsHtml(opts.fallbackHtml, opts.fallbackTitle);
-  }
+  title: string;
+}): Promise<StandaloneHtmlExportSummary> {
+  return exportStandaloneHtml({
+    source: { kind: 'project', projectId: opts.projectId, filePath: opts.filePath },
+    title: opts.title,
+  });
 }
 
 // A file is treated as a preview-chrome wrapper only when it lives inside
@@ -123,12 +149,12 @@ export function buildDesignManifestContent(opts: {
   files?: string[];
   kind?: 'html' | 'react';
 }): string {
-  const title = opts.title || 'Open Design artifact';
+  const title = opts.title || 'Readable Studio artifact';
   const requestedEntryFile = opts.entryFile || 'index.html';
   const { files, htmlFiles, screenHtmlFiles, cssFiles, jsFiles, assetFiles, entryFile } = designFileMap(requestedEntryFile, opts.files);
   const screenFiles = screenHtmlFiles.length > 0 ? screenHtmlFiles : [entryFile];
   return JSON.stringify({
-    schema: 'open-design.design-manifest.v1',
+    schema: 'readable-studio.design-manifest.v1',
     title,
     kind: opts.kind ?? 'html',
     entryFile,
@@ -215,7 +241,7 @@ export function buildDesignHandoffContent(opts: {
   files?: string[];
   kind?: 'html' | 'react';
 }): string {
-  const title = opts.title || 'Open Design artifact';
+  const title = opts.title || 'Readable Studio artifact';
   const requestedEntryFile = opts.entryFile || 'index.html';
   const { files, htmlFiles, cssFiles, jsFiles, assetFiles, entryFile } = designFileMap(requestedEntryFile, opts.files);
   const accentLikelyBrandLed =
@@ -238,7 +264,7 @@ This archive is the source of truth for turning the design into production code.
 - Build production UI from the exported design, not a loose reinterpretation.
 - Preserve typography scale, spacing rhythm, color tokens, border radii, shadows, motion timing, and component states.
 - Replace static placeholders only when the target app has real data or functional equivalents.
-- Keep generated product UI free of Open Design chrome, preview labels, or design-process annotations.
+- Keep generated product UI free of Readable Studio chrome, preview labels, or design-process annotations.
 - Treat this handoff as a visual contract: if implementation choices conflict, match the exported pixels and behavior first, then refactor internals.
 
 ## Source map
@@ -269,7 +295,7 @@ For responsive web exports, treat these as a modern breakpoint system for one ad
 - Preserve real copy, labels, and data shown in the export. Do not replace specific text with generic marketing filler.
 - Preserve interactive affordances: hover, focus, pressed, disabled, loading, validation, copy/share, tab/accordion, modal/sheet, and keyboard states where present.
 - Preserve accessibility semantics when converting: headings stay hierarchical, controls remain buttons/links/inputs, focus states stay visible.
-- Do not keep prototype-only annotations, frame labels, or Open Design chrome in the production UI.
+- Do not keep prototype-only annotations, frame labels, or Readable Studio chrome in the production UI.
 
 ## CJX-ready UX contract
 - Use \`${DESIGN_MANIFEST_FILENAME}\` as the machine-readable map for screens, app modules, OS widgets, landing pages, tokens, interactions, and viewport checks.
@@ -392,7 +418,7 @@ export function requestPreviewSnapshotResult(
         h?: number;
         error?: string;
       } | null;
-      if (!d || d.type !== 'od:snapshot:result' || d.id !== id) return;
+      if (!d || d.type !== 'readable-studio:snapshot:result' || d.id !== id) return;
       if (done) return;
       done = true;
       window.removeEventListener('message', onMsg);
@@ -401,7 +427,7 @@ export function requestPreviewSnapshotResult(
     }
     window.addEventListener('message', onMsg);
     try {
-      win.postMessage({ type: 'od:snapshot', id }, '*');
+      win.postMessage({ type: 'readable-studio:snapshot', id }, '*');
     } catch {
       done = true;
       window.removeEventListener('message', onMsg);
@@ -443,7 +469,7 @@ export async function requestPreviewSnapshot(
 export async function captureHostRegionSnapshot(
   clipRect: { left: number; top: number; width: number; height: number } | null,
 ): Promise<PreviewSnapshot | null> {
-  if (!isOpenDesignHostAvailable()) return null;
+  if (!isReadableStudioHostAvailable()) return null;
   const clip = clipRect && clipRect.width >= 1 && clipRect.height >= 1
     ? {
         x: Math.max(0, Math.round(clipRect.left)),
@@ -999,7 +1025,7 @@ export async function exportAsPdf(
   // omits allow-modals here because the native flow never calls
   // window.print(); granting it would let untrusted artifact code call
   // alert()/confirm() and stall the hidden Electron window indefinitely.
-  if (isOpenDesignHostAvailable()) {
+  if (isReadableStudioHostAvailable()) {
     if (sandboxedPreview) {
       doc = buildSandboxedPreviewDocument(doc, title);
     }
@@ -1080,14 +1106,14 @@ function injectPrintReadyHandshake(doc: string, nonce: string): string {
   // The nonce is a per-export random UUID that verifies the readiness signal
   // came from our injected handshake, not a spoofed message from untrusted
   // artifact code.
-  const script = `<script data-od-print-ready>(function(){function waitForImages(){var imgs=Array.from(document.images).filter(function(img){return !img.complete});return Promise.all(imgs.map(function(img){return new Promise(function(r){img.addEventListener('load',r,{once:true});img.addEventListener('error',r,{once:true});if(img.complete)r()})}))}function cssUrlValues(value){var urls=[];if(!value||value==='none')return urls;value.replace(/url\\((['"]?)(.*?)\\1\\)/g,function(_,q,rawUrl){if(rawUrl&&!/^data:/i.test(rawUrl))urls.push(rawUrl);return''});return urls}function waitForCssBackgroundImages(){var urls=new Set();Array.from(document.querySelectorAll('*')).forEach(function(el){var style=window.getComputedStyle(el);cssUrlValues(style.backgroundImage).forEach(function(url){urls.add(url)});cssUrlValues(style.borderImageSource).forEach(function(url){urls.add(url)});cssUrlValues(style.listStyleImage).forEach(function(url){urls.add(url)})});return Promise.all(Array.from(urls).map(function(url){return new Promise(function(r){var img=new Image();img.onload=r;img.onerror=r;img.src=url})}))}function nextFrame(){return new Promise(function(r){requestAnimationFrame(function(){r(true)})})}Promise.all([document.fonts&&document.fonts.ready?document.fonts.ready.catch(function(){}):Promise.resolve(),new Promise(function(r){if(document.readyState==='complete')r();else window.addEventListener('load',r,{once:true})})]).then(function(){return Promise.all([waitForImages(),waitForCssBackgroundImages()])}).then(nextFrame).then(nextFrame).then(function(){window.parent.postMessage({type:'OD_PRINT_READY',nonce:'${nonce}'},'*')})})();<\/script>`;
+  const script = `<script data-readable-print-ready>(function(){function waitForImages(){var imgs=Array.from(document.images).filter(function(img){return !img.complete});return Promise.all(imgs.map(function(img){return new Promise(function(r){img.addEventListener('load',r,{once:true});img.addEventListener('error',r,{once:true});if(img.complete)r()})}))}function cssUrlValues(value){var urls=[];if(!value||value==='none')return urls;value.replace(/url\\((['"]?)(.*?)\\1\\)/g,function(_,q,rawUrl){if(rawUrl&&!/^data:/i.test(rawUrl))urls.push(rawUrl);return''});return urls}function waitForCssBackgroundImages(){var urls=new Set();Array.from(document.querySelectorAll('*')).forEach(function(el){var style=window.getComputedStyle(el);cssUrlValues(style.backgroundImage).forEach(function(url){urls.add(url)});cssUrlValues(style.borderImageSource).forEach(function(url){urls.add(url)});cssUrlValues(style.listStyleImage).forEach(function(url){urls.add(url)})});return Promise.all(Array.from(urls).map(function(url){return new Promise(function(r){var img=new Image();img.onload=r;img.onerror=r;img.src=url})}))}function nextFrame(){return new Promise(function(r){requestAnimationFrame(function(){r(true)})})}Promise.all([document.fonts&&document.fonts.ready?document.fonts.ready.catch(function(){}):Promise.resolve(),new Promise(function(r){if(document.readyState==='complete')r();else window.addEventListener('load',r,{once:true})})]).then(function(){return Promise.all([waitForImages(),waitForCssBackgroundImages()])}).then(nextFrame).then(nextFrame).then(function(){window.parent.postMessage({type:'READABLE_STUDIO_PRINT_READY',nonce:'${nonce}'},'*')})})();<\/script>`;
   if (/<\/head>/i.test(doc)) return doc.replace(/<\/head>/i, `${script}</head>`);
   if (/<\/body>/i.test(doc)) return doc.replace(/<\/body>/i, `${script}</body>`);
   return doc + script;
 }
 
 function injectParentPrintReadyCache(doc: string, nonce: string): string {
-  const script = `<script>window.__odPrintReady=false;window.addEventListener('message',function(e){if(e.data&&e.data.type==='OD_PRINT_READY'&&e.data.nonce==='${nonce}'&&(e.source===window||(window.frames&&e.source===window.frames[0])))window.__odPrintReady=true});<\/script>`;
+  const script = `<script>window.__readableStudioPrintReady=false;window.addEventListener('message',function(e){if(e.data&&e.data.type==='READABLE_STUDIO_PRINT_READY'&&e.data.nonce==='${nonce}'&&(e.source===window||(window.frames&&e.source===window.frames[0])))window.__readableStudioPrintReady=true});<\/script>`;
   if (/<head>/i.test(doc)) return doc.replace(/<head>/i, `<head>${script}`);
   return script + doc;
 }

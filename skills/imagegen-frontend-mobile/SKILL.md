@@ -7,7 +7,7 @@ triggers:
   - "mobile UI concept"
   - "ios app mockup"
   - "android app mockup"
-od:
+readable:
   mode: image
   surface: image
   platform: mobile

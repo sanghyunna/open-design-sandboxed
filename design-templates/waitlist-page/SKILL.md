@@ -10,7 +10,7 @@ triggers:
   - "pre-launch landing page"
   - "email capture page"
   - "launch page"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: marketing
@@ -169,7 +169,7 @@ Pre-launch pages are your first handshake with future users. This skill builds a
 
 ### Output
 
-7. **Emit clean HTML** — Single file, CSS inlined, SVG for graphics. Mark interactive elements with `data-od-id` (headline, form, logo, ticker, grid, etc.) so agents can customize without parsing.
+7. **Emit clean HTML** — Single file, CSS inlined, SVG for graphics. Mark interactive elements with `data-readable-id` (headline, form, logo, ticker, grid, etc.) so agents can customize without parsing.
 
 ## Quality gates
 

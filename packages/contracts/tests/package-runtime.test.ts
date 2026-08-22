@@ -20,7 +20,7 @@ function packagePath(target: string): string {
   return join(packageRoot, target.replace(/^\.\//, ''));
 }
 
-describe('@open-design/contracts package runtime shape', () => {
+describe('@readable-studio/contracts package runtime shape', () => {
   it('exports built JavaScript instead of TypeScript source files', () => {
     const pkg = readPackageJson();
 
@@ -53,11 +53,11 @@ describe('@open-design/contracts package runtime shape', () => {
   });
 
   it('makes runtime exports importable through package exports', async () => {
-    const contracts = await import('@open-design/contracts');
-    const connectionTest = await import('@open-design/contracts/api/connectionTest');
-    const research = await import('@open-design/contracts/api/research');
-    const handoff = await import('@open-design/contracts/api/handoff');
-    const critique = await import('@open-design/contracts/critique');
+    const contracts = await import('@readable-studio/contracts');
+    const connectionTest = await import('@readable-studio/contracts/api/connectionTest');
+    const research = await import('@readable-studio/contracts/api/research');
+    const handoff = await import('@readable-studio/contracts/api/handoff');
+    const critique = await import('@readable-studio/contracts/critique');
 
     expect(contracts.composeSystemPrompt).toEqual(expect.any(Function));
     expect(contracts.exampleHealthResponse).toEqual({ ok: true, service: 'daemon' });

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { SystemFontFamily } from '@open-design/contracts';
+import type { SystemFontFamily } from '@readable-studio/contracts';
 import { fetchSystemFonts } from '../providers/registry';
 
 // Module-level promise cache: the font list is fetched once and shared by

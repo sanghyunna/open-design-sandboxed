@@ -157,14 +157,14 @@ describe('inspiration action prompts', () => {
     const prompt = browserUsePrompt(action!, {
       browserFilePath: 'browser:https://example.com',
       projectId: 'proj-1',
-      resolvedDir: '/tmp/open-design/project',
+      resolvedDir: '/tmp/readable-studio/project',
       tabLabel: 'Example landing',
       title: 'Example',
       url: 'https://example.com',
     });
 
     expect(prompt).toContain('@agent-browser');
-    expect(prompt).toContain('Use the selected Open Design Browser tab as the bound target.');
+    expect(prompt).toContain('Use the selected Readable Studio Browser tab as the bound target.');
     expect(prompt).toContain('- tab: Example landing');
     expect(prompt).toContain('- url: https://example.com');
     expect(prompt).toContain('Operation: extract_colors');
@@ -407,7 +407,7 @@ describe('loadHistory / saveHistory round-trip', () => {
 
   it('drops malformed entries on load', () => {
     window.localStorage.setItem(
-      `od:design-browser:${projectId}:history:v1`,
+      `readable:design-browser:${projectId}:history:v1`,
       JSON.stringify([
         { url: 'https://ok.com', title: 'OK', lastVisitedAt: 1, visitCount: 1 },
         { url: 123, title: 'bad', lastVisitedAt: 1, visitCount: 1 },
@@ -419,7 +419,7 @@ describe('loadHistory / saveHistory round-trip', () => {
   });
 
   it('returns an empty array for corrupt or non-array JSON', () => {
-    const key = `od:design-browser:${projectId}:history:v1`;
+    const key = `readable:design-browser:${projectId}:history:v1`;
     window.localStorage.setItem(key, 'not json');
     expect(loadHistory(projectId)).toEqual([]);
     window.localStorage.setItem(key, JSON.stringify({ not: 'an array' }));

@@ -3,7 +3,7 @@
 // The substrate slice for lifting `composeSystemPrompt`'s prompt
 // constants into the bundled atom plugins. The daemon-side helper
 // reads `<bundled-fsPath>/SKILL.md` and strips frontmatter; the
-// pure renderer in @open-design/contracts then assembles the stage
+// pure renderer in @readable-studio/contracts then assembles the stage
 // prompt block. This test pins both halves of the contract so a
 // future PR that lifts system.ts has zero scaffolding to build.
 
@@ -15,17 +15,17 @@ import Database from 'better-sqlite3';
 import { migratePlugins } from '../src/plugins/persistence.js';
 import { registerBundledPlugins } from '../src/plugins/bundled.js';
 import { loadAtomBodies } from '../src/plugins/atom-bodies.js';
-import { renderActiveStageBlock } from '@open-design/contracts';
+import { renderActiveStageBlock } from '@readable-studio/contracts';
 
 const SAMPLE_MANIFEST = (id: string) =>
   JSON.stringify({
-    $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+    $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
     name: id,
     title: id,
     version: '0.1.0',
     description: `${id} fixture`,
     license: 'MIT',
-    od: { kind: 'atom', capabilities: ['prompt:inject'] },
+    readable: { kind: 'atom', capabilities: ['prompt:inject'] },
   });
 
 const SAMPLE_SKILL = (id: string, body: string) =>
@@ -35,7 +35,7 @@ let db: Database.Database;
 let tmpRoot: string;
 
 beforeEach(async () => {
-  tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'od-atom-bodies-'));
+  tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'readable-atom-bodies-'));
   db = new Database(':memory:');
   db.exec(`
     CREATE TABLE projects (id TEXT PRIMARY KEY, name TEXT);
@@ -49,9 +49,9 @@ beforeEach(async () => {
   const atomB = path.join(tmpRoot, 'atoms', 'todo-write');
   await mkdir(atomA, { recursive: true });
   await mkdir(atomB, { recursive: true });
-  await writeFile(path.join(atomA, 'open-design.json'), SAMPLE_MANIFEST('discovery-question-form'));
+  await writeFile(path.join(atomA, 'readable-studio.json'), SAMPLE_MANIFEST('discovery-question-form'));
   await writeFile(path.join(atomA, 'SKILL.md'), SAMPLE_SKILL('discovery-question-form', 'Ask the user about audience.'));
-  await writeFile(path.join(atomB, 'open-design.json'), SAMPLE_MANIFEST('todo-write'));
+  await writeFile(path.join(atomB, 'readable-studio.json'), SAMPLE_MANIFEST('todo-write'));
   await writeFile(path.join(atomB, 'SKILL.md'), SAMPLE_SKILL('todo-write', 'Commit a numbered plan.'));
 
   await registerBundledPlugins({ db, bundledRoot: tmpRoot });

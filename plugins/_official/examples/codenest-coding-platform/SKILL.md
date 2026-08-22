@@ -2,7 +2,7 @@
 name: codenest-coding-platform
 description: "Use this plugin when the user wants a high-end, dark cinematic hero section for a coding-education / bootcamp landing page (CodeNest): full-screen HLS background video, liquid-glass card, green-accent typography, and a working mobile hamburger menu. Invoke for 'coding bootcamp hero', 'dev course landing page', 'liquid glass hero', 'video background hero', or when the user references the CodeNest template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

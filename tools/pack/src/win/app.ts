@@ -4,7 +4,8 @@ import { cpus } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { promisify } from "node:util";
 
-import { createCommandInvocation, createPackageManagerInvocation } from "@open-design/platform";
+import { createCommandInvocation, createPackageManagerInvocation } from "@readable-studio/platform";
+import { SIDECAR_ENV } from "@readable-studio/sidecar-proto";
 
 import { hashJson, hashPath, ToolPackCache } from "../cache.js";
 import type { ToolPackConfig } from "../config.js";
@@ -71,7 +72,7 @@ async function runNpmInstall(appRoot: string): Promise<void> {
 }
 
 async function runEsbuild(config: ToolPackConfig, args: string[]): Promise<void> {
-  await runPnpm(config, ["--filter", "@open-design/packaged", "exec", "esbuild", ...args]);
+  await runPnpm(config, ["--filter", "@readable-studio/packaged", "exec", "esbuild", ...args]);
 }
 
 function nodeNativeModuleOutputPath(appRoot: string): string {
@@ -100,22 +101,21 @@ async function validateNodeNativeModuleOutput(appRoot: string): Promise<string |
 // wave; its extra `build:sidecar` script and sourcemap post-processing
 // stay serial below because neither is a `build` script.
 const WORKSPACE_BUILD_FILTER_PACKAGES = [
-  "@open-design/contracts",
-  "@open-design/registry-protocol",
-  "@open-design/sidecar-proto",
-  "@open-design/launcher-proto",
-  "@open-design/sidecar",
-  "@open-design/platform",
-  "@open-design/agui-adapter",
-  "@open-design/plugin-runtime",
-  "@open-design/download",
-  "@open-design/host",
-  "@open-design/diagnostics",
-  "@open-design/components",
-  "@open-design/daemon",
-  "@open-design/web",
-  "@open-design/desktop",
-  "@open-design/packaged",
+  "@readable-studio/contracts",
+  "@readable-studio/registry-protocol",
+  "@readable-studio/sidecar-proto",
+  "@readable-studio/sidecar",
+  "@readable-studio/platform",
+  "@readable-studio/agui-adapter",
+  "@readable-studio/plugin-runtime",
+  "@readable-studio/download",
+  "@readable-studio/host",
+  "@readable-studio/diagnostics",
+  "@readable-studio/components",
+  "@readable-studio/daemon",
+  "@readable-studio/web",
+  "@readable-studio/desktop",
+  "@readable-studio/packaged",
 ] as const;
 
 async function buildWorkspaceArtifacts(config: ToolPackConfig): Promise<void> {
@@ -130,15 +130,15 @@ async function buildWorkspaceArtifacts(config: ToolPackConfig): Promise<void> {
 
   try {
     // One recursive invocation builds every workspace package in dependency
-    // order with up to `workspaceConcurrency` running at once. OD_WEB_OUTPUT_MODE
+    // order with up to `workspaceConcurrency` running at once. READABLE_WEB_OUTPUT_MODE
     // is consumed only by the web build; it is inert for the other packages.
     await runPnpm(
       config,
       ["-r", `--workspace-concurrency=${workspaceConcurrency}`, ...filterArgs, "run", "build"],
-      { OD_WEB_OUTPUT_MODE: config.webOutputMode },
+      { READABLE_WEB_OUTPUT_MODE: config.webOutputMode },
     );
-    await runPnpm(config, ["--filter", "@open-design/platform", "build:native:win32"]);
-    await runPnpm(config, ["--filter", "@open-design/web", "build:sidecar"]);
+    await runPnpm(config, ["--filter", "@readable-studio/platform", "build:native:win32"]);
+    await runPnpm(config, ["--filter", "@readable-studio/web", "build:sidecar"]);
     // Strip browser sourcemaps before any packaging step copies the web
     // output into the Electron resources.
     await processWebSourcemaps(config);
@@ -268,9 +268,9 @@ async function writeAssembledAppEntrypoints(
     `${JSON.stringify(
       {
         dependencies: options.dependencies ?? createAssembledAppDependencies(config, paths, packedTarballs),
-        description: "Open Design packaged runtime",
+        description: "Readable Studio packaged runtime",
         main: "./main.cjs",
-        name: "open-design-packaged-app",
+        name: "readable-studio-packaged-app",
         private: true,
         productName: PRODUCT_NAME,
         version: packageVersion,
@@ -368,8 +368,8 @@ async function buildPrebundledStandaloneRuntime(
     [
       'import { fileURLToPath } from "node:url";',
       "const selfPath = fileURLToPath(import.meta.url);",
-      "process.env.OD_BIN ??= selfPath;",
-      "process.env.OD_DAEMON_CLI_PATH ??= selfPath;",
+      "process.env.READABLE_BIN ??= selfPath;",
+      `process.env[${JSON.stringify(SIDECAR_ENV.DAEMON_CLI_PATH)}] ??= selfPath;`,
       `await import(${JSON.stringify(
         toRelativeImportSpecifier(
           dirname(paths.daemonCliPrebundleEntrypointPath),

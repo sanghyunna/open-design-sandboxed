@@ -16,7 +16,7 @@ triggers:
   - "Instagram analytics dashboard"
   - "YouTube analytics dashboard"
   - "multi-platform creator dashboard"
-od:
+readable:
   mode: template
   platform: desktop
   preview:

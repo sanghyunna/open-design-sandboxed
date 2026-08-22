@@ -2,7 +2,7 @@
 name: velar-luxury-real-estate
 description: "Use this plugin when the user wants a high-end luxury real-estate / architecture landing page with cinematic scroll choreography: a typewriter preloader that lifts away, a scroll-driven house image that rises from below and scales up while pinning to a dark statement section, a sticky dark stats band with count-up numbers, and a hover-expand video gallery that slides up over the dark section. Invoke for 'luxury real estate landing page', 'architecture brand site', 'scroll-driven hero with rising building', or when the user references the Velar template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

@@ -21,7 +21,7 @@ describe('AMR attribution helper', () => {
     vi.unstubAllGlobals();
   });
 
-  it('accepts every AMR entry source defined for Open Design entry points', () => {
+  it('accepts every AMR entry source defined for Readable Studio entry points', () => {
     const track = vi.fn();
     const sources = [
       'onboarding_amr_card',
@@ -56,11 +56,11 @@ describe('AMR attribution helper', () => {
     const attribution = recordAmrEntry(track, 'chat_error_recharge', now);
 
     expect(attribution).toMatchObject({
-      sourceProduct: 'open_design',
+      sourceProduct: 'readable_studio',
       sourceDetail: 'chat_error_recharge',
       occurredAt: '2026-06-03T12:00:00.000Z',
     });
-    expect(attribution.entryId).toMatch(/^od-amr-/u);
+    expect(attribution.entryId).toMatch(/^readable-amr-/u);
     expect(readAmrAttribution(now)).toEqual(attribution);
     expect(track).toHaveBeenCalledWith(
       'ui_click',
@@ -70,7 +70,7 @@ describe('AMR attribution helper', () => {
         element: 'chat_error_recharge',
         action: 'click_amr_entry',
         entry_id: attribution.entryId,
-        source_product: 'open_design',
+        source_product: 'readable_studio',
         source_detail: 'chat_error_recharge',
         entry_occurred_at: '2026-06-03T12:00:00.000Z',
       }),
@@ -118,16 +118,16 @@ describe('AMR attribution helper', () => {
     expect(readAmrAttribution(new Date('2026-06-10T12:00:01.000Z'))).toBeNull();
   });
 
-  it('adds Open Design attribution params to AMR wallet URLs', () => {
+  it('adds Readable Studio attribution params to AMR wallet URLs', () => {
     expect(
-      attributedAmrUrl('https://open-design.ai/amr/wallet?tab=recharge', {
-        entryId: 'od-amr-entry-123',
-        sourceProduct: 'open_design',
+      attributedAmrUrl('https://vela.powerformer.net/wallet?tab=recharge', {
+        entryId: 'readable-amr-entry-123',
+        sourceProduct: 'readable_studio',
         sourceDetail: 'generation_preview_recharge',
         occurredAt: '2026-06-03T12:00:00.000Z',
       }),
     ).toBe(
-      'https://open-design.ai/amr/wallet?tab=recharge&od_origin=open_design&od_entry_id=od-amr-entry-123&od_entry_source=generation_preview_recharge&od_entry_at=2026-06-03T12%3A00%3A00.000Z',
+      'https://vela.powerformer.net/wallet?tab=recharge&readable_origin=readable_studio&readable_entry_id=readable-amr-entry-123&readable_entry_source=generation_preview_recharge&readable_entry_at=2026-06-03T12%3A00%3A00.000Z',
     );
   });
 });

@@ -19,7 +19,7 @@ example_tagline: "Locked 1920×1080 + Free Composition"
 example_desc: "Sea Indigo palette + big-type question page + corner badge"
 example_source_url: "https://github.com/1weiho/open-slide"
 example_source_label: "1weiho/open-slide"
-od:
+readable:
   mode: deck
   surface: web
   scenario: design

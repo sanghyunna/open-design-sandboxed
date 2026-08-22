@@ -33,8 +33,8 @@ import type {
   ProjectCheckpointConflict,
   ProjectCheckpointFileDelta,
   ProjectCheckpointSummary,
-} from '@open-design/contracts';
-import { HOSTED_PROJECT_KINDS, HOSTED_RUN_STATUSES } from '@open-design/contracts';
+} from '@readable-studio/contracts';
+import { HOSTED_PROJECT_KINDS, HOSTED_RUN_STATUSES } from '@readable-studio/contracts';
 import { isSafeId } from './projects.js';
 
 const MAX_TITLE_BYTES = 256;

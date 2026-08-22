@@ -14,7 +14,7 @@
 // tabs collapse and the modal renders the spec sidebar by default.
 
 import { useCallback, useEffect, useState } from 'react';
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 import { useI18n } from '../../i18n';
 import { localizePluginDescription, localizePluginTitle } from '../plugins-home/localization';
 import {
@@ -50,7 +50,7 @@ interface ContextRef {
 }
 
 function designSystemRef(record: InstalledPluginRecord): string | null {
-  const ds = (record.manifest?.od?.context as { designSystem?: ContextRef } | undefined)
+  const ds = (record.manifest?.readable?.context as { designSystem?: ContextRef } | undefined)
     ?.designSystem;
   if (!ds) return null;
   if (typeof ds.ref === 'string' && ds.ref.length > 0) return ds.ref;
@@ -59,11 +59,11 @@ function designSystemRef(record: InstalledPluginRecord): string | null {
 
 function specAssetPath(record: InstalledPluginRecord): string {
   // Most design-system plugins ship `DESIGN.md` at the bundle root,
-  // but `od.context.assets[0]` may point at a different relpath when
+  // but `readable.context.assets[0]` may point at a different relpath when
   // the bundle has co-located docs. Prefer the assets entry when it
   // smells like a markdown spec; otherwise fall back to the canonical
   // filename so the sidebar still has something to load.
-  const assets = (record.manifest?.od?.context?.assets ?? []) as string[];
+  const assets = (record.manifest?.readable?.context?.assets ?? []) as string[];
   const md = assets.find((a) => /\.md$/i.test(a));
   return md ?? './DESIGN.md';
 }
@@ -124,16 +124,24 @@ export function PluginDesignSystemDetail({
   // back to a minimal placeholder that explains the design spec lives
   // in the plugin-info sidebar; the user can still apply the plugin
   // from the primary CTA.
+  const specPlaceholderHtml = '<!doctype html><meta charset="utf-8"><body style="font:14px system-ui;color:#666;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;padding:0 24px;margin:0;">This plugin ships only the design spec — open Plugin info to read DESIGN.md.</body>';
   const views: PreviewView[] = dsRef
     ? [
-        { id: 'showcase', label: t('ds.showcase'), html: showcaseHtml },
-        { id: 'tokens', label: t('ds.tokens'), html: tokensHtml },
+        {
+          id: 'showcase', label: t('ds.showcase'), html: showcaseHtml,
+          standaloneSource: { kind: 'design-system', designSystemId: dsRef, view: 'showcase' },
+        },
+        {
+          id: 'tokens', label: t('ds.tokens'), html: tokensHtml,
+          standaloneSource: { kind: 'design-system', designSystemId: dsRef, view: 'preview' },
+        },
       ]
     : [
         {
           id: 'spec',
           label: 'Spec',
-          html: '<!doctype html><meta charset="utf-8"><body style="font:14px system-ui;color:#666;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;padding:0 24px;margin:0;">This plugin ships only the design spec — open Plugin info to read DESIGN.md.</body>',
+          standaloneSource: { kind: 'inline', html: specPlaceholderHtml },
+          html: specPlaceholderHtml,
         },
       ];
 

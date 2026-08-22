@@ -2,7 +2,7 @@
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { InstalledPluginRecord, PluginSourceKind, TrustTier } from '@open-design/contracts';
+import type { InstalledPluginRecord, PluginSourceKind, TrustTier } from '@readable-studio/contracts';
 import { PluginsView } from '../../src/components/PluginsView';
 import {
   addPluginMarketplace,
@@ -57,7 +57,7 @@ function makePlugin(
       version: '1.0.0',
       title: id,
       description,
-      od: {
+      readable: {
         kind: 'scenario',
         mode: 'prototype',
       },
@@ -68,7 +68,7 @@ function makePlugin(
   };
   if (sourceKind === 'bundled') {
     record.sourceMarketplaceId = 'official';
-    record.sourceMarketplaceEntryName = `open-design/${id}`;
+    record.sourceMarketplaceEntryName = `readable-studio/${id}`;
     record.sourceMarketplaceEntryVersion = record.version;
     record.marketplaceTrust = 'official';
   }
@@ -94,7 +94,7 @@ beforeEach(() => {
   mockedListMarketplaces.mockResolvedValue([
     {
       id: 'catalog-1',
-      url: 'https://example.com/open-design-marketplace.json',
+      url: 'https://example.com/readable-studio-marketplace.json',
       trust: 'official',
       manifest: {
         name: 'Example Catalog',
@@ -109,10 +109,10 @@ beforeEach(() => {
             tags: ['deck'],
           },
           {
-            name: 'open-design/official-plugin',
+            name: 'readable-studio/official-plugin',
             title: 'Official Plugin',
             title_i18n: { 'en': '官方看板' },
-            source: 'github:nexu-io/open-design@main/plugins/_official/examples/official-plugin',
+            source: 'github:nexu-io/readable-studio@main/plugins/_official/examples/official-plugin',
             version: '1.0.0',
             description: 'Bundled official plugin.',
             description_i18n: { 'en': '内置官方插件。' },
@@ -225,17 +225,17 @@ describe('PluginsView', () => {
     mockedListMarketplaces.mockResolvedValue([
       {
         id: 'official',
-        url: 'https://open-design.ai/marketplace/open-design-marketplace.json',
+        url: 'https://raw.githubusercontent.com/sanghyunna/readable-studio/main/plugins/registry/official/readable-studio-marketplace.json',
         trust: 'official',
         manifest: {
-          name: 'Open Design Official',
+          name: 'Readable Studio Official',
           version: '1.0.0',
           plugins: [
             {
-              name: 'open-design/official-plugin',
+              name: 'readable-studio/official-plugin',
               title: 'Official Plugin',
               title_i18n: { 'en': '官方看板' },
-              source: 'github:nexu-io/open-design@main/plugins/_official/examples/official-plugin',
+              source: 'github:nexu-io/readable-studio@main/plugins/_official/examples/official-plugin',
               version: '1.0.0',
               description: 'Bundled official plugin.',
               description_i18n: { 'en': '内置官方插件。' },
@@ -257,7 +257,7 @@ describe('PluginsView', () => {
     expect(await screen.findByText('官方看板')).toBeTruthy();
     expect(screen.queryByText('Remote Plugin')).toBeNull();
 
-    fireEvent.click(screen.getByTestId('plugins-available-install-open-design/official-plugin'));
+    fireEvent.click(screen.getByTestId('plugins-available-install-readable-studio/official-plugin'));
 
     expect(onUsePlugin).toHaveBeenCalledWith(expect.objectContaining({
       id: 'official-plugin',
@@ -271,14 +271,14 @@ describe('PluginsView', () => {
     mockedListMarketplaces.mockResolvedValue([
       {
         id: 'team-catalog',
-        url: 'https://team.example.com/open-design-marketplace.json',
+        url: 'https://team.example.com/readable-studio-marketplace.json',
         trust: 'restricted',
         manifest: {
           name: 'Team Catalog',
           version: '1.0.0',
           plugins: [
             {
-              name: 'open-design/official-plugin',
+              name: 'readable-studio/official-plugin',
               title: 'Team Official Plugin',
               source: 'github:team/official-plugin',
               version: '2.0.0',
@@ -295,12 +295,12 @@ describe('PluginsView', () => {
     fireEvent.click(await screen.findByTestId('plugins-tab-available'));
     expect(await screen.findByText('Team Official Plugin')).toBeTruthy();
 
-    const install = screen.getByTestId('plugins-available-install-open-design/official-plugin');
+    const install = screen.getByTestId('plugins-available-install-readable-studio/official-plugin');
     expect(install.textContent).toBe('Install');
     fireEvent.click(install);
 
     await waitFor(() =>
-      expect(mockedInstallPluginSource).toHaveBeenCalledWith('open-design/official-plugin'),
+      expect(mockedInstallPluginSource).toHaveBeenCalledWith('readable-studio/official-plugin'),
     );
     expect(onUsePlugin).not.toHaveBeenCalled();
   });
@@ -308,7 +308,7 @@ describe('PluginsView', () => {
   it('shows all installed plugins by default on the Plugins page', async () => {
     const createPlugin = makePlugin('create-plugin', 'github', 'restricted', 'Create Plugin');
     const importPlugin = makePlugin('import-plugin', 'github', 'restricted', 'Import Plugin');
-    importPlugin.manifest.od = {
+    importPlugin.manifest.readable = {
       kind: 'scenario',
       mode: 'scenario',
       taskKind: 'figma-migration',
@@ -346,8 +346,8 @@ describe('PluginsView', () => {
   it('hands Use with query actions to the host shell', async () => {
     const onUsePlugin = vi.fn();
     const user = makePlugin('query-plugin', 'github', 'restricted', 'Query Plugin');
-    user.manifest.od = {
-      ...user.manifest.od,
+    user.manifest.readable = {
+      ...user.manifest.readable,
       useCase: { query: 'Make a query-backed artifact.' },
     };
     mockedListPlugins.mockResolvedValue([user]);
@@ -372,7 +372,7 @@ describe('PluginsView', () => {
     fireEvent.click(await screen.findByTestId('plugins-import-button'));
     expect(screen.getByRole('dialog', { name: 'Import a plugin' })).toBeTruthy();
     expect(screen.queryByText('Create from template')).toBeNull();
-    const source = 'github:nexu-io/open-design@garnet-hemisphere/plugins/community/registry-starter';
+    const source = 'github:nexu-io/readable-studio@garnet-hemisphere/plugins/community/registry-starter';
     fireEvent.change(screen.getByLabelText('GitHub, archive, or marketplace source'), {
       target: { value: source },
     });
@@ -432,7 +432,7 @@ describe('PluginsView', () => {
     mockedListMarketplaces.mockResolvedValue([
       {
         id: 'official',
-        url: 'https://example.com/open-design-marketplace.json',
+        url: 'https://example.com/readable-studio-marketplace.json',
         trust: 'official',
         manifest: {
           name: 'Official Registry',
@@ -483,13 +483,13 @@ describe('PluginsView', () => {
       target: { value: '1.1.0' },
     });
     expect(within(dialog).getByTestId('plugins-available-install-command').textContent)
-      .toContain('od plugin install remote-plugin@1.1.0');
+      .toContain('readable plugin install remote-plugin@1.1.0');
     expect(within(dialog).getByTestId('plugins-available-provenance').textContent)
       .toContain('github:owner/repo@v1.1.0 · sha256:previous');
 
     fireEvent.click(within(dialog).getByRole('button', { name: 'Copy install command' }));
     await waitFor(() =>
-      expect(writeText).toHaveBeenCalledWith('od plugin install remote-plugin@1.1.0'),
+      expect(writeText).toHaveBeenCalledWith('readable plugin install remote-plugin@1.1.0'),
     );
 
     fireEvent.click(within(dialog).getByTestId('plugins-available-details-install-remote-plugin'));
@@ -502,7 +502,7 @@ describe('PluginsView', () => {
     mockedListMarketplaces.mockResolvedValue([
       {
         id: 'official',
-        url: 'https://example.com/open-design-marketplace.json',
+        url: 'https://example.com/readable-studio-marketplace.json',
         trust: 'official',
         manifest: {
           name: 'Official Registry',
@@ -550,7 +550,7 @@ describe('PluginsView', () => {
     mockedListMarketplaces.mockResolvedValue([
       {
         id: 'catalog-1',
-        url: 'https://example.com/open-design-marketplace.json',
+        url: 'https://example.com/readable-studio-marketplace.json',
         trust: 'official',
         manifest: {
           name: 'Example Catalog',
@@ -567,7 +567,7 @@ describe('PluginsView', () => {
       },
       {
         id: 'catalog-2',
-        url: 'https://team.example.com/open-design-marketplace.json',
+        url: 'https://team.example.com/readable-studio-marketplace.json',
         trust: 'restricted',
         manifest: {
           name: 'Team Catalog',
@@ -617,25 +617,25 @@ describe('PluginsView', () => {
       'Marketplace Plugin',
     );
     marketplacePlugin.sourceMarketplaceId = 'official';
-    marketplacePlugin.sourceMarketplaceEntryName = 'open-design/official-plugin';
+    marketplacePlugin.sourceMarketplaceEntryName = 'readable-studio/official-plugin';
     marketplacePlugin.sourceMarketplaceEntryVersion = '1.0.0';
     marketplacePlugin.marketplaceTrust = 'official';
-    marketplacePlugin.manifest.od = { ...marketplacePlugin.manifest.od, hidden: true };
+    marketplacePlugin.manifest.readable = { ...marketplacePlugin.manifest.readable, hidden: true };
     mockedListPlugins.mockImplementation(async (options?: { includeHidden?: boolean }) =>
       options?.includeHidden ? [marketplacePlugin] : [],
     );
     mockedListMarketplaces.mockResolvedValue([
       {
         id: 'official',
-        url: 'https://open-design.ai/marketplace/open-design-marketplace.json',
+        url: 'https://raw.githubusercontent.com/sanghyunna/readable-studio/main/plugins/registry/official/readable-studio-marketplace.json',
         trust: 'official',
         manifest: {
-          name: 'Open Design Official',
+          name: 'Readable Studio Official',
           version: '0.1.0',
           plugins: [{
-            name: 'open-design/official-plugin',
+            name: 'readable-studio/official-plugin',
             title: 'Official Plugin',
-            source: 'github:nexu-io/open-design@main/plugins/_official/scenarios/official-plugin',
+            source: 'github:nexu-io/readable-studio@main/plugins/_official/scenarios/official-plugin',
             version: '1.0.0',
             description: 'Bundled official starter.',
             tags: ['official'],
@@ -658,7 +658,7 @@ describe('PluginsView', () => {
     render(<PluginsView />);
 
     const sourceUrl =
-      'https://raw.githubusercontent.com/nexu-io/open-design/main/plugins/registry/community/open-design-marketplace.json';
+      'https://raw.githubusercontent.com/nexu-io/readable-studio/main/plugins/registry/community/readable-studio-marketplace.json';
     fireEvent.click(await screen.findByTestId('plugins-tab-sources'));
     fireEvent.change(screen.getByLabelText('Source URL'), {
       target: { value: sourceUrl },
@@ -702,7 +702,7 @@ describe('PluginsView', () => {
 
     fireEvent.click(await screen.findByTestId('plugins-import-button'));
     fireEvent.click(screen.getByRole('button', { name: /upload folder/i }));
-    const folderFile = new File(['{}'], 'open-design.json', { type: 'application/json' });
+    const folderFile = new File(['{}'], 'readable-studio.json', { type: 'application/json' });
     fireEvent.change(screen.getByTestId('plugins-folder-input'), {
       target: { files: [folderFile] },
     });
@@ -716,18 +716,18 @@ describe('PluginsView', () => {
       makePlugin('official-plugin', 'bundled', 'bundled'),
       makePlugin('user-plugin', 'github', 'restricted'),
       makePlugin(
-        'od-plugin-publish-github',
+        'readable-plugin-publish-github',
         'bundled',
         'bundled',
         'Publish Plugin to GitHub',
-        'Creates a public GitHub repository for a local Open Design plugin using the GitHub CLI.',
+        'Creates a public GitHub repository for a local Readable Studio plugin using the GitHub CLI.',
       ),
       makePlugin(
-        'od-plugin-contribute-open-design',
+        'readable-plugin-contribute-readable-studio',
         'bundled',
         'bundled',
-        'Contribute Plugin to Open Design',
-        'Opens a pull request that adds a local Open Design plugin to the Open Design community catalog.',
+        'Contribute Plugin to Readable Studio',
+        'Opens a pull request that adds a local Readable Studio plugin to the Readable Studio community catalog.',
       ),
     ]);
     const onCreatePluginShareProject = vi.fn(async (): Promise<PluginShareProjectOutcome> => ({
@@ -744,7 +744,7 @@ describe('PluginsView', () => {
       },
       conversationId: 'conversation-1',
       appliedPluginSnapshotId: 'snapshot-1',
-      actionPluginId: 'od-plugin-publish-github',
+      actionPluginId: 'readable-plugin-publish-github',
       sourcePluginId: 'user-plugin',
       stagedPath: 'plugin-source/user-plugin',
       prompt: 'Publish it',

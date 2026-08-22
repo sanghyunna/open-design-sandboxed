@@ -25,7 +25,7 @@ describe('project checkpoint DB metadata', () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(path.join(os.tmpdir(), 'od-db-checkpoints-'));
+    tempDir = mkdtempSync(path.join(os.tmpdir(), 'readable-db-checkpoints-'));
   });
 
   afterEach(() => {
@@ -223,7 +223,7 @@ describe('checkpoint chat restore DB helpers', () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(path.join(os.tmpdir(), 'od-db-checkpoint-chat-'));
+    tempDir = mkdtempSync(path.join(os.tmpdir(), 'readable-db-checkpoint-chat-'));
   });
 
   afterEach(() => {

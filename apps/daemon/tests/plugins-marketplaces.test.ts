@@ -1,7 +1,7 @@
 // Plan §3.B4 — marketplaces add / list / refresh / remove / trust unit tests.
 //
 // Locks the storage half of the federated catalog story. The Phase 3
-// follow-up will layer on `od plugin install <name>` resolution +
+// follow-up will layer on `readable plugin install <name>` resolution +
 // trust UI, but the storage layout here is the contract that lookup
 // will read against.
 
@@ -16,6 +16,7 @@ import {
   ensureMarketplaceManifest,
   getMarketplace,
   listMarketplaces,
+  MarketplaceManifestReadError,
   marketplaceManifestUrlForRegistry,
   refreshMarketplace,
   removeMarketplace,
@@ -27,13 +28,16 @@ import {
 let db: Database.Database;
 let tmpDir: string;
 
+const LEGACY_SLUG = ['open', 'design'].join('-');
+const LEGACY_HOST = `${LEGACY_SLUG}.ai`;
+
 const VALID_MANIFEST = JSON.stringify({
   specVersion: '1.0.0',
   name: 'test-marketplace',
   version: '1.0.0',
   metadata: { description: 'fixture', version: '1.0.0' },
   plugins: [
-    { name: 'sample-plugin', source: 'github:open-design/sample-plugin', version: '0.1.0' },
+    { name: 'sample-plugin', source: 'github:readable-studio/sample-plugin', version: '0.1.0' },
   ],
 });
 
@@ -46,7 +50,7 @@ function fixtureFetcher(text: string, ok = true) {
 }
 
 beforeEach(async () => {
-  tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-mp-'));
+  tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-mp-'));
   db = new Database(path.join(tmpDir, 'test.sqlite'));
   db.exec(`
     CREATE TABLE projects (id TEXT PRIMARY KEY, name TEXT);
@@ -138,35 +142,57 @@ describe('marketplaces', () => {
     }
   });
 
-  it('normalizes public marketplace urls to the canonical raw registry', async () => {
-    const seenUrls: string[] = [];
+  it('rejects an old public marketplace URL without fetching it', async () => {
+    let fetchCount = 0;
     const result = await addMarketplace(db, {
-      url: 'https://open-design.ai/marketplace/community/open-design-marketplace.json',
-      fetcher: async (url) => {
-        seenUrls.push(url);
-        return {
-          ok: true,
-          status: 200,
-          text: async () => VALID_MANIFEST,
-        };
+      url: `https://${LEGACY_HOST}/marketplace/community/readable-studio-marketplace.json`,
+      fetcher: async () => {
+        fetchCount += 1;
+        return { ok: true, status: 200, text: async () => VALID_MANIFEST };
       },
     });
 
-    if (!result.ok) throw new Error('add failed');
-    const expectedUrl = marketplaceManifestUrlForRegistry('community');
-    expect(seenUrls).toEqual([expectedUrl]);
-    expect(result.row.url).toBe(expectedUrl);
+    expect(result).toMatchObject({ ok: false, errors: ['UNSUPPORTED_LEGACY_PRODUCT_V1'] });
+    expect(fetchCount).toBe(0);
   });
 
-  it('normalizes legacy branch raw urls to the canonical raw registry', () => {
-    expect(resolveMarketplaceFetchUrl(
-      'https://raw.githubusercontent.com/nexu-io/open-design/garnet-hemisphere/plugins/registry/community/open-design-marketplace.json',
-    )).toBe(marketplaceManifestUrlForRegistry('community'));
-  });
+  it.each([
+    `https://${LEGACY_HOST}`,
+    `https://www.${LEGACY_HOST}/marketplace/readable-studio-marketplace.json`,
+    `https://github.com/nexu-io/${LEGACY_SLUG}/raw/main/plugins/registry/official/readable-studio-marketplace.json`,
+  ])('rejects legacy marketplace URL variant without fetching: %s', async (url) => {
+    // Given: a legacy URL whose fetcher would return a valid new manifest.
+    let fetchCount = 0;
 
-  it('requires a raw open-design-marketplace.json document, not a GitHub tree page', async () => {
+    // When: the URL crosses the marketplace boundary.
     const result = await addMarketplace(db, {
-      url: 'https://github.com/nexu-io/open-design/tree/garnet-hemisphere/plugins/registry/community',
+      url,
+      fetcher: async () => {
+        fetchCount += 1;
+        return { ok: true, status: 200, text: async () => VALID_MANIFEST };
+      },
+    });
+
+    // Then: the old source is rejected before fetch or normalization.
+    expect(result).toMatchObject({ ok: false, errors: ['UNSUPPORTED_LEGACY_PRODUCT_V1'] });
+    expect(fetchCount).toBe(0);
+  });
+
+  it('rejects an external Readable Studio v1 registry without normalization', async () => {
+    const result = await addMarketplace(db, {
+      url: `https://raw.githubusercontent.com/nexu-io/${LEGACY_SLUG}/garnet-hemisphere/plugins/registry/community/${LEGACY_SLUG}-marketplace.json`,
+      fetcher: fixtureFetcher(VALID_MANIFEST),
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      errors: ['UNSUPPORTED_LEGACY_PRODUCT_V1'],
+    });
+  });
+
+  it('requires a raw readable-studio-marketplace.json document, not a GitHub tree page', async () => {
+    const result = await addMarketplace(db, {
+      url: 'https://github.com/example-org/example-marketplace/tree/main/plugins/registry/community',
       fetcher: fixtureFetcher('<!doctype html><html><body>GitHub tree page</body></html>'),
     });
 
@@ -186,7 +212,7 @@ describe('marketplaces', () => {
     const updatedManifest = JSON.parse(VALID_MANIFEST);
     updatedManifest.plugins.push({
       name: 'new-plugin',
-      source: 'github:open-design/new-plugin',
+      source: 'github:readable-studio/new-plugin',
       version: '0.2.0',
     });
     updatedManifest.version = '1.0.1';
@@ -201,36 +227,39 @@ describe('marketplaces', () => {
     expect(refreshed.row.refreshedAt).toBeGreaterThanOrEqual(added.row.refreshedAt);
   });
 
-  it('refresh normalizes legacy public urls before fetching', async () => {
+  it('rejects refresh of a stored old public marketplace URL without fetching it', async () => {
     const seeded = ensureMarketplaceManifest(db, {
       id: 'community',
-      url: 'https://open-design.ai/marketplace/community/open-design-marketplace.json',
+      url: `https://${LEGACY_HOST}/marketplace/community/readable-studio-marketplace.json`,
       trust: 'restricted',
       manifestText: VALID_MANIFEST,
     });
     if (!seeded.ok) throw new Error('seed failed');
-    const updatedManifest = JSON.parse(VALID_MANIFEST);
-    updatedManifest.version = '1.0.1';
-    const seenUrls: string[] = [];
+    let fetchCount = 0;
 
-    const refreshed = await refreshMarketplace(
-      db,
-      'community',
-      async (url) => {
-        seenUrls.push(url);
-        return {
-          ok: true,
-          status: 200,
-          text: async () => JSON.stringify(updatedManifest),
-        };
-      },
+    const refreshed = await refreshMarketplace(db, 'community', async () => {
+      fetchCount += 1;
+      return { ok: true, status: 200, text: async () => VALID_MANIFEST };
+    });
+
+    expect(refreshed).toMatchObject({ ok: false, errors: ['UNSUPPORTED_LEGACY_PRODUCT_V1'] });
+    expect(fetchCount).toBe(0);
+  });
+
+  it('fails closed with a typed error for a corrupt stored marketplace manifest', () => {
+    db.prepare(`
+      INSERT INTO plugin_marketplaces
+        (id, url, spec_version, version, trust, manifest_json, added_at, refreshed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run('corrupt', 'https://example.com/corrupt.json', '1.0.0', '1.0.0', 'restricted', '{}', 1, 1);
+
+    expect(() => getMarketplace(db, 'corrupt')).toThrowError(
+      expect.objectContaining<Partial<MarketplaceManifestReadError>>({
+        name: 'MarketplaceManifestReadError',
+        code: 'CORRUPT_MARKETPLACE_MANIFEST',
+      }),
     );
-
-    if (!refreshed.ok) throw new Error('refresh failed');
-    const expectedUrl = marketplaceManifestUrlForRegistry('community');
-    expect(seenUrls).toEqual([expectedUrl]);
-    expect(refreshed.row.url).toBe(expectedUrl);
-    expect(getMarketplace(db, 'community')?.url).toBe(expectedUrl);
+    expect(() => listMarketplaces(db)).toThrowError(MarketplaceManifestReadError);
   });
 
   it('setMarketplaceTrust updates the trust tier and remove deletes the row', async () => {
@@ -248,7 +277,7 @@ describe('marketplaces', () => {
   it('upserts a fixed built-in marketplace manifest', () => {
     const result = ensureMarketplaceManifest(db, {
       id: 'official',
-      url: 'https://open-design.ai/marketplace/open-design-marketplace.json',
+      url: marketplaceManifestUrlForRegistry('official'),
       trust: 'official',
       manifestText: VALID_MANIFEST,
       now: 123,
@@ -265,7 +294,7 @@ describe('marketplaces', () => {
     });
     const updated = ensureMarketplaceManifest(db, {
       id: 'official',
-      url: 'https://open-design.ai/marketplace/open-design-marketplace.json',
+      url: marketplaceManifestUrlForRegistry('official'),
       trust: 'official',
       manifestText: updatedManifest,
       now: 456,
@@ -279,13 +308,13 @@ describe('marketplaces', () => {
 
   it('seeds the checked-in default community registry as restricted and resolvable', async () => {
     const communityManifest = await readFile(
-      new URL('../../../plugins/registry/community/open-design-marketplace.json', import.meta.url),
+      new URL('../../../plugins/registry/community/readable-studio-marketplace.json', import.meta.url),
       'utf8',
     );
 
     const seeded = ensureMarketplaceManifest(db, {
       id: 'community',
-      url: 'https://open-design.ai/marketplace/community/open-design-marketplace.json',
+      url: marketplaceManifestUrlForRegistry('community'),
       trust: 'restricted',
       manifestText: communityManifest,
       now: 123,
@@ -297,13 +326,13 @@ describe('marketplaces', () => {
     expect(resolved?.marketplaceId).toBe('community');
     expect(resolved?.marketplaceTrust).toBe('restricted');
     expect(resolved?.source).toMatch(
-      /^github:nexu-io\/open-design(?:@[^/]+)?\/plugins\/community\/registry-starter$/,
+      /^github:sanghyunna\/readable-studio(?:@[^/]+)?\/plugins\/community\/registry-starter$/,
     );
   });
 
   it('keeps the checked-in official registry populated from bundled plugins', async () => {
     const officialManifestText = await readFile(
-      new URL('../../../plugins/registry/official/open-design-marketplace.json', import.meta.url),
+      new URL('../../../plugins/registry/official/readable-studio-marketplace.json', import.meta.url),
       'utf8',
     );
     const officialManifest = JSON.parse(officialManifestText) as {
@@ -317,28 +346,28 @@ describe('marketplaces', () => {
     expect(officialManifest.metadata?.bundledPreinstallCount).toBe(
       officialManifest.plugins?.length,
     );
-    expect(officialManifest.plugins?.some((plugin) => plugin.name === 'open-design/build-test')).toBe(true);
+    expect(officialManifest.plugins?.some((plugin) => plugin.name === 'readable-studio/build-test')).toBe(true);
     expect(officialManifest.plugins?.every((plugin) =>
-      /^github:nexu-io\/open-design(?:@[^/]+)?\/plugins\/_official\//.test(plugin.source ?? ''),
+      /^github:sanghyunna\/readable-studio(?:@[^/]+)?\/plugins\/_official\//.test(plugin.source ?? ''),
     )).toBe(true);
 
     const seeded = ensureMarketplaceManifest(db, {
       id: 'official',
-      url: 'https://open-design.ai/marketplace/open-design-marketplace.json',
+      url: marketplaceManifestUrlForRegistry('official'),
       trust: 'official',
       manifestText: officialManifestText,
       now: 123,
     });
     if (!seeded.ok) throw new Error('official seed failed');
 
-    const resolved = resolvePluginInMarketplaces(db, 'open-design/build-test');
+    const resolved = resolvePluginInMarketplaces(db, 'readable-studio/build-test');
     expect(resolved?.marketplaceId).toBe('official');
     expect(resolved?.marketplaceTrust).toBe('official');
   });
 
   it('keeps checked-in community registry entries pointed at source folders that can pack', async () => {
     const communityManifest = JSON.parse(await readFile(
-      new URL('../../../plugins/registry/community/open-design-marketplace.json', import.meta.url),
+      new URL('../../../plugins/registry/community/readable-studio-marketplace.json', import.meta.url),
       'utf8',
     )) as {
       plugins?: Array<{ name?: string; source?: string }>;
@@ -346,17 +375,17 @@ describe('marketplaces', () => {
     const entry = communityManifest.plugins?.find((plugin) => plugin.name === 'community/registry-starter');
     expect(entry?.source).toBeTruthy();
 
-    const sourceSubpath = entry!.source!.replace(/^github:nexu-io\/open-design(?:@[^/]+)?\//, '');
+    const sourceSubpath = entry!.source!.replace(/^github:sanghyunna\/readable-studio(?:@[^/]+)?\//, '');
     expect(sourceSubpath).toBe('plugins/community/registry-starter');
 
     const sourceManifest = await readFile(
-      new URL(`../../../${sourceSubpath}/open-design.json`, import.meta.url),
+      new URL(`../../../${sourceSubpath}/readable-studio.json`, import.meta.url),
       'utf8',
     );
     expect(JSON.parse(sourceManifest)).toMatchObject({
       name: 'community-registry-starter',
       plugin: {
-        repo: expect.stringContaining('github.com/nexu-io/open-design'),
+        repo: expect.stringContaining('github.com/sanghyunna/readable-studio'),
       },
     });
   });
@@ -370,7 +399,7 @@ describe('resolvePluginInMarketplaces', () => {
     });
     const resolved = resolvePluginInMarketplaces(db, 'sample-plugin');
     expect(resolved).not.toBeNull();
-    expect(resolved!.source).toBe('github:open-design/sample-plugin');
+    expect(resolved!.source).toBe('github:readable-studio/sample-plugin');
     expect(resolved!.pluginVersion).toBe('0.1.0');
     expect(resolved!.marketplaceVersion).toBe('1.0.0');
     expect(resolved!.marketplaceTrust).toBe('restricted');

@@ -8,7 +8,8 @@ import { resolveDaemonUrl } from './daemon-url.js';
 import { DESIGN_SYSTEMS_USAGE, isDesignSystemsHelpArg } from './design-systems-cli-help.js';
 import { parseDesignSystemRenameArgs } from './design-system-rename-args.js';
 import { runProviderCli } from './provider-cli.js';
-import { SIDECAR_ENV, SIDECAR_MESSAGES } from '@open-design/sidecar-proto';
+import { SIDECAR_ENV, SIDECAR_MESSAGES } from '@readable-studio/sidecar-proto';
+import { STANDALONE_HTML_EXPORT_HEADERS } from '@readable-studio/contracts';
 import {
   AGENT_SLUGS,
   isAgentSlug,
@@ -21,7 +22,7 @@ const argv = process.argv.slice(2);
 
 // ---- Subcommand router ----------------------------------------------------
 //
-// `od` starts the daemon + opens the web UI by default.
+// `readable` starts the daemon + opens the web UI by default.
 //
 // We dispatch on the first positional argument so flags like --port keep
 // working unchanged. Subcommand routing is keyword-based; flags are
@@ -36,7 +37,7 @@ const MCP_BOOLEAN_FLAGS = new Set([
   'h',
 ]);
 
-// Hoisted before SUBCOMMAND_MAP: `od mcp install <agent>` dispatches through
+// Hoisted before SUBCOMMAND_MAP: `readable mcp install <agent>` dispatches through
 // top-level module evaluation, and runMcpInstall references these `const` Sets.
 const MCP_INSTALL_STRING_FLAGS = new Set([
   'daemon-url',
@@ -108,18 +109,18 @@ const UI_BOOLEAN_FLAGS = new Set([
   'h',
   'json',
   'skip',
-  // Plan §6 Phase 2A.5 — `od ui show --schema` returns just the
+  // Plan §6 Phase 2A.5 — `readable ui show --schema` returns just the
   // surface's JSON Schema (or `null` when the surface declares
   // none). Lets a code agent inspect the contract before piping a
-  // value back through `od ui respond --value-json`.
+  // value back through `readable ui respond --value-json`.
   'schema',
 ]);
 
 // Hoist flag set bindings consumed by handlers reachable through
 // the top-of-file dispatcher. The dispatch block runs synchronously
 // during module load; any const declared further down the file is
-// still in TDZ when the handler executes, so `od status` /
-// `od atoms list` / etc. would crash with `Cannot access X before
+// still in TDZ when the handler executes, so `readable status` /
+// `readable atoms list` / etc. would crash with `Cannot access X before
 // initialization`.
 const DAEMON_STRING_FLAGS = new Set([
   'daemon-url', 'port', 'host',
@@ -166,7 +167,7 @@ const CHAT_STRING_FLAGS = new Set([
   'fork-after',
 ]);
 const CHAT_BOOLEAN_FLAGS = new Set(['help', 'h', 'json']);
-// `od templates …` mirrors NewProjectPanel / ExamplesTab. Same surface,
+// `readable templates …` mirrors NewProjectPanel / ExamplesTab. Same surface,
 // same /api/templates store. The CLI form is the embeddability contract:
 // external agents (hermes-agent, openclaw, ...) can snapshot, list, or
 // remove user-saved project templates without going through the web UI.
@@ -174,9 +175,9 @@ const TEMPLATES_STRING_FLAGS = new Set([
   'daemon-url', 'name', 'description',
 ]);
 const TEMPLATES_BOOLEAN_FLAGS = new Set(['help', 'h', 'json']);
-// `od automation …` mirrors the Automations tab. Same surface, same
+// `readable automation …` mirrors the Automations tab. Same surface, same
 // /api/routines store. The CLI form is the embeddability contract:
-// external agents (hermes-agent, openclaw, etc.) can drive Open Design
+// external agents (hermes-agent, openclaw, etc.) can drive Readable Studio
 // automations headlessly without going through the web UI.
 const AUTOMATION_STRING_FLAGS = new Set([
   'daemon-url', 'name', 'prompt', 'prompt-file', 'schedule', 'target',
@@ -200,6 +201,10 @@ const SHARE_STRING_FLAGS = new Set([
 const SHARE_BOOLEAN_FLAGS = new Set([
   'help', 'h', 'json',
 ]);
+const EXPORT_STRING_FLAGS = new Set([
+  'daemon-url', 'project', 'file', 'plugin', 'example', 'design-system', 'view', 'input', 'output',
+]);
+const EXPORT_BOOLEAN_FLAGS = new Set(['help', 'h', 'json', 'force']);
 // Hoisted because `runAutomation` is reachable through the top-of-file
 // SUBCOMMAND_MAP dispatch, which runs during module evaluation —
 // any `const` declared further down would still be in TDZ when
@@ -243,6 +248,7 @@ const PLUGIN_LIST_BOOLEAN_FLAGS = new Set([
 ]);
 
 const SUBCOMMAND_MAP = {
+  export: runExport,
   artifacts: runArtifacts,
   mcp: runMcp,
   research: runResearch,
@@ -318,79 +324,82 @@ await (async () => {
 
 function printRootHelp() {
   console.log(`Usage:
-  od [--port <n>] [--host <addr>] [--no-open]
+  readable [--port <n>] [--host <addr>] [--no-open]
       Start the local daemon and open the web UI.
 
-  od artifacts create --name <path> --input <file> [--project <id-or-name>]
+  readable artifacts create --name <path> --input <file> [--project <id-or-name>]
       Create a normal project artifact through the local daemon.
-  od artifacts <save|lint|download> [options]
+  readable artifacts <save|lint|download> [options]
       Save, lint, or download an artifact through the protected hosted routes.
 
-  od files <list|read|write|rename|delete|search|upload|folders|preview|preview-url|archive|export-manifest>
+  readable files <list|read|write|rename|delete|search|upload|folders|preview|preview-url|archive|export-manifest>
       Drive project content through the same protected routes as the web UI.
 
-  od provider <status|set|test|clear> [options]
+  readable provider <status|set|test|clear> [options]
       Configure and verify an ephemeral hosted provider credential. Secrets are
       read only from identity/key files or stdin; use --json for automation.
 
+  readable export html --project <id> --file <path> [--output <path>] [--force] [--json]
+      Save a self-contained HTML artifact through the local daemon.
 
-  od tools design-systems read --path <manifest-declared-path>
+
+  readable tools design-systems read --path <manifest-declared-path>
       Read active design-system pull-layer files through daemon wrapper commands.
 
-  od tools design-system-package-audit --path <dir> [--fail-on-warnings] [--reference-package] [--json]
+  readable tools design-system-package-audit --path <dir> [--fail-on-warnings] [--reference-package] [--json]
       Audit a design-system package locally for required files, manifest quality,
       and gallery preview completeness. Use --project-id <id> to call the daemon
-      API instead (requires OD_DAEMON_URL and OD_TOOL_TOKEN).
+      API instead (requires READABLE_DAEMON_URL and READABLE_TOOL_TOKEN).
 
-  od research search --query <text> [--max-sources 5] [--daemon-url <url>]
+  readable research search --query <text> [--max-sources 5] [--daemon-url <url>]
       Run agent-callable Tavily research through the local daemon.
 
-  od plugin <list|info|install|uninstall|apply|doctor|replay|trust> [args]
+  readable plugin <list|info|install|uninstall|apply|doctor|replay|trust> [args]
       Discover, install, and apply plugins through the local daemon.
-  od plugin publish-repo <folder>
+  readable plugin publish-repo <folder>
       Create/update the author's GitHub repo for a local plugin folder.
-  od plugin open-design-pr <folder>
-      Push a community-catalog branch and open the Open Design PR form.
+  readable plugin readable-studio-pr <folder>
+      Push a community-catalog branch and open the Readable Studio PR form.
 
-  od automation <list|get|create|update|run|runs|pause|resume|delete> [args]
+  readable automation <list|get|create|update|run|runs|pause|resume|delete> [args]
       Drive the Automations surface headlessly. Same store as the UI's
       Automations tab, so an external agent (hermes, openclaw, ...) can
       schedule, trigger, or harvest results from a routine without
       opening the web UI.
 
-  od memory tree <list|view|edit|move> [args]
+  readable memory tree <list|view|edit|move> [args]
       Inspect and edit the memory tree that is injected into agent prompts.
 
-  od share <open-design|url> [options]
-      Build localized social-share targets for the Open Design repo or a
+  readable share <readable-studio|url> [options]
+      Build localized social-share targets for the Readable Studio repo or a
       deployed project URL. Use --json for scripted integrations.
 
-  od ui <list|show|respond|revoke|prefill> [args]
+  readable ui <list|show|respond|revoke|prefill> [args]
       Read and answer GenUI surfaces (form / choice / confirmation / oauth-prompt) headlessly.
 
-  od chat new --project <id> [--seed-from <cid>] [--fork-after <mid>] [--title "<t>"] [--json]
+  readable chat new --project <id> [--seed-from <cid>] [--fork-after <mid>] [--title "<t>"] [--json]
       Create a Side Chat: a new conversation that inherits another
       conversation's context by copying its messages (--seed-from), optionally
       stopping at one message (--fork-after). Mirrors the web chat fork action.
 
-  od diagnostics export [<path>] [--json]
+  readable diagnostics export [<path>] [--json]
       Bundle daemon/web/desktop logs, machine info, and recent crash reports
       into a zip for support tickets. Same output as Settings → About →
       Export diagnostics.
 
-  "$OD_NODE_BIN" "$OD_BIN" tools ...
-      Recommended agent-runtime form; avoids relying on user PATH for od or node.
+  "$READABLE_NODE_BIN" "$READABLE_BIN" tools ...
+      Recommended agent-runtime form; avoids relying on user PATH for readable or node.
 
-  od mcp [--daemon-url <url>]
+  readable mcp [--daemon-url <url>]
       Run a stdio MCP server that proxies project tool calls to a
-      running Open Design daemon. Wire it into a coding agent
+      running Readable Studio daemon. Wire it into a coding agent
       (Claude Code, Cursor, VS Code, Zed, Windsurf) in another repo
-      to pull files from a local Open Design project and create
+      to pull files from a local Readable Studio project and create
       project-scoped artifacts without exporting a zip.
 
 Options:
-  --port <n>       Port to listen on (default: 7456, env: OD_PORT).
-  --host <addr>    Interface address to bind to (default: 127.0.0.1, env: OD_BIND_HOST).
+  --port <n>       Port to listen on (default: 7456, env: READABLE_PORT).
+  --host <addr>    Interface address to bind to (default: 127.0.0.1, env: READABLE_BIND_HOST).
                    Set to a specific IP (e.g. a Tailscale address) to restrict access
                    to that interface only.
   --no-open        Do not open the browser after start.
@@ -402,7 +411,7 @@ What the daemon does:
 }
 
 // ---------------------------------------------------------------------------
-// Subcommand: od research …
+// Subcommand: readable research …
 // ---------------------------------------------------------------------------
 
 async function runResearch(args) {
@@ -412,7 +421,7 @@ async function runResearch(args) {
     process.exit(sub === 'help' || args.includes('--help') || args.includes('-h') ? 0 : 2);
   }
   if (sub !== 'search') {
-    console.error(`unknown subcommand: od research ${sub}`);
+    console.error(`unknown subcommand: readable research ${sub}`);
     printResearchHelp();
     process.exit(2);
   }
@@ -478,16 +487,16 @@ async function runProvider(args) {
 
 function printResearchHelp() {
   console.log(`Usage:
-  od research search --query <text> [--max-sources 5] [--daemon-url <url>]
+  readable research search --query <text> [--max-sources 5] [--daemon-url <url>]
 
-Runs Tavily-backed shallow research through the local Open Design daemon.
+Runs Tavily-backed shallow research through the local Readable Studio daemon.
 Output is JSON only on stdout:
   { "query": "...", "summary": "...", "sources": [...], "provider": "tavily", "depth": "shallow", "fetchedAt": 0 }
 
 Flags:
   --query        Required search query.
   --max-sources  Optional source cap. Defaults to 5, clamped to Tavily's max.
-  --daemon-url   Local daemon URL. Defaults to OD_DAEMON_URL, OD_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456.`);
+  --daemon-url   Local daemon URL. Defaults to READABLE_DAEMON_URL, READABLE_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456.`);
 }
 
 function surfaceFetchError(err, daemonUrl) {
@@ -508,7 +517,7 @@ function surfaceFetchError(err, daemonUrl) {
     console.error(
       'hint: outbound connect was denied by a sandbox. If you launched ' +
         'this command from a code agent, check the agent\'s sandbox / ' +
-        'network policy. The Open Design daemon itself is unaffected - it can be ' +
+        'network policy. The Readable Studio daemon itself is unaffected - it can be ' +
         'reached from a regular shell.',
     );
   }
@@ -519,7 +528,7 @@ function parseFlags(argv, opts = {}) {
   const booleanFlags = opts.boolean instanceof Set ? opts.boolean : new Set();
   const knownFlags = new Set([...stringFlags, ...booleanFlags]);
   // Positionals collected silently; callers that take `<id>` style
-  // positional args (e.g. `od plugin info <id>`) re-scan `argv`
+  // positional args (e.g. `readable plugin info <id>`) re-scan `argv`
   // themselves to pick them up. Strict positional rejection here
   // would break those commands, so we only enforce strict-flag
   // semantics for things that *are* prefixed with `--`.
@@ -591,7 +600,7 @@ async function cliDaemonBaseUrl(flags) {
 
 
 // ---------------------------------------------------------------------------
-// Subcommand: od mcp
+// Subcommand: readable mcp
 // ---------------------------------------------------------------------------
 
 async function runMcp(args) {
@@ -621,17 +630,17 @@ async function runMcp(args) {
 }
 
 function printMcpHelp() {
-  console.log(`Usage: od mcp [--daemon-url <url>]
+  console.log(`Usage: readable mcp [--daemon-url <url>]
 
 Run a stdio MCP (Model Context Protocol) server that proxies project
-tool calls to a running Open Design daemon. Wire it into a coding agent
-in another repo so the agent can pull files from a local Open Design
+tool calls to a running Readable Studio daemon. Wire it into a coding agent
+in another repo so the agent can pull files from a local Readable Studio
 project and create project-scoped artifacts without exporting a zip
 every iteration.
 
 Options:
-  --daemon-url <url>   Open Design daemon HTTP base URL. Resolution
-                       order: this flag, OD_DAEMON_URL, OD_SIDECAR_IPC_PATH,
+  --daemon-url <url>   Readable Studio daemon HTTP base URL. Resolution
+                       order: this flag, READABLE_DAEMON_URL, READABLE_SIDECAR_IPC_PATH,
                        then http://127.0.0.1:7456. Each new MCP spawn
                        discovers the live daemon URL at startup, so
                        MCP client configs stay valid across daemon
@@ -641,7 +650,7 @@ Options:
                        new port.
 
 Tools exposed:
-  list_projects                  list every Open Design project
+  list_projects                  list every Readable Studio project
   get_active_context             what project/file the user has open right now
   get_artifact([project, entry]) bundle: entry file + every referenced sibling
   get_project([project])         single project metadata
@@ -652,22 +661,22 @@ Tools exposed:
 
 When project is omitted, get_artifact / get_project / get_file /
 search_files / list_files / create_artifact default to the project the
-user has open in Open Design; get_artifact and get_file additionally
+user has open in Readable Studio; get_artifact and get_file additionally
 default to the active file. The response stamps usedActiveContext so
 callers can see which project/file got resolved.
 
 For the copy-paste, per-client snippet (with absolute paths resolved
 for your machine, plus a one-click deeplink for Cursor), open Settings
-→ MCP server in the Open Design app. The daemon must be running locally
+→ MCP server in the Readable Studio app. The daemon must be running locally
 for tool calls to succeed.
 
 To register this server into a coding agent's own config automatically:
-  od mcp install <agent> [--uninstall] [--print] [--json] [--daemon-url <url>]
+  readable mcp install <agent> [--uninstall] [--print] [--json] [--daemon-url <url>]
   Agents: ${AGENT_SLUGS.join(' ')}`);
 }
 
 // ---------------------------------------------------------------------------
-// Subcommand: od mcp install <agent>
+// Subcommand: readable mcp install <agent>
 //
 // Wires this daemon's stdio MCP server into a coding agent's own config.
 // The pure planner (mcp-agent-install.ts) maps a resolved launch spec onto
@@ -679,7 +688,7 @@ To register this server into a coding agent's own config automatically:
 // Resolve the canonical launch spec from the running daemon's
 // /api/mcp/install-info (the same payload the Settings → MCP panel and the
 // Codex one-click install use), so every install path configures byte-for-
-// byte the same command. Falls back to a minimal `od mcp --daemon-url`
+// byte the same command. Falls back to a minimal `readable mcp --daemon-url`
 // spec when the daemon is unreachable.
 async function resolveMcpLaunchSpec(flags) {
   const base = await cliDaemonBaseUrl(flags);
@@ -699,7 +708,7 @@ async function resolveMcpLaunchSpec(flags) {
     // daemon not running / unreachable — fall through to the minimal spec
   }
   return {
-    command: 'od',
+    command: 'readable',
     args: ['mcp', '--daemon-url', base],
     env: {},
   };
@@ -749,7 +758,7 @@ async function runMcpInstall(args) {
 
   const uninstall = Boolean(flags.uninstall || flags.remove);
   const dryRun = Boolean(flags.print || flags['dry-run']);
-  const serverName = flags.name || 'open-design';
+  const serverName = flags.name || 'readable-studio';
 
   const os = await import('node:os');
   const spec = await resolveMcpLaunchSpec(flags);
@@ -889,28 +898,28 @@ async function runMcpInstall(args) {
 }
 
 function printMcpInstallHelp() {
-  console.log(`Usage: od mcp install <agent> [options]
+  console.log(`Usage: readable mcp install <agent> [options]
 
-Register Open Design's stdio MCP server into a coding agent's own config.
+Register Readable Studio's stdio MCP server into a coding agent's own config.
 
 Agents:
   ${AGENT_SLUGS.join(' ')}
 
 Options:
-  --uninstall, --remove   Remove the Open Design MCP server instead.
+  --uninstall, --remove   Remove the Readable Studio MCP server instead.
   --print, --dry-run      Show what would change; write nothing.
   --json                  Machine-readable result.
-  --name <name>           MCP server name in the agent config (default: open-design).
+  --name <name>           MCP server name in the agent config (default: readable-studio).
   --daemon-url <url>      Daemon URL used to resolve the launch command.
 
 The launch command is resolved from the running daemon's
 /api/mcp/install-info, so the installed entry matches the Settings → MCP
 panel snippet byte-for-byte. Start the daemon first for an exact match;
-otherwise a minimal \`od mcp --daemon-url <url>\` command is used.`);
+otherwise a minimal \`readable mcp --daemon-url <url>\` command is used.`);
 }
 
 // ---------------------------------------------------------------------------
-// Subcommand: od plugin …
+// Subcommand: readable plugin …
 // ---------------------------------------------------------------------------
 
 // Plan §3.B1 / spec §12.4: CLI structured error helper. Maps a daemon
@@ -1022,18 +1031,18 @@ async function runPlugin(args) {
     case 'export':   return runPluginExport(rest);
     case 'publish':  return runPluginPublish(rest);
     case 'publish-repo': return runPluginPublishRepo(rest);
-    case 'open-design-pr': return runPluginOpenDesignPr(rest);
+    case 'readable-studio-pr': return runPluginReadableStudioPr(rest);
     case 'yank':     return runPluginYank(rest);
     default:
-      console.error(`unknown subcommand: od plugin ${sub}`);
+      console.error(`unknown subcommand: readable plugin ${sub}`);
       printPluginHelp();
       process.exit(2);
   }
 }
 
-// Phase 4 / spec §14.1 — `od plugin scaffold` interactive starter.
+// Phase 4 / spec §14.1 — `readable plugin scaffold` interactive starter.
 //
-// Side-effect: writes a SKILL.md + open-design.json starter under
+// Side-effect: writes a SKILL.md + readable-studio.json starter under
 // `<targetDir>/<id>/`. Default targetDir is process.cwd() so a code
 // agent can drop the scaffold into the current repo root.
 async function runPluginScaffold(rest) {
@@ -1045,19 +1054,19 @@ async function runPluginScaffold(rest) {
   });
   if (rest.length === 0 || flags.help || flags.h) {
     console.log(`Usage:
-  od plugin scaffold --id <id> [--title "<title>"] [--description "<text>"]
+  readable plugin scaffold --id <id> [--title "<title>"] [--description "<text>"]
                      [--task-kind new-generation|code-migration|figma-migration|tune-collab]
                      [--mode <mode>] [--scenario <scenario>]
                      [--out <dir>] [--with-claude-plugin]
 
-Writes <out|cwd>/<id>/{SKILL.md,open-design.json,README.md}.`);
+Writes <out|cwd>/<id>/{SKILL.md,readable-studio.json,README.md}.`);
     process.exit(rest.length === 0 ? 2 : 0);
   }
   const id = typeof flags.id === 'string' && flags.id.length > 0
     ? flags.id
     : rest.find((a) => !a.startsWith('-'));
   if (!id) {
-    console.error('Usage: od plugin scaffold --id <id>');
+    console.error('Usage: readable plugin scaffold --id <id>');
     process.exit(2);
   }
   const targetDir = typeof flags.out === 'string' && flags.out.length > 0
@@ -1081,7 +1090,7 @@ Writes <out|cwd>/<id>/{SKILL.md,open-design.json,README.md}.`);
     if (flags.json) return process.stdout.write(JSON.stringify(result, null, 2) + '\n');
     console.log(`[scaffold] ${result.folder}`);
     for (const file of result.files) console.log(`  ${file}`);
-    console.log(`\nNext: od plugin install ${result.folder}`);
+    console.log(`\nNext: readable plugin install ${result.folder}`);
   } catch (err) {
     if (err instanceof ScaffoldError) {
       console.error(`[scaffold] ${err.message}`);
@@ -1091,7 +1100,7 @@ Writes <out|cwd>/<id>/{SKILL.md,open-design.json,README.md}.`);
   }
 }
 
-// Phase 4 / spec §11.5 / plan §3.W1 — `od plugin validate <folder>`.
+// Phase 4 / spec §11.5 / plan §3.W1 — `readable plugin validate <folder>`.
 //
 // Pre-install lint pass against an author's working dir. Optionally
 // fetches the daemon's registry view so skill / DS / atom refs in
@@ -1104,7 +1113,7 @@ async function runPluginValidate(rest) {
   });
   if (flags.help || flags.h || rest.length === 0 || rest[0]?.startsWith('-')) {
     console.log(`Usage:
-  od plugin validate <folder> [--json] [--no-daemon] [--daemon-url <url>]
+  readable plugin validate <folder> [--json] [--no-daemon] [--daemon-url <url>]
 
 Runs the plugin doctor against an unfinished plugin folder before
 install. Validates manifest shape, atom ids, until expressions, and
@@ -1181,7 +1190,7 @@ Exit codes:
   process.exit(result.ok ? 0 : 4);
 }
 
-// Phase 4 / spec §14 / plan §3.X1 — `od plugin pack <folder>`.
+// Phase 4 / spec §14 / plan §3.X1 — `readable plugin pack <folder>`.
 //
 // Produces a gzip-compressed tar archive ready to install via the
 // installer's HTTPS-tarball path. The output path is folder-base +
@@ -1193,11 +1202,11 @@ async function runPluginPack(rest) {
   });
   if (flags.help || flags.h || rest.length === 0 || rest[0]?.startsWith('-')) {
     console.log(`Usage:
-  od plugin pack <folder> [--out <path>] [--json]
+  readable plugin pack <folder> [--out <path>] [--json]
 
 Builds a gzip-compressed tar archive of <folder> at --out (default
 '<folder>/../<basename>-<manifest.version>.tgz'). The archive is the
-exact shape \`od plugin install --source <https://...>\` consumes.
+exact shape \`readable plugin install --source <https://...>\` consumes.
 
 Skipped when packing:
   node_modules / .git / .next / dist / build / out / coverage /
@@ -1210,7 +1219,7 @@ rejection at install).
 Exit codes:
   0  archive written
   2  CLI usage error
-  4  pack-time error (missing open-design.json, invalid JSON, etc)`);
+  4  pack-time error (missing readable-studio.json, invalid JSON, etc)`);
     process.exit(rest.length === 0 ? 2 : 0);
   }
   const folder = rest[0];
@@ -1250,7 +1259,7 @@ Exit codes:
       console.log(`[pack] out:    ${result.outPath}`);
       console.log(`[pack] files:  ${result.files.length}`);
       console.log(`[pack] bytes:  ${result.bytes}`);
-      console.log(`\nNext: od plugin install --source ${result.outPath}`);
+      console.log(`\nNext: readable plugin install --source ${result.outPath}`);
     }
   } catch (err) {
     console.error(`[pack] failed: ${err?.message ?? err}`);
@@ -1265,9 +1274,9 @@ async function runPluginLogin(rest) {
   });
   if (flags.help || flags.h) {
     console.log(`Usage:
-  od plugin login [--host github.com]
+  readable plugin login [--host github.com]
 
-Wraps GitHub CLI auth for Open Design registry publishing. The token stays in gh.`);
+Wraps GitHub CLI auth for Readable Studio registry publishing. The token stays in gh.`);
     return;
   }
   const host = typeof flags.host === 'string' ? flags.host : 'github.com';
@@ -1287,9 +1296,9 @@ async function runPluginWhoami(rest) {
   });
   if (flags.help || flags.h) {
     console.log(`Usage:
-  od plugin whoami [--host github.com] [--json]
+  readable plugin whoami [--host github.com] [--json]
 
-Shows the GitHub account gh will use for Open Design registry publishing.`);
+Shows the GitHub account gh will use for Readable Studio registry publishing.`);
     return;
   }
   const host = typeof flags.host === 'string' ? flags.host : 'github.com';
@@ -1304,7 +1313,7 @@ Shows the GitHub account gh will use for Open Design registry publishing.`);
       }, null, 2) + '\n');
       return;
     }
-    console.error(`[plugin whoami] gh is not authenticated for ${host}. Run: od plugin login --host ${host}`);
+    console.error(`[plugin whoami] gh is not authenticated for ${host}. Run: readable plugin login --host ${host}`);
     if (auth.stderr || auth.stdout) console.error(auth.stderr || auth.stdout);
     process.exit(1);
   }
@@ -1409,11 +1418,11 @@ function inferGithubHost(target) {
   }
 }
 
-// Phase 4 / spec §14 — `od plugin export <projectId> --as <target>`.
+// Phase 4 / spec §14 — `readable plugin export <projectId> --as <target>`.
 //
 // Produces a publish-ready folder from the AppliedPluginSnapshot
 // behind a given project (or directly from a snapshot id). Three
-// targets: 'od', 'claude-plugin', 'agent-skill'.
+// targets: 'readable', 'claude-plugin', 'agent-skill'.
 async function runPluginExport(rest) {
   const flags = parseFlags(rest, {
     string: new Set(['daemon-url', 'as', 'out', 'snapshot-id', 'project']),
@@ -1421,8 +1430,8 @@ async function runPluginExport(rest) {
   });
   if (rest.length === 0 || flags.help || flags.h) {
     console.log(`Usage:
-  od plugin export <projectId> --as od|claude-plugin|agent-skill --out <dir>
-  od plugin export --snapshot-id <id> --as od|claude-plugin|agent-skill --out <dir>
+  readable plugin export <projectId> --as readable-studio|claude-plugin|agent-skill --out <dir>
+  readable plugin export --snapshot-id <id> --as readable-studio|claude-plugin|agent-skill --out <dir>
 
 The export resolves through the daemon HTTP \`POST /api/applied-plugins/export\`
 endpoint so the running daemon's installed_plugins / applied_plugin_snapshots
@@ -1433,12 +1442,12 @@ view is the single source of truth.`);
   const projectId = flags.project ?? positional ?? null;
   const snapshotId = typeof flags['snapshot-id'] === 'string' ? flags['snapshot-id'] : null;
   if (!projectId && !snapshotId) {
-    console.error('Usage: od plugin export <projectId> --as <target> --out <dir>');
+    console.error('Usage: readable plugin export <projectId> --as <target> --out <dir>');
     process.exit(2);
   }
-  const target = String(flags.as ?? 'od');
-  if (target !== 'od' && target !== 'claude-plugin' && target !== 'agent-skill') {
-    console.error(`--as must be one of: od, claude-plugin, agent-skill (got "${target}")`);
+  const target = String(flags.as ?? 'readable');
+  if (target !== 'readable-studio' && target !== 'claude-plugin' && target !== 'agent-skill') {
+    console.error(`--as must be one of: readable-studio, claude-plugin, agent-skill (got "${target}")`);
     process.exit(2);
   }
   const out = typeof flags.out === 'string' && flags.out.length > 0
@@ -1464,26 +1473,26 @@ view is the single source of truth.`);
   for (const f of data.files ?? []) console.log(`  ${f}`);
 }
 
-// Plan §3.B4 / spec §6: `od marketplace …` minimum verbs. Add / list /
+// Plan §3.B4 / spec §6: `readable marketplace …` minimum verbs. Add / list /
 // refresh / remove / trust. The Phase 3 follow-up wires
-// `od plugin install <name>` resolution through these catalogs.
+// `readable plugin install <name>` resolution through these catalogs.
 async function runMarketplace(args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od marketplace add     <url> [--trust trusted|restricted]   Register a federated catalog.
-  od marketplace list                                         List registered marketplaces.
-  od marketplace info    <id>                                 Inspect one marketplace + cached manifest.
-  od marketplace plugins <id> [--json]                        List cached plugin entries for one marketplace.
-  od marketplace search  <query> [--json]                     Search cached marketplace entries.
-  od marketplace doctor  [id] [--strict] [--json]             Validate cached marketplace entries.
-  od marketplace login   <id|url> [--host github.com]         Authenticate gh for private GitHub catalogs.
-  od marketplace refresh <id>                                 Re-fetch the manifest.
-  od marketplace remove  <id>                                 Forget a marketplace.
-  od marketplace trust   <id> [--trust trusted|restricted|official]
+  readable marketplace add     <url> [--trust trusted|restricted]   Register a federated catalog.
+  readable marketplace list                                         List registered marketplaces.
+  readable marketplace info    <id>                                 Inspect one marketplace + cached manifest.
+  readable marketplace plugins <id> [--json]                        List cached plugin entries for one marketplace.
+  readable marketplace search  <query> [--json]                     Search cached marketplace entries.
+  readable marketplace doctor  [id] [--strict] [--json]             Validate cached marketplace entries.
+  readable marketplace login   <id|url> [--host github.com]         Authenticate gh for private GitHub catalogs.
+  readable marketplace refresh <id>                                 Re-fetch the manifest.
+  readable marketplace remove  <id>                                 Forget a marketplace.
+  readable marketplace trust   <id> [--trust trusted|restricted|official]
                                                               Update the marketplace trust tier.
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base (default OD_DAEMON_URL, OD_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456).
+  --daemon-url <url>   Readable Studio daemon HTTP base (default READABLE_DAEMON_URL, READABLE_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456).
   --json               Emit raw JSON (suitable for scripts).`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -1502,7 +1511,7 @@ Common options:
       }
       const rows = data?.marketplaces ?? [];
       if (rows.length === 0) {
-        console.log('No marketplaces registered. Run `od marketplace add <url>`.');
+        console.log('No marketplaces registered. Run `readable marketplace add <url>`.');
         return;
       }
       for (const m of rows) {
@@ -1516,7 +1525,7 @@ Common options:
       // by substring on name + description + tags.
       const query = (rest.find((a) => !a.startsWith('-')) ?? '').toLowerCase();
       if (!query) {
-        console.error('Usage: od marketplace search "<query>" [--tag <tag>]');
+        console.error('Usage: readable marketplace search "<query>" [--tag <tag>]');
         process.exit(2);
       }
       const tag = typeof flags.tag === 'string' ? flags.tag.toLowerCase() : null;
@@ -1562,7 +1571,7 @@ Common options:
     case 'plugins': {
       const id = rest.find((a) => !a.startsWith('-'));
       if (!id) {
-        console.error('Usage: od marketplace plugins <id> [--json]');
+        console.error('Usage: readable marketplace plugins <id> [--json]');
         process.exit(2);
       }
       const resp = await fetch(`${base}/api/marketplaces/${encodeURIComponent(id)}/plugins`);
@@ -1630,14 +1639,14 @@ Common options:
         console.error('[marketplace login] GitHub CLI is required. Install gh from https://cli.github.com/ and retry.');
         process.exit(1);
       }
-      console.log(`[marketplace login] authenticating gh for ${host}. Tokens stay in gh, not Open Design.`);
+      console.log(`[marketplace login] authenticating gh for ${host}. Tokens stay in gh, not Readable Studio.`);
       const result = await spawnPassthrough('gh', ['auth', 'login', '--hostname', host, '--web']);
       process.exit(result.code ?? 0);
     }
     case 'add': {
       const url = rest.find((a) => !a.startsWith('-'));
       if (!url) {
-        console.error('Usage: od marketplace add <url> [--trust trusted|restricted]');
+        console.error('Usage: readable marketplace add <url> [--trust trusted|restricted]');
         process.exit(2);
       }
       const trust = flags.trust ?? 'restricted';
@@ -1661,7 +1670,7 @@ Common options:
       const id = rest.find((a) => !a.startsWith('-')
         && a !== flags.trust);
       if (!id) {
-        console.error(`Usage: od marketplace ${sub} <id>`);
+        console.error(`Usage: readable marketplace ${sub} <id>`);
         process.exit(2);
       }
       let url;
@@ -1689,24 +1698,24 @@ Common options:
       return;
     }
     default:
-      console.error(`unknown subcommand: od marketplace ${sub}`);
+      console.error(`unknown subcommand: readable marketplace ${sub}`);
       process.exit(2);
   }
 }
 
 // Plan §3.A5 / spec §16 Phase 5: operator escape hatch for snapshot GC.
 // Two subcommands:
-//   - `od plugin snapshots list [--project <id>]` — list snapshots
-//   - `od plugin snapshots prune [--before <ts>]` — force-delete expired
+//   - `readable plugin snapshots list [--project <id>]` — list snapshots
+//   - `readable plugin snapshots prune [--before <ts>]` — force-delete expired
 //     (and optionally older-than-cutoff unreferenced) rows.
 async function runPluginSnapshots(args) {
   const sub = args[0];
   if (!sub || sub === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od plugin snapshots list  [--project <id>]               List applied plugin snapshots.
-  od plugin snapshots show  <snapshotId> [--json]          Print one snapshot's full contents.
-  od plugin snapshots diff  <id-a> <id-b> [--json]         Compare two snapshots field-by-field.
-  od plugin snapshots prune [--before <unix-ms>]           Delete expired (or older-than-cutoff) snapshots.`);
+  readable plugin snapshots list  [--project <id>]               List applied plugin snapshots.
+  readable plugin snapshots show  <snapshotId> [--json]          Print one snapshot's full contents.
+  readable plugin snapshots diff  <id-a> <id-b> [--json]         Compare two snapshots field-by-field.
+  readable plugin snapshots prune [--before <unix-ms>]           Delete expired (or older-than-cutoff) snapshots.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
   const flags = parseFlags(args.slice(1), { string: PLUGIN_STRING_FLAGS, boolean: PLUGIN_BOOLEAN_FLAGS });
@@ -1715,7 +1724,7 @@ async function runPluginSnapshots(args) {
     const positional = args.slice(1).filter((a) => !a.startsWith('-'));
     const id = positional[0];
     if (!id) {
-      console.error('Usage: od plugin snapshots show <snapshotId>');
+      console.error('Usage: readable plugin snapshots show <snapshotId>');
       process.exit(2);
     }
     const url = `${base}/api/applied-plugins/${encodeURIComponent(id)}`;
@@ -1735,7 +1744,7 @@ async function runPluginSnapshots(args) {
   if (sub === 'diff') {
     const positional = args.slice(1).filter((a) => !a.startsWith('-'));
     if (positional.length < 2) {
-      console.error('Usage: od plugin snapshots diff <id-a> <id-b>');
+      console.error('Usage: readable plugin snapshots diff <id-a> <id-b>');
       process.exit(2);
     }
     const [idA, idB] = positional;
@@ -1814,12 +1823,12 @@ async function runPluginSnapshots(args) {
     console.log(`[snapshots] pruned ${data.removed ?? 0} snapshot(s)`);
     return;
   }
-  console.error(`unknown subcommand: od plugin snapshots ${sub}`);
+  console.error(`unknown subcommand: readable plugin snapshots ${sub}`);
   process.exit(2);
 }
 
-// Plan §3.B3: `od plugin run <id>` shorthand. Today this is a thin
-// wrapper around `od plugin apply` + `POST /api/runs` so a code agent
+// Plan §3.B3: `readable plugin run <id>` shorthand. Today this is a thin
+// wrapper around `readable plugin apply` + `POST /api/runs` so a code agent
 // can drive the apply→start→follow loop without two hops.
 async function runPluginRun(rest) {
   const flags = parseFlags(rest, { string: PLUGIN_STRING_FLAGS, boolean: PLUGIN_BOOLEAN_FLAGS });
@@ -1836,7 +1845,7 @@ async function runPluginRun(rest) {
     && a !== flags.capabilities
     && a !== flags['grant-caps']);
   if (!id) {
-    console.error('Usage: od plugin run <id> --project <projectId> [--inputs <json>] [--agent <id>] [--message "<text>"] [--grant-caps a,b] [--follow]');
+    console.error('Usage: readable plugin run <id> --project <projectId> [--inputs <json>] [--agent <id>] [--message "<text>"] [--grant-caps a,b] [--follow]');
     process.exit(2);
   }
   if (!flags.project) {
@@ -1881,7 +1890,7 @@ async function runPluginRun(rest) {
     if (runResp.status === 409 && runData?.error?.code === 'capabilities-required') {
       const missing = (runData.error.data?.missing ?? []).join(',');
       console.error(`[run] capabilities required: ${missing}`);
-      console.error(`[run] retry with --grant-caps ${missing} or run \`od plugin trust ${id} --capabilities ${missing}\``);
+      console.error(`[run] retry with --grant-caps ${missing} or run \`readable plugin trust ${id} --capabilities ${missing}\``);
       process.exit(66);
     }
     console.error(`run failed: ${runResp.status} ${JSON.stringify(runData)}`);
@@ -1902,8 +1911,8 @@ async function pluginDaemonUrl(flags) {
   return cliDaemonUrl(flags);
 }
 
-// Plan §3.Y1 — filter knobs on `od plugin list` (and feeds
-// `od plugin search` below). Recognising these as string flags
+// Plan §3.Y1 — filter knobs on `readable plugin list` (and feeds
+// `readable plugin search` below). Recognising these as string flags
 // keeps the parseFlags() argv consumer happy.
 async function runPluginList(rest) {
   const flags = parseFlags(rest, {
@@ -1912,15 +1921,15 @@ async function runPluginList(rest) {
   });
   if (flags.help || flags.h) {
     console.log(`Usage:
-  od plugin list [--task-kind <kind>] [--mode <mode>] [--tag <tag>] \\
+  readable plugin list [--task-kind <kind>] [--mode <mode>] [--tag <tag>] \\
                  [--trust <tier>] [--bundled | --no-bundled] [--json]
 
 Lists installed plugins. Filters AND together: --task-kind=code-migration
 + --tag=phase-7 returns only code-migration plugins tagged 'phase-7'.
 
-  --task-kind   Match od.taskKind (new-generation / figma-migration /
+  --task-kind   Match readable.taskKind (new-generation / figma-migration /
                 code-migration / tune-collab).
-  --mode        Match od.mode.
+  --mode        Match readable.mode.
   --tag         Match an entry in tags[].
   --trust       Match trust tier (trusted / restricted / bundled).
   --bundled     Restrict to bundled plugins (sourceKind='bundled' OR
@@ -1933,7 +1942,7 @@ Lists installed plugins. Filters AND together: --task-kind=code-migration
   emitPluginList({ entries: filtered, json: !!flags.json, emptyMessage: 'No plugins matched the filter.' });
 }
 
-// Plan §3.Y1 — `od plugin search <query>`.
+// Plan §3.Y1 — `readable plugin search <query>`.
 async function runPluginSearch(rest) {
   const flags = parseFlags(rest, {
     string:  PLUGIN_LIST_FILTER_FLAGS,
@@ -1943,13 +1952,13 @@ async function runPluginSearch(rest) {
   const query = positional[0];
   if (flags.help || flags.h || !query) {
     console.log(`Usage:
-  od plugin search <query> [--task-kind <kind>] [--mode <mode>] \\
+  readable plugin search <query> [--task-kind <kind>] [--mode <mode>] \\
                            [--tag <tag>] [--trust <tier>] \\
                            [--bundled | --no-bundled] [--json]
 
 Free-text search across installed plugins. Matches case-insensitively
 on id / title / description / tags. Combines with the same filter
-flags as 'od plugin list'.`);
+flags as 'readable plugin list'.`);
     process.exit(query ? 0 : 2);
   }
   const data = await fetchPluginList(flags);
@@ -1962,7 +1971,7 @@ flags as 'od plugin list'.`);
   });
 }
 
-// Plan §3.DD1 — `od plugin stats`. Pretty-prints the
+// Plan §3.DD1 — `readable plugin stats`. Pretty-prints the
 // pluginInventoryStats + snapshotInventoryStats aggregation. The
 // daemon-side route owns the SQLite reads; the CLI is a thin
 // formatter.
@@ -1973,7 +1982,7 @@ async function runPluginStats(rest) {
   });
   if (flags.help || flags.h) {
     console.log(`Usage:
-  od plugin stats [--json]
+  readable plugin stats [--json]
 
 Prints an at-a-glance plugin + snapshot inventory:
   - Plugin counts by sourceKind, trust, taskKind.
@@ -2098,7 +2107,7 @@ async function runPluginInfo(rest) {
     && a !== flags.source
     && a !== flags.version);
   if (!id) {
-    console.error('Usage: od plugin info <id-or-marketplace-name> [--version <version|tag|range>] [--json]');
+    console.error('Usage: readable plugin info <id-or-marketplace-name> [--version <version|tag|range>] [--json]');
     process.exit(2);
   }
   const base = (await pluginDaemonUrl(flags)).replace(/\/$/, '');
@@ -2180,16 +2189,16 @@ function resolveCliEntryVersion(entry, range) {
   };
 }
 
-// Plan §3.MM1 — `od plugin manifest <id>`. Prints just the parsed
+// Plan §3.MM1 — `readable plugin manifest <id>`. Prints just the parsed
 // manifest JSON, no wrapper. Useful for plugin authors who want to
-// compare the daemon's view to their on-disk open-design.json
+// compare the daemon's view to their on-disk readable-studio.json
 // without scrolling past the registry record fields (sourceKind /
 // fsPath / installedAt etc).
 async function runPluginManifest(rest) {
   const flags = parseFlags(rest, { string: PLUGIN_STRING_FLAGS, boolean: PLUGIN_BOOLEAN_FLAGS });
   const id = rest.find((a) => !a.startsWith('--') && a !== flags['daemon-url'] && a !== flags.source);
   if (!id) {
-    console.error('Usage: od plugin manifest <id>');
+    console.error('Usage: readable plugin manifest <id>');
     process.exit(2);
   }
   const url = `${(await pluginDaemonUrl(flags)).replace(/\/$/, '')}/api/plugins/${encodeURIComponent(id)}`;
@@ -2210,7 +2219,7 @@ async function runPluginManifest(rest) {
   process.stdout.write(JSON.stringify(data.manifest, null, 2) + '\n');
 }
 
-// Plan §3.MM2 — `od plugin sources`. Lists every distinct install
+// Plan §3.MM2 — `readable plugin sources`. Lists every distinct install
 // source string + count of plugins installed from it, ordered by
 // count descending then source ascending. Useful for ops audits
 // ('which github repos do my plugins come from') + for plugin
@@ -2259,11 +2268,11 @@ async function runPluginInstall(rest) {
   const flags = parseFlags(rest, { string: PLUGIN_STRING_FLAGS, boolean: PLUGIN_BOOLEAN_FLAGS });
   const source = typeof flags.source === 'string' ? flags.source : rest.find((a) => !a.startsWith('-'));
   if (!source) {
-    console.error('Usage: od plugin install <source-or-name>\n' +
-      '       od plugin install ./local-folder\n' +
-      '       od plugin install github:owner/repo[@ref][/subpath]\n' +
-      '       od plugin install https://example.com/plugin.tar.gz\n' +
-      '       od plugin install <name>[@version|tag|range]  # resolves through configured marketplaces');
+    console.error('Usage: readable plugin install <source-or-name>\n' +
+      '       readable plugin install ./local-folder\n' +
+      '       readable plugin install github:owner/repo[@ref][/subpath]\n' +
+      '       readable plugin install https://example.com/plugin.tar.gz\n' +
+      '       readable plugin install <name>[@version|tag|range]  # resolves through configured marketplaces');
     process.exit(2);
   }
   const url = `${(await pluginDaemonUrl(flags)).replace(/\/$/, '')}/api/plugins/install`;
@@ -2320,10 +2329,10 @@ async function runPluginInstall(rest) {
   process.exit(exitCode);
 }
 
-// Plan §3.Z2 — `od plugin upgrade <id>`. Re-installs the plugin
+// Plan §3.Z2 — `readable plugin upgrade <id>`. Re-installs the plugin
 // from its recorded source. Streams the same SSE event shape as
 // install, so 'progress' / 'success' / 'error' arrive verbatim.
-// Plan §3.II1 — `od plugin events tail`. Tails the daemon's
+// Plan §3.II1 — `readable plugin events tail`. Tails the daemon's
 // in-memory plugin event ring buffer via SSE. -f keeps the
 // connection open and prints live events; otherwise prints the
 // backlog and exits when the daemon closes the stream.
@@ -2331,10 +2340,10 @@ async function runPluginEvents(rest) {
   const sub = rest[0];
   if (!sub || sub === 'help' || rest.includes('--help') || rest.includes('-h')) {
     console.log(`Usage:
-  od plugin events tail     [-f] [--since <id>] [--kind <k>] [--plugin-id <id>] [--json]
-  od plugin events snapshot [--since <id>] [--kind <k>] [--plugin-id <id>] [--json]
-  od plugin events stats    [--json]
-  od plugin events purge    [--confirm] [--json]    (loopback-only)
+  readable plugin events tail     [-f] [--since <id>] [--kind <k>] [--plugin-id <id>] [--json]
+  readable plugin events snapshot [--since <id>] [--kind <k>] [--plugin-id <id>] [--json]
+  readable plugin events stats    [--json]
+  readable plugin events purge    [--confirm] [--json]    (loopback-only)
 
 Tail / snapshot / stats / purge over the daemon's in-memory
 plugin event ring buffer (capped at 1000 entries; resets on
@@ -2396,7 +2405,7 @@ Lifecycle vocabulary:
   }
 
   if (sub === 'purge') {
-    // Refuse to run without an explicit --confirm so 'od plugin
+    // Refuse to run without an explicit --confirm so 'readable plugin
     // events purge' alone never drops audit data accidentally.
     const purgeFlags = parseFlags(rest.slice(1), {
       string:  new Set(['daemon-url']),
@@ -2443,7 +2452,7 @@ Lifecycle vocabulary:
   }
 
   if (sub !== 'tail') {
-    console.error(`unknown subcommand: od plugin events ${sub}`);
+    console.error(`unknown subcommand: readable plugin events ${sub}`);
     process.exit(2);
   }
   const follow = flags.f === true || flags.follow === true;
@@ -2524,9 +2533,9 @@ Lifecycle vocabulary:
   }
 }
 
-// Plan §3.FF1 — `od plugin verify <pluginId>` CI meta-command.
+// Plan §3.FF1 — `readable plugin verify <pluginId>` CI meta-command.
 //
-// Reads an optional .od-verify.json config from the plugin folder
+// Reads an optional .readable-studio-verify.json config from the plugin folder
 // or --config <path> and runs the enabled subset of:
 //
 //   doctor   — calls /api/plugins/<id>/doctor
@@ -2545,10 +2554,10 @@ async function runPluginVerify(rest) {
   const id = positional[0];
   if (flags.help || flags.h || !id) {
     console.log(`Usage:
-  od plugin verify <pluginId> [--config <path>] [--json]
+  readable plugin verify <pluginId> [--config <path>] [--json]
 
 CI meta-command. Reads an optional config from
-'<plugin-folder>/.od-verify.json' (or --config <path>) and runs:
+'<plugin-folder>/.readable-studio-verify.json' (or --config <path>) and runs:
 
   doctor    — manifest + atom + ref lint
   simulate  — convergence dry-run for every until expression,
@@ -2557,7 +2566,7 @@ CI meta-command. Reads an optional config from
               config.canon.fixturePath using the snapshot at
               config.canon.snapshotId
 
-Sample .od-verify.json:
+Sample .readable-studio-verify.json:
 
   {
     "enabled": ["doctor", "simulate"],
@@ -2591,12 +2600,12 @@ Exit codes:
   }
   const plugin = await pluginResp.json();
 
-  // 2. Load .od-verify.json from --config or <fsPath>/.od-verify.json.
+  // 2. Load .readable-studio-verify.json from --config or <fsPath>/.readable-studio-verify.json.
   const fs = await import('node:fs/promises');
   const path = await import('node:path');
   const configPath = typeof flags.config === 'string'
     ? path.resolve(flags.config)
-    : (typeof plugin?.fsPath === 'string' ? path.join(plugin.fsPath, '.od-verify.json') : null);
+    : (typeof plugin?.fsPath === 'string' ? path.join(plugin.fsPath, '.readable-studio-verify.json') : null);
   let config = { enabled: ['doctor', 'simulate', 'canon'] };
   if (configPath) {
     try {
@@ -2627,7 +2636,7 @@ Exit codes:
   // 4. simulate (when enabled)
   let simulateReport = null;
   if (enabledSet.has('simulate')) {
-    const pipeline = plugin?.manifest?.od?.pipeline;
+    const pipeline = plugin?.manifest?.readable?.pipeline;
     if (pipeline && Array.isArray(pipeline.stages) && pipeline.stages.length > 0) {
       const { simulatePipeline } = await import('./plugins/simulate.js');
       simulateReport = simulatePipeline({
@@ -2695,7 +2704,7 @@ Exit codes:
   process.exit(report.passed ? 0 : 4);
 }
 
-// Plan §3.EE1 — `od plugin simulate <pluginId> [-s key=value ...]`.
+// Plan §3.EE1 — `readable plugin simulate <pluginId> [-s key=value ...]`.
 //
 // Walks the plugin's pipeline against caller-supplied signals and
 // reports per-stage convergence (iterations + outcome). No LLM is
@@ -2715,21 +2724,21 @@ async function runPluginSimulate(rest) {
   const id = positional[0];
   if (flags.help || flags.h || !id) {
     console.log(`Usage:
-  od plugin simulate <pluginId> [-s key=value ...] [--cap <n>] [--json]
+  readable plugin simulate <pluginId> [-s key=value ...] [--cap <n>] [--json]
 
 Walks the plugin's pipeline against caller-supplied signals and
 reports per-stage convergence. No LLM is invoked.
 
 Examples:
   # critique-theater stage that exits when score >= 4
-  od plugin simulate my-plugin -s critique.score=5
+  readable plugin simulate my-plugin -s critique.score=5
 
   # build-test devloop where both signals must hold
-  od plugin simulate code-migration \\
+  readable plugin simulate code-migration \\
       -s build.passing=true -s tests.passing=true
 
   # raise the per-stage iteration cap (default 10)
-  od plugin simulate my-plugin -s critique.score=2 --cap 20
+  readable plugin simulate my-plugin -s critique.score=2 --cap 20
 
 Closed signal vocabulary:
   critique.score (number)
@@ -2760,12 +2769,12 @@ Closed signal vocabulary:
     process.exit(1);
   }
   const plugin = await resp.json();
-  const pipeline = plugin?.manifest?.od?.pipeline;
+  const pipeline = plugin?.manifest?.readable?.pipeline;
   if (!pipeline || !Array.isArray(pipeline.stages) || pipeline.stages.length === 0) {
     if (flags.json) {
       process.stdout.write(JSON.stringify({ outcome: 'no-pipeline', stages: [] }, null, 2) + '\n');
     } else {
-      console.log(`[simulate] plugin ${id} has no od.pipeline (or it is empty); nothing to walk.`);
+      console.log(`[simulate] plugin ${id} has no readable.pipeline (or it is empty); nothing to walk.`);
     }
     return;
   }
@@ -2799,7 +2808,7 @@ Closed signal vocabulary:
   if (result.outcome === 'cap-hit' || result.outcome === 'unparsable') process.exit(4);
 }
 
-// Plan §3.CC1 / §3.DD2 — `od plugin canon <snapshotId>`. Prints the
+// Plan §3.CC1 / §3.DD2 — `readable plugin canon <snapshotId>`. Prints the
 // canonical `## Active plugin` block a snapshot will splice into
 // the system prompt. Useful for understanding what the agent
 // reads + locking byte-equality regression tests against the
@@ -2818,8 +2827,8 @@ async function runPluginCanon(rest) {
   const id = positional[0];
   if (flags.help || flags.h || !id) {
     console.log(`Usage:
-  od plugin canon <snapshotId> [--json]
-  od plugin canon <snapshotId> --check <expected-file>
+  readable plugin canon <snapshotId> [--json]
+  readable plugin canon <snapshotId> --check <expected-file>
 
 Prints the canonical '## Active plugin' / '## Plugin inputs' /
 '## Plugin atoms' block this snapshot would splice into the
@@ -2887,7 +2896,7 @@ fixtures into a plugin's own tests/.`);
   if (!body.endsWith('\n')) process.stdout.write('\n');
 }
 
-// Plan §3.AA1 — `od plugin diff <a> <b>`. Compares two installed
+// Plan §3.AA1 — `readable plugin diff <a> <b>`. Compares two installed
 // plugins (by id) and prints a structured report. Useful for
 // debugging replay invariance + reviewing version bumps.
 async function runPluginDiff(rest) {
@@ -2895,7 +2904,7 @@ async function runPluginDiff(rest) {
   const positional = rest.filter((a) => !a.startsWith('-'));
   if (flags.help || flags.h || positional.length < 2) {
     console.log(`Usage:
-  od plugin diff <id-a> <id-b> [--json]
+  readable plugin diff <id-a> <id-b> [--json]
 
 Compares two installed plugins (or two installs of the same id at
 different versions) and prints every changed field. Output groups
@@ -2949,7 +2958,7 @@ async function runPluginUpgrade(rest) {
   const flags = parseFlags(rest, { string: PLUGIN_STRING_FLAGS, boolean: PLUGIN_BOOLEAN_FLAGS });
   const id = rest.find((a) => !a.startsWith('-') && a !== flags['daemon-url'] && a !== flags.source);
   if (!id) {
-    console.error('Usage: od plugin upgrade <id> [--policy latest|pinned] [--json]');
+    console.error('Usage: readable plugin upgrade <id> [--policy latest|pinned] [--json]');
     process.exit(2);
   }
   const url = `${(await pluginDaemonUrl(flags)).replace(/\/$/, '')}/api/plugins/${encodeURIComponent(id)}/upgrade`;
@@ -3015,7 +3024,7 @@ async function runPluginUninstall(rest) {
   const flags = parseFlags(rest, { string: PLUGIN_STRING_FLAGS, boolean: PLUGIN_BOOLEAN_FLAGS });
   const id = rest.find((a) => !a.startsWith('-') && a !== flags['daemon-url'] && a !== flags.source);
   if (!id) {
-    console.error('Usage: od plugin uninstall <id>');
+    console.error('Usage: readable plugin uninstall <id>');
     process.exit(2);
   }
   const url = `${(await pluginDaemonUrl(flags)).replace(/\/$/, '')}/api/plugins/${encodeURIComponent(id)}/uninstall`;
@@ -3037,7 +3046,7 @@ async function runPluginApply(rest) {
     && a !== flags.project
     && a !== flags['grant-caps']);
   if (!id) {
-    console.error('Usage: od plugin apply <id> [--inputs <json>] [--input k=v ...] [--project <id>] [--grant-caps a,b]');
+    console.error('Usage: readable plugin apply <id> [--inputs <json>] [--input k=v ...] [--project <id>] [--grant-caps a,b]');
     process.exit(2);
   }
   // Plan §3.B2: support both --inputs <json> and repeated --input k=v
@@ -3113,7 +3122,7 @@ function coerceCliValue(raw) {
   return raw;
 }
 
-// Phase 4 / spec §14.1 — `od plugin publish --to <catalog>`.
+// Phase 4 / spec §14.1 — `readable plugin publish --to <catalog>`.
 //
 // Reads the installed plugin's manifest metadata (or the snapshot's
 // frozen view via --snapshot-id) and prints the catalog submission URL
@@ -3128,9 +3137,9 @@ async function runPluginPublish(rest) {
   });
   if (rest.length === 0 || flags.help || flags.h) {
     console.log(`Usage:
-  od plugin publish <pluginId> --to open-design|anthropics-skills|awesome-agent-skills|clawhub|skills-sh
+  readable plugin publish <pluginId> --to readable-studio|anthropics-skills|awesome-agent-skills|clawhub|skills-sh
                     [--repo <github-url>] [--snapshot-id <id>] [--open] [--json]
-  od plugin publish <pluginId> --to marketplace-json --catalog ./open-design-marketplace.json --repo <github-url>
+  readable plugin publish <pluginId> --to marketplace-json --catalog ./readable-studio-marketplace.json --repo <github-url>
 
 The CLI prints the catalog's submission URL + a pre-filled PR body.
 Pass --open to auto-launch the system browser. Use --snapshot-id to
@@ -3143,11 +3152,11 @@ publish from a frozen run snapshot rather than the live installed copy.`);
     && a !== flags['snapshot-id']);
   const target = String(flags.to ?? '');
   if (!id) {
-    console.error('Usage: od plugin publish <pluginId> --to <catalog>');
+    console.error('Usage: readable plugin publish <pluginId> --to <catalog>');
     process.exit(2);
   }
   if (!target) {
-    console.error('--to <catalog> is required (one of: open-design, anthropics-skills, awesome-agent-skills, clawhub, skills-sh)');
+    console.error('--to <catalog> is required (one of: readable-studio, anthropics-skills, awesome-agent-skills, clawhub, skills-sh)');
     process.exit(2);
   }
   const base = (await pluginDaemonUrl(flags)).replace(/\/$/, '');
@@ -3246,7 +3255,7 @@ async function runPluginPublishRepo(rest) {
   });
   if (rest.length === 0 || flags.help || flags.h) {
     console.log(`Usage:
-  od plugin publish-repo <folder> [--host github.com] [--owner github-login-or-org] [--dry-run] [--json]
+  readable plugin publish-repo <folder> [--host github.com] [--owner github-login-or-org] [--dry-run] [--json]
 
 Creates or updates the public GitHub repository named by the plugin manifest.
 If plugin.repo is missing or uses a placeholder owner, the CLI resolves the
@@ -3256,7 +3265,7 @@ GitHub API as a last resort. It never publishes to placeholder owners.`);
   }
   const folder = rest.find((a) => !a.startsWith('-') && a !== flags.host && a !== flags.owner);
   if (!folder) {
-    console.error('Usage: od plugin publish-repo <folder>');
+    console.error('Usage: readable plugin publish-repo <folder>');
     process.exit(2);
   }
 
@@ -3267,7 +3276,7 @@ GitHub API as a last resort. It never publishes to placeholder owners.`);
     import('node:os'),
   ]);
   const absFolder = resolve(process.cwd(), folder);
-  const manifestPath = resolve(absFolder, 'open-design.json');
+  const manifestPath = resolve(absFolder, 'readable-studio.json');
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
   const host = typeof flags.host === 'string' ? flags.host : 'github.com';
   const target = await resolvePluginGithubTarget({ host, owner: flags.owner, manifest, purpose: 'publish-repo' });
@@ -3336,7 +3345,7 @@ GitHub API as a last resort. It never publishes to placeholder owners.`);
   let workdir = absFolder;
   let cleanupDir = null;
   if (exists && !flags['dry-run']) {
-    cleanupDir = await mkdtemp(join(os.tmpdir(), 'od-plugin-publish-sync-'));
+    cleanupDir = await mkdtemp(join(os.tmpdir(), 'readable-plugin-publish-sync-'));
     workdir = join(cleanupDir, repo.name);
     await run('clone repo', 'gh', ['repo', 'clone', repo.fullName, workdir], { cwd: cleanupDir, timeout: 240_000 });
     for (const entry of await readdir(workdir)) {
@@ -3401,22 +3410,22 @@ GitHub API as a last resort. It never publishes to placeholder owners.`);
   });
 }
 
-async function runPluginOpenDesignPr(rest) {
+async function runPluginReadableStudioPr(rest) {
   const flags = parseFlags(rest, {
     string: new Set(['host', 'owner']),
     boolean: new Set(['help', 'h', 'json', 'dry-run']),
   });
   if (rest.length === 0 || flags.help || flags.h) {
     console.log(`Usage:
-  od plugin open-design-pr <folder> [--host github.com] [--owner github-login-or-fork-owner] [--dry-run] [--json]
+  readable plugin readable-studio-pr <folder> [--host github.com] [--owner github-login-or-fork-owner] [--dry-run] [--json]
 
 Copies a local plugin folder into plugins/community/<name>/ on the author's
-fork of nexu-io/open-design, pushes a branch, and opens the PR form with --web.`);
+fork of sanghyunna/readable-studio, pushes a branch, and opens the PR form with --web.`);
     process.exit(rest.length === 0 ? 2 : 0);
   }
   const folder = rest.find((a) => !a.startsWith('-') && a !== flags.host && a !== flags.owner);
   if (!folder) {
-    console.error('Usage: od plugin open-design-pr <folder>');
+    console.error('Usage: readable plugin readable-studio-pr <folder>');
     process.exit(2);
   }
   const [{ resolve, join }, fsp, os] = await Promise.all([
@@ -3425,19 +3434,19 @@ fork of nexu-io/open-design, pushes a branch, and opens the PR form with --web.`
     import('node:os'),
   ]);
   const absFolder = resolve(process.cwd(), folder);
-  const manifestPath = resolve(absFolder, 'open-design.json');
+  const manifestPath = resolve(absFolder, 'readable-studio.json');
   const manifest = JSON.parse(await fsp.readFile(manifestPath, 'utf8'));
   const host = typeof flags.host === 'string' ? flags.host : 'github.com';
-  const target = await resolvePluginGithubTarget({ host, owner: flags.owner, manifest, purpose: 'open-design-pr' });
+  const target = await resolvePluginGithubTarget({ host, owner: flags.owner, manifest, purpose: 'readable-studio-pr' });
   const name = String(manifest.name ?? '').trim();
   if (!name) {
-    console.error('[open-design-pr] manifest.name is required');
+    console.error('[readable-studio-pr] manifest.name is required');
     process.exit(2);
   }
   const title = String(manifest.title ?? name).trim();
   const branch = `plugin/${name}-${Math.floor(Date.now() / 1000)}`;
-  const tmpRoot = await fsp.mkdtemp(join(os.tmpdir(), 'od-open-design-pr-'));
-  const checkout = join(tmpRoot, 'open-design');
+  const tmpRoot = await fsp.mkdtemp(join(os.tmpdir(), 'readable-readable-studio-pr-'));
+  const checkout = join(tmpRoot, 'readable-studio');
   const steps = [];
   const run = async (label, command, args, opts = {}) => {
     steps.push({ label, command: [command, ...args].join(' ') });
@@ -3451,7 +3460,7 @@ fork of nexu-io/open-design, pushes a branch, and opens the PR form with --web.`
     if (!result.ok && !opts.tolerate?.(result)) {
       emitPluginWorkflowResult(flags, {
         ok: false,
-        action: 'open-design-pr',
+        action: 'readable-studio-pr',
         folder: absFolder,
         login: target.login,
         owner: target.owner,
@@ -3466,7 +3475,7 @@ fork of nexu-io/open-design, pushes a branch, and opens the PR form with --web.`
     return result;
   };
 
-  await run('fork', 'gh', ['repo', 'fork', 'nexu-io/open-design'], {
+  await run('fork', 'gh', ['repo', 'fork', 'sanghyunna/readable-studio'], {
     tolerate: (r) => /already exists|existing fork/i.test(`${r.stdout}\n${r.stderr}`),
   });
   await run('clone fork', 'git', [
@@ -3476,7 +3485,7 @@ fork of nexu-io/open-design, pushes a branch, and opens the PR form with --web.`
     '--branch', 'main',
     '--filter=blob:none',
     '--sparse',
-    `https://github.com/${target.owner}/open-design.git`,
+    `https://github.com/${target.owner}/readable-studio.git`,
     checkout,
   ], { timeout: 240_000 });
   await run('sparse checkout', 'git', ['sparse-checkout', 'set', 'plugins/community'], { cwd: checkout });
@@ -3498,17 +3507,17 @@ fork of nexu-io/open-design, pushes a branch, and opens the PR form with --web.`
   ].filter(Boolean).join('\n');
   const pr = await run('open PR form', 'gh', [
     'pr', 'create',
-    '--repo', 'nexu-io/open-design',
+    '--repo', 'sanghyunna/readable-studio',
     '--head', `${target.owner}:${branch}`,
     '--base', 'main',
     '--title', `Add ${title} plugin`,
     '--body', body,
     '--web',
   ], { cwd: checkout });
-  const prUrl = extractFirstUrl(pr.stdout || pr.stderr) ?? `https://github.com/${target.owner}/open-design/pull/new/${branch}`;
+  const prUrl = extractFirstUrl(pr.stdout || pr.stderr) ?? `https://github.com/${target.owner}/readable-studio/pull/new/${branch}`;
   emitPluginWorkflowResult(flags, {
     ok: true,
-    action: 'open-design-pr',
+    action: 'readable-studio-pr',
     folder: absFolder,
     login: target.login,
     owner: target.owner,
@@ -3604,12 +3613,12 @@ async function resolvePluginGithubTarget({ host = 'github.com', owner, manifest,
     console.error(`[plugin github] could not resolve the GitHub owner for ${purpose}.`);
     if (apiError?.stderr || apiError?.stdout) console.error(apiError.stderr || apiError.stdout);
     if (apiError && isGhApiRateLimit(apiError)) {
-      const ownerHint = purpose === 'open-design-pr' ? '<github-login-or-fork-owner>' : '<github-login-or-org>';
+      const ownerHint = purpose === 'readable-studio-pr' ? '<github-login-or-fork-owner>' : '<github-login-or-org>';
       console.error(`GitHub API is rate limited. Re-run with --owner ${ownerHint}, or authenticate/refresh gh and retry.`);
     } else {
       console.error('Run: gh auth refresh -h github.com -s repo,workflow');
       console.error('Or:  gh auth login -h github.com -s repo,workflow');
-      console.error(purpose === 'open-design-pr'
+      console.error(purpose === 'readable-studio-pr'
         ? 'If the fork owner differs from your auth login, pass --owner <github-login-or-fork-owner>.'
         : 'If this is an org-owned plugin, pass --owner <github-org>.');
     }
@@ -3699,7 +3708,7 @@ function parseGithubRepoUrl(raw) {
 }
 
 function isPlaceholderRepoOwner(owner) {
-  return /^(open-design-user|<vendor>|vendor|example-user|your-org|your-username|owner|user|username)$/i.test(String(owner ?? '').trim());
+  return /^(readable-studio-user|<vendor>|vendor|example-user|your-org|your-username|owner|user|username)$/i.test(String(owner ?? '').trim());
 }
 
 function isRepoNotFound(result) {
@@ -3738,9 +3747,9 @@ function emitPluginWorkflowResult(flags, payload) {
     if (payload.manifestRewritten) console.log('[publish-repo] manifest repo fields were normalized before publishing.');
     return;
   }
-  if (payload.action === 'open-design-pr') {
-    if (payload.ownerSource) console.log(`[open-design-pr] owner resolved from ${payload.ownerSource}: ${payload.owner}`);
-    if (payload.apiRateLimited) console.log('[open-design-pr] GitHub API was rate limited; continued with the locally resolved owner.');
+  if (payload.action === 'readable-studio-pr') {
+    if (payload.ownerSource) console.log(`[readable-studio-pr] owner resolved from ${payload.ownerSource}: ${payload.owner}`);
+    if (payload.apiRateLimited) console.log('[readable-studio-pr] GitHub API was rate limited; continued with the locally resolved owner.');
     console.log(`Open this URL and click Create to file the PR: ${payload.prUrl}`);
     return;
   }
@@ -3763,7 +3772,7 @@ async function runPluginYank(rest) {
   });
   if (rest.length === 0 || flags.help || flags.h) {
     console.log(`Usage:
-  od plugin yank <vendor/plugin-name>@<version> --reason "<why>" [--to open-design] [--json]
+  readable plugin yank <vendor/plugin-name>@<version> --reason "<why>" [--to readable-studio] [--json]
 
 Yanking never deletes metadata or bytes. It opens the registry review flow that
 marks a version unresolvable for new installs while preserving lockfile replay.`);
@@ -3773,16 +3782,16 @@ marks a version unresolvable for new installs while preserving lockfile replay.`
   const reason = typeof flags.reason === 'string' ? flags.reason.trim() : '';
   const parsed = parseCliPluginSpecifier(spec);
   if (!parsed.name || !parsed.range) {
-    console.error('Usage: od plugin yank <vendor/plugin-name>@<version> --reason "<why>"');
+    console.error('Usage: readable plugin yank <vendor/plugin-name>@<version> --reason "<why>"');
     process.exit(2);
   }
   if (!reason) {
     console.error('--reason is required for yanking');
     process.exit(2);
   }
-  const target = flags.to ?? 'open-design';
-  if (target !== 'open-design') {
-    console.error('Only --to open-design is supported in this v1 GitHub-backed yank flow.');
+  const target = flags.to ?? 'readable-studio';
+  if (target !== 'readable-studio') {
+    console.error('Only --to readable-studio is supported in this v1 GitHub-backed yank flow.');
     process.exit(2);
   }
   const title = `Yank ${parsed.name}@${parsed.range}`;
@@ -3802,15 +3811,15 @@ marks a version unresolvable for new installs while preserving lockfile replay.`
     }, null, 2),
     '```',
     '',
-    'Generated by `od plugin yank`.',
+    'Generated by `readable plugin yank`.',
   ].join('\n');
   const params = new URLSearchParams({ title, body });
   const payload = {
-    catalog: 'open-design',
+    catalog: 'readable-studio',
     name: parsed.name,
     version: parsed.range,
     reason,
-    url: `https://github.com/nexu-io/open-design/issues/new?${params.toString()}`,
+    url: `https://github.com/sanghyunna/readable-studio/issues/new?${params.toString()}`,
     body,
   };
   if (flags.json) {
@@ -3839,7 +3848,7 @@ async function runPluginDoctor(rest) {
   });
   const id = rest.find((a) => !a.startsWith('-') && a !== flags['daemon-url'] && a !== flags.source);
   if (!id) {
-    console.error('Usage: od plugin doctor <id> [--strict] [--json]');
+    console.error('Usage: readable plugin doctor <id> [--strict] [--json]');
     process.exit(2);
   }
   const url = `${(await pluginDaemonUrl(flags)).replace(/\/$/, '')}/api/plugins/${encodeURIComponent(id)}/doctor`;
@@ -3875,12 +3884,12 @@ function safeParseJson(s) {
   try { return JSON.parse(s); } catch { return null; }
 }
 
-// `od plugin replay <runId> --snapshot-id <id>` — re-emit the immutable
+// `readable plugin replay <runId> --snapshot-id <id>` — re-emit the immutable
 // snapshot the original run was launched against, so the caller (or
 // another agent) can re-apply the same plugin against fresh state. Phase
 // 2A keeps replay headless: the CLI prints the snapshot + rerun bundle;
-// the agent restarts the run via `od plugin apply` followed by a normal
-// `od run start`. Future Phase 2C `od plugin run` will collapse this
+// the agent restarts the run via `readable plugin apply` followed by a normal
+// `readable run start`. Future Phase 2C `readable plugin run` will collapse this
 // into a one-shot wrapper.
 async function runPluginReplay(rest) {
   const flags = parseFlags(rest, { string: PLUGIN_STRING_FLAGS, boolean: PLUGIN_BOOLEAN_FLAGS });
@@ -3892,12 +3901,12 @@ async function runPluginReplay(rest) {
     && a !== flags['snapshot-id']
     && a !== flags.capabilities);
   if (!runId) {
-    console.error('Usage: od plugin replay <runId> --snapshot-id <id>');
+    console.error('Usage: readable plugin replay <runId> --snapshot-id <id>');
     process.exit(2);
   }
   const snapshotId = flags['snapshot-id'];
   if (!snapshotId) {
-    console.error('--snapshot-id is required (runs are in-memory in Phase 2A; pass the snapshot id returned by od plugin apply)');
+    console.error('--snapshot-id is required (runs are in-memory in Phase 2A; pass the snapshot id returned by readable plugin apply)');
     process.exit(2);
   }
   const url = `${(await pluginDaemonUrl(flags)).replace(/\/$/, '')}/api/runs/${encodeURIComponent(runId)}/replay`;
@@ -3917,10 +3926,10 @@ async function runPluginReplay(rest) {
   }
   console.log(`[replay] ${data.rerun?.pluginId}@${data.rerun?.pluginVersion} digest=${(data.rerun?.manifestSourceDigest ?? '').slice(0, 12)}…`);
   console.log(`[replay] inputs: ${JSON.stringify(data.rerun?.inputs ?? {})}`);
-  console.log('[replay] re-apply via: od plugin apply ' + data.rerun?.pluginId + ' --inputs ' + JSON.stringify(JSON.stringify(data.rerun?.inputs ?? {})));
+  console.log('[replay] re-apply via: readable plugin apply ' + data.rerun?.pluginId + ' --inputs ' + JSON.stringify(JSON.stringify(data.rerun?.inputs ?? {})));
 }
 
-// `od plugin trust <id> --capabilities <comma-sep>` — flip a plugin's
+// `readable plugin trust <id> --capabilities <comma-sep>` — flip a plugin's
 // capabilities_granted set. Plan §3.A2 / spec §9.1: the CLI is the
 // canonical write surface (invariant I4). The daemon validates the
 // capability vocabulary; unknown / malformed entries surface as
@@ -3935,7 +3944,7 @@ async function runPluginTrust(rest) {
     && a !== flags['snapshot-id']
     && a !== flags.capabilities);
   if (!id) {
-    console.error('Usage: od plugin trust <id> --capabilities fs:write,mcp:name [--revoke]');
+    console.error('Usage: readable plugin trust <id> --capabilities fs:write,mcp:name [--revoke]');
     process.exit(2);
   }
   const capsCsv = typeof flags.capabilities === 'string' ? flags.capabilities : '';
@@ -3972,7 +3981,7 @@ async function runPluginTrust(rest) {
 }
 
 // ---------------------------------------------------------------------------
-// Subcommand: od ui …  (spec §10.3.4 headless GenUI surface inbox)
+// Subcommand: readable ui …  (spec §10.3.4 headless GenUI surface inbox)
 // ---------------------------------------------------------------------------
 
 async function runUi(args) {
@@ -3989,7 +3998,7 @@ async function runUi(args) {
     case 'revoke':  return runUiRevoke(rest);
     case 'prefill': return runUiPrefill(rest);
     default:
-      console.error(`unknown subcommand: od ui ${sub}`);
+      console.error(`unknown subcommand: readable ui ${sub}`);
       printUiHelp();
       process.exit(2);
   }
@@ -4006,7 +4015,7 @@ async function runUiList(rest) {
   if (flags.run) url = `${base}/api/runs/${encodeURIComponent(flags.run)}/genui`;
   else if (flags.project) url = `${base}/api/projects/${encodeURIComponent(flags.project)}/genui`;
   else {
-    console.error('Usage: od ui list --run <runId> | --project <projectId>');
+    console.error('Usage: readable ui list --run <runId> | --project <projectId>');
     process.exit(2);
   }
   const resp = await fetch(url);
@@ -4044,7 +4053,7 @@ async function runUiShow(rest) {
   const runId = flags.run ?? positional[0];
   const surfaceId = flags['snapshot-id'] ? null : positional[flags.run ? 0 : 1];
   if (!runId || !surfaceId) {
-    console.error('Usage: od ui show --run <runId> <surfaceId>');
+    console.error('Usage: readable ui show --run <runId> <surfaceId>');
     process.exit(2);
   }
   const url = `${(await uiDaemonUrl(flags)).replace(/\/$/, '')}/api/runs/${encodeURIComponent(runId)}/genui/${encodeURIComponent(surfaceId)}`;
@@ -4056,7 +4065,7 @@ async function runUiShow(rest) {
   const data = await resp.json();
   // Plan §6 Phase 2A.5 — `--schema` prints the spec's JSON Schema
   // only (null if the surface declares none). Designed to feed
-  // `od ui respond --value-json "$(...)"` in headless / agent flows.
+  // `readable ui respond --value-json "$(...)"` in headless / agent flows.
   if (flags.schema) {
     const schema = data?.spec?.schema ?? null;
     process.stdout.write(JSON.stringify(schema, null, 2) + '\n');
@@ -4080,7 +4089,7 @@ async function runUiRespond(rest) {
   const runId = flags.run ?? positional[0];
   const surfaceId = positional[flags.run ? 0 : 1];
   if (!runId || !surfaceId) {
-    console.error('Usage: od ui respond --run <runId> <surfaceId> [--value <text> | --value-json <json> | --skip]');
+    console.error('Usage: readable ui respond --run <runId> <surfaceId> [--value <text> | --value-json <json> | --skip]');
     process.exit(2);
   }
   let value = null;
@@ -4130,7 +4139,7 @@ async function runUiRevoke(rest) {
   const projectId = flags.project ?? positional[0];
   const surfaceId = positional[flags.project ? 0 : 1];
   if (!projectId || !surfaceId) {
-    console.error('Usage: od ui revoke --project <projectId> <surfaceId>');
+    console.error('Usage: readable ui revoke --project <projectId> <surfaceId>');
     process.exit(2);
   }
   const url = `${(await uiDaemonUrl(flags)).replace(/\/$/, '')}/api/projects/${encodeURIComponent(projectId)}/genui/${encodeURIComponent(surfaceId)}/revoke`;
@@ -4163,7 +4172,7 @@ async function runUiPrefill(rest) {
   const surfaceId = positional[flags.project ? 0 : 1];
   const snapshotId = flags['snapshot-id'];
   if (!projectId || !surfaceId || !snapshotId) {
-    console.error('Usage: od ui prefill --project <projectId> --snapshot-id <id> <surfaceId> [--value <text> | --value-json <json>] [--persist run|conversation|project] [--kind form|choice|confirmation|oauth-prompt]');
+    console.error('Usage: readable ui prefill --project <projectId> --snapshot-id <id> <surfaceId> [--value <text> | --value-json <json>] [--persist run|conversation|project] [--kind form|choice|confirmation|oauth-prompt]');
     process.exit(2);
   }
   let value = null;
@@ -4201,65 +4210,65 @@ async function runUiPrefill(rest) {
 
 function printUiHelp() {
   console.log(`Usage:
-  od ui list  --run <runId>                          List GenUI surfaces for a run.
-  od ui list  --project <projectId>                  List GenUI surfaces for a project.
-  od ui show  --run <runId> <surfaceId> [--schema]   Read a single surface (kind / schema / value). --schema prints just the JSON Schema.
-  od ui respond --run <runId> <surfaceId> [--value <txt> | --value-json <json> | --skip]
+  readable ui list  --run <runId>                          List GenUI surfaces for a run.
+  readable ui list  --project <projectId>                  List GenUI surfaces for a project.
+  readable ui show  --run <runId> <surfaceId> [--schema]   Read a single surface (kind / schema / value). --schema prints just the JSON Schema.
+  readable ui respond --run <runId> <surfaceId> [--value <txt> | --value-json <json> | --skip]
                                                      Answer a pending surface from any process.
-  od ui revoke --project <projectId> <surfaceId>     Invalidate a project-tier cached answer.
-  od ui prefill --project <projectId> --snapshot-id <id> <surfaceId>
+  readable ui revoke --project <projectId> <surfaceId>     Invalidate a project-tier cached answer.
+  readable ui prefill --project <projectId> --snapshot-id <id> <surfaceId>
                 [--value <text> | --value-json <json>] [--persist run|conversation|project]
                                                      Pre-answer a surface so the run never broadcasts it.
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base (default OD_DAEMON_URL, OD_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456).
+  --daemon-url <url>   Readable Studio daemon HTTP base (default READABLE_DAEMON_URL, READABLE_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456).
   --json               Emit raw JSON (suitable for scripts) instead of human-readable output.`);
 }
 
 function printPluginHelp() {
   console.log(`Usage:
-  od plugin list [--task-kind <kind>]     List installed plugins (filterable).
-  od plugin search <query> [--tag <t>]    Search installed plugins by id/title/desc/tag.
-  od plugin stats [--json]                Inventory + snapshot health report.
-  od plugin info <id>                     Print a plugin's manifest + trust state as JSON.
-  od plugin manifest <id>                 Print only the parsed manifest JSON (no wrapper).
-  od plugin sources                       List distinct install sources + counts.
-  od plugin install --source <path>       Install a plugin from a local folder (Phase 1).
-  od plugin upgrade <id>                  Re-install a plugin from its recorded source.
-  od plugin uninstall <id>                Remove a plugin from the registry + on-disk staging.
-  od plugin apply <id> [--inputs <json>]  Compute an ApplyResult (preview) for a plugin.
-  od plugin doctor <id>                   Lint a plugin's manifest, atoms and resolved refs.
-  od plugin canon <snapshotId>            Print the canonical system-prompt block for a snapshot.
+  readable plugin list [--task-kind <kind>]     List installed plugins (filterable).
+  readable plugin search <query> [--tag <t>]    Search installed plugins by id/title/desc/tag.
+  readable plugin stats [--json]                Inventory + snapshot health report.
+  readable plugin info <id>                     Print a plugin's manifest + trust state as JSON.
+  readable plugin manifest <id>                 Print only the parsed manifest JSON (no wrapper).
+  readable plugin sources                       List distinct install sources + counts.
+  readable plugin install --source <path>       Install a plugin from a local folder (Phase 1).
+  readable plugin upgrade <id>                  Re-install a plugin from its recorded source.
+  readable plugin uninstall <id>                Remove a plugin from the registry + on-disk staging.
+  readable plugin apply <id> [--inputs <json>]  Compute an ApplyResult (preview) for a plugin.
+  readable plugin doctor <id>                   Lint a plugin's manifest, atoms and resolved refs.
+  readable plugin canon <snapshotId>            Print the canonical system-prompt block for a snapshot.
                                           (--check <file> for byte-equality fixtures.)
-  od plugin simulate <pluginId> [-s k=v]  Walk the plugin's pipeline against caller-supplied
+  readable plugin simulate <pluginId> [-s k=v]  Walk the plugin's pipeline against caller-supplied
                                           signals; report stage convergence + iterations
                                           (no LLM in the loop).
-  od plugin verify <pluginId>             CI meta-command: doctor + simulate + canon --check
-                                          driven by an .od-verify.json config in the plugin folder.
-  od plugin events tail [-f] [--kind k]   Tail the in-memory plugin event ring buffer.
-  od plugin events snapshot               One-shot read (filterable, no SSE).
-  od plugin events stats                  Roll-up: counts by kind / pluginId / time range.
-  od plugin events purge                  Drop every event in the buffer (loopback-only).
-  od plugin diff <a> <b> [--json]         Compare two installed plugins by id.
-  od plugin replay <runId> --snapshot-id <id>
+  readable plugin verify <pluginId>             CI meta-command: doctor + simulate + canon --check
+                                          driven by an .readable-studio-verify.json config in the plugin folder.
+  readable plugin events tail [-f] [--kind k]   Tail the in-memory plugin event ring buffer.
+  readable plugin events snapshot               One-shot read (filterable, no SSE).
+  readable plugin events stats                  Roll-up: counts by kind / pluginId / time range.
+  readable plugin events purge                  Drop every event in the buffer (loopback-only).
+  readable plugin diff <a> <b> [--json]         Compare two installed plugins by id.
+  readable plugin replay <runId> --snapshot-id <id>
                                           Re-emit the immutable snapshot a run launched against.
-  od plugin trust <id> --capabilities a,b
+  readable plugin trust <id> --capabilities a,b
                                           Stage a capability grant (full mutation lands Phase 3).
-  od plugin validate <folder> [--json]    Lint a plugin folder before installing
+  readable plugin validate <folder> [--json]    Lint a plugin folder before installing
                                           (manifest parse + atom + ref checks).
-  od plugin pack <folder> [--out <path>]  Build a .tgz archive of a plugin
+  readable plugin pack <folder> [--out <path>]  Build a .tgz archive of a plugin
                                           folder for distribution.
-  od plugin publish-repo <folder>         Create/update the author's public
+  readable plugin publish-repo <folder>         Create/update the author's public
                                           GitHub repo for a plugin folder.
-  od plugin open-design-pr <folder>       Push a community-catalog branch and
-                                          open the nexu-io/open-design PR form.
-  od plugin publish <folder> --to open-design|anthropics-skills|awesome-agent-skills|clawhub|skills-sh
+  readable plugin readable-studio-pr <folder>       Push a community-catalog branch and
+                                          open the sanghyunna/readable-studio PR form.
+  readable plugin publish <folder> --to readable-studio|anthropics-skills|awesome-agent-skills|clawhub|skills-sh
                                           Prepare a registry submission link.
-  od plugin login [--host github.com]      Authenticate registry publishing via gh.
-  od plugin whoami [--host github.com]     Show the gh account used for publishing.
+  readable plugin login [--host github.com]      Authenticate registry publishing via gh.
+  readable plugin whoami [--host github.com]     Show the gh account used for publishing.
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base (default OD_DAEMON_URL, OD_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456).
+  --daemon-url <url>   Readable Studio daemon HTTP base (default READABLE_DAEMON_URL, READABLE_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456).
   --json               Emit raw JSON (suitable for scripts) instead of human-readable output.
 
 Installs support local folders, github:owner/repo refs, HTTPS .tgz archives,
@@ -4267,12 +4276,12 @@ and bare marketplace names resolved through configured registry sources.`);
 }
 
 // ---------------------------------------------------------------------------
-// Subcommand: od project / od run / od files / od conversation
+// Subcommand: readable project / readable run / readable files / readable conversation
 //
 // Plan §6 Phase 1 follow-up + Phase 2C: thin CLI wrappers over the
 // existing daemon HTTP endpoints (POST /api/projects, POST /api/runs,
 // GET /api/projects/:id/files, …). The §12.5 walkthrough relies on
-// these so a code agent can drive Open Design end-to-end without
+// these so a code agent can drive Readable Studio end-to-end without
 // hitting `/api/*` directly. Spec §11.7 invariant: every UI feature is
 // reachable via the CLI; we wrap rather than duplicate.
 // ---------------------------------------------------------------------------
@@ -4283,15 +4292,15 @@ async function projectDaemonUrl(flags) {
 
 function printShareUsage() {
   console.log(`Usage:
-  od share open-design [--locale <locale>] [--platform <id>] [--json]
-  od share url --url <https-url> [--title <title>] [--text <text>]
+  readable share readable-studio [--locale <locale>] [--platform <id>] [--json]
+  readable share url --url <https-url> [--title <title>] [--text <text>]
                [--copy-text <text>] [--locale <locale>] [--platform <id>] [--json]
 
 Platforms:
   x, linkedin, facebook, reddit, telegram, whatsapp, weibo, line, instagram, xiaohongshu
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base.
+  --daemon-url <url>   Readable Studio daemon HTTP base.
   --json               Emit raw JSON.`);
 }
 
@@ -4305,7 +4314,7 @@ async function runShare(args) {
     process.exit(args.length === 0 ? 2 : 0);
   }
 
-  const sub = args[0] && !args[0].startsWith('-') ? args[0] : 'open-design';
+  const sub = args[0] && !args[0].startsWith('-') ? args[0] : 'readable-studio';
   const rest = sub === args[0] ? args.slice(1) : args;
   const flags = parseFlags(rest, {
     string: SHARE_STRING_FLAGS,
@@ -4324,20 +4333,20 @@ async function runShare(args) {
         locale: flags.locale,
       }
     : {
-        kind: 'open-design-repo',
+        kind: 'readable-studio-repo',
         title: flags.title,
         text: flags.text,
         copyText: flags['copy-text'],
         locale: flags.locale,
       };
 
-  if (sub !== 'open-design' && sub !== 'url') {
+  if (sub !== 'readable-studio' && sub !== 'url') {
     console.error(`unknown share target: ${sub}`);
     printShareUsage();
     process.exit(2);
   }
   if (body.kind === 'project-html' && !body.url) {
-    console.error('Usage: od share url --url <https-url>');
+    console.error('Usage: readable share url --url <https-url>');
     process.exit(2);
   }
 
@@ -4367,6 +4376,137 @@ async function runShare(args) {
   console.log(data.copyText);
   for (const target of data.platforms ?? []) {
     console.log(`${target.platform}\t${target.shareUrl ?? target.entryUrl ?? '-'}`);
+  }
+}
+
+function printExportUsage() {
+  console.log(`Usage:
+  readable export html --project <id> --file <path> [--output <path>] [--force] [--json]
+  readable export html --plugin <id> [--example <name>] [--output <path>] [--force] [--json]
+  readable export html --design-system <id> --view showcase|preview [--output <path>] [--force] [--json]
+  readable export html --input <path|-> --output <path> [--force] [--json]`);
+}
+
+async function runExport(args) {
+  if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
+    printExportUsage();
+    process.exit(args.length === 0 ? 2 : 0);
+  }
+  if (args[0] !== 'html') {
+    console.error('only `readable export html` is supported');
+    process.exit(2);
+  }
+  let flags;
+  try {
+    flags = parseFlags(args.slice(1), { string: EXPORT_STRING_FLAGS, boolean: EXPORT_BOOLEAN_FLAGS });
+  } catch (error) {
+    console.error(error.message);
+    printExportUsage();
+    process.exit(2);
+  }
+
+  for (const selector of ['project', 'plugin', 'design-system', 'input']) {
+    if (args.slice(1).filter((arg) => arg === `--${selector}` || arg.startsWith(`--${selector}=`)).length > 1) {
+      console.error(`--${selector} may only be specified once`);
+      process.exit(2);
+    }
+  }
+  const selectors = ['project', 'plugin', 'design-system', 'input'].filter((key) => typeof flags[key] === 'string');
+  const invalid = (message) => {
+    console.error(message);
+    printExportUsage();
+    process.exit(2);
+  };
+  for (const selector of selectors) {
+    if (!flags[selector].trim()) invalid(`--${selector} must not be empty`);
+  }
+  if (selectors.length !== 1) invalid('choose exactly one of --project, --plugin, --design-system, or --input');
+  if (flags.project && !flags.file) invalid('--file is required with --project');
+  if (flags.file && !flags.project) invalid('--file is only valid with --project');
+  if (flags.example && !flags.plugin) invalid('--example is only valid with --plugin');
+  if (flags['design-system'] && !['showcase', 'preview'].includes(flags.view)) invalid('--view showcase|preview is required with --design-system');
+  if (flags.view && !flags['design-system']) invalid('--view is only valid with --design-system');
+  if (flags.input === '-' && !flags.output) invalid('--output is required with --input -');
+
+  const fs = await import('node:fs/promises');
+  const path = await import('node:path');
+  const source = flags.project
+    ? { kind: 'project', projectId: flags.project, filePath: flags.file }
+    : flags.plugin
+      ? { kind: 'plugin', pluginId: flags.plugin, ...(flags.example ? { exampleName: flags.example } : {}) }
+      : flags['design-system']
+        ? { kind: 'design-system', designSystemId: flags['design-system'], view: flags.view }
+        : { kind: 'inline', html: flags.input === '-' ? await readStdinUtf8() : await fs.readFile(flags.input, 'utf8') };
+  const stem = flags.project
+    ? path.basename(flags.file, path.extname(flags.file))
+    : flags.plugin ?? flags['design-system'] ?? path.basename(flags.input, path.extname(flags.input));
+  const safeStem = String(stem).replace(/[<>:"/\\|?*\x00-\x1f]+/g, '-').replace(/[. ]+$/g, '').slice(0, 100) || 'standalone';
+  const outputPath = path.resolve(flags.output ?? `${safeStem}-standalone.html`);
+  if (!flags.force) {
+    try {
+      await fs.access(outputPath);
+      console.error(`output already exists: ${outputPath} (use --force to replace it)`);
+      process.exit(2);
+    } catch {
+      // Missing is the expected case.
+    }
+  }
+
+  const base = (await cliDaemonUrl(flags)).replace(/\/$/, '');
+  let response;
+  try {
+    response = await fetch(`${base}/api/exports/standalone-html`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source }),
+    });
+  } catch (error) {
+    surfaceFetchError(error, base);
+    process.exit(3);
+  }
+  if (!response.ok) {
+    const body = await response.text();
+    console.error(`standalone HTML export failed: ${response.status} ${body}`);
+    process.exit(1);
+  }
+
+  const count = (name) => {
+    const raw = response.headers.get(name);
+    const value = raw == null ? NaN : Number(raw);
+    if (!Number.isSafeInteger(value) || value < 0) throw new Error(`invalid response header: ${name}`);
+    return value;
+  };
+  const bytes = Buffer.from(await response.arrayBuffer());
+  const summary = {
+    path: outputPath,
+    sizeBytes: bytes.length,
+    externalReferenceCount: count(STANDALONE_HTML_EXPORT_HEADERS.externalReferenceCount),
+    missingLocalReferenceCount: count(STANDALONE_HTML_EXPORT_HEADERS.missingLocalReferenceCount),
+    skippedSystemFontCount: count(STANDALONE_HTML_EXPORT_HEADERS.skippedSystemFontCount),
+  };
+  const { randomUUID } = await import('node:crypto');
+  const tempPath = path.join(path.dirname(outputPath), `.${path.basename(outputPath)}.${process.pid}.${randomUUID()}.tmp`);
+  let tempCreated = false;
+  try {
+    await fs.mkdir(path.dirname(outputPath), { recursive: true });
+    await fs.writeFile(tempPath, bytes, { flag: 'wx' });
+    tempCreated = true;
+    if (flags.force) {
+      await fs.rename(tempPath, outputPath);
+    } else {
+      await fs.link(tempPath, outputPath);
+      await fs.rm(tempPath);
+    }
+    tempCreated = false;
+  } catch (error) {
+    if (tempCreated) await fs.rm(tempPath, { force: true }).catch(() => {});
+    console.error(`failed to write ${outputPath}: ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  }
+  if (flags.json) return process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
+  console.log(`Saved ${outputPath} (${bytes.length} bytes)`);
+  if (summary.externalReferenceCount || summary.missingLocalReferenceCount || summary.skippedSystemFontCount) {
+    console.warn(`Warnings: ${summary.externalReferenceCount} external, ${summary.missingLocalReferenceCount} missing local, ${summary.skippedSystemFontCount} skipped system fonts`);
   }
 }
 
@@ -4466,7 +4606,7 @@ async function postImportFolderToDaemon(base, body, baseDir) {
   const headers = {};
   const importToken = await mintCliImportToken(baseDir);
   if (importToken != null) {
-    headers['x-od-desktop-import-token'] = importToken;
+    headers['x-readable-studio-desktop-import-token'] = importToken;
   }
   return postJsonToDaemon(base, '/api/import/folder', body, headers);
 }
@@ -4474,23 +4614,23 @@ async function postImportFolderToDaemon(base, body, baseDir) {
 async function runProject(args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od project create [--name "<title>"] [--skill <id>] [--design-system <id>]
+  readable project create [--name "<title>"] [--skill <id>] [--design-system <id>]
                     [--plugin <id>] [--inputs <json>] [--metadata-json <path|->]
                     [--mode design|chat]
-  od project import <baseDir> [--name "<title>"]
-  od project import-folder <path> [--name "<title>"] [--skill <id>]
+  readable project import <baseDir> [--name "<title>"]
+  readable project import-folder <path> [--name "<title>"] [--skill <id>]
                     [--design-system <id>] [--json]
-  od project list                         List projects.
-  od project info <id>                    Print one project.
-  od project delete <id>                  Delete a project.
-  od project handoff <id> --conversation <id> --api-key <key> --model <model>
+  readable project list                         List projects.
+  readable project info <id>                    Print one project.
+  readable project delete <id>                  Delete a project.
+  readable project handoff <id> --conversation <id> --api-key <key> --model <model>
                     [--base-url <url>] [--max-tokens <n>]
                     Synthesize a resume-conversation handoff prompt.
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base.
+  --daemon-url <url>   Readable Studio daemon HTTP base.
   --identity-token-file <path|->
-                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
+                       Hosted identity (or READABLE_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -4498,7 +4638,7 @@ Common options:
   const rest = args.slice(1);
   // Handoff owns its own flag parsing, daemon-URL resolution, and
   // structured fail() output. Dispatch it before the generic project
-  // parser below so a malformed `od project handoff` invocation
+  // parser below so a malformed `readable project handoff` invocation
   // (`--unknown`, `--max-tokens` with no value) hits handoff-cli's
   // machine-readable fail() path instead of throwing out of parseFlags.
   if (sub === 'handoff') {
@@ -4518,7 +4658,7 @@ Common options:
       if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
       const projects = data?.projects ?? [];
       if (projects.length === 0) {
-        console.log('No projects. Create one with `od project create --name "..."`.');
+        console.log('No projects. Create one with `readable project create --name "..."`.');
         return;
       }
       for (const p of projects) console.log(`${p.id}\t${p.name}\t${p.skillId ?? '-'}`);
@@ -4527,7 +4667,7 @@ Common options:
     case 'info': {
       const id = rest.find((a) => !a.startsWith('-'));
       if (!id) {
-        console.error('Usage: od project info <id>');
+        console.error('Usage: readable project info <id>');
         process.exit(2);
       }
       const resp = await client.request(`/api/projects/${encodeURIComponent(id)}`);
@@ -4597,13 +4737,13 @@ Common options:
     }
     case 'import': {
       if (client.hosted) {
-        console.error('od project import is local-only');
+        console.error('readable project import is local-only');
         process.exit(2);
       }
       const [baseDir] = positionalArgs(rest, PROJECT_STRING_FLAGS);
       const importBaseDir = typeof baseDir === 'string' ? baseDir.trim() : '';
       if (!importBaseDir) {
-        console.error('Usage: od project import <baseDir> [--name "<title>"]');
+        console.error('Usage: readable project import <baseDir> [--name "<title>"]');
         process.exit(2);
       }
       const body = { baseDir: importBaseDir };
@@ -4615,7 +4755,7 @@ Common options:
       const headers = { 'content-type': 'application/json' };
       const importToken = await mintCliImportToken(importBaseDir);
       if (importToken != null) {
-        headers['x-od-desktop-import-token'] = importToken;
+        headers['x-readable-studio-desktop-import-token'] = importToken;
       }
       const resp = await fetch(`${base}/api/import/folder`, {
         method:  'POST',
@@ -4630,13 +4770,13 @@ Common options:
     }
     case 'import-folder': {
       if (client.hosted) {
-        console.error('od project import-folder is local-only');
+        console.error('readable project import-folder is local-only');
         process.exit(2);
       }
       const parts = collectCliPositionals(rest, PROJECT_STRING_FLAGS);
       const folderArg = flags.path ?? flags.dir ?? parts[0];
       if (!folderArg) {
-        console.error('Usage: od project import-folder <path> [--skill <id>] [--design-system <id>]');
+        console.error('Usage: readable project import-folder <path> [--skill <id>] [--design-system <id>]');
         process.exit(2);
       }
       const folderPath = await resolveFolderPathForCli(folderArg);
@@ -4656,7 +4796,7 @@ Common options:
     case 'delete': {
       const id = rest.find((a) => !a.startsWith('-'));
       if (!id) {
-        console.error('Usage: od project delete <id>');
+        console.error('Usage: readable project delete <id>');
         process.exit(2);
       }
       const resp = await client.request(`/api/projects/${encodeURIComponent(id)}`, { method: 'DELETE' }, true);
@@ -4666,7 +4806,7 @@ Common options:
       return;
     }
     default:
-      console.error(`unknown subcommand: od project ${sub}`);
+      console.error(`unknown subcommand: readable project ${sub}`);
       process.exit(2);
   }
 }
@@ -4674,20 +4814,20 @@ Common options:
 async function runRun(args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od run start --project <projectId> [--conversation <id>] [--message "<text>"]
+  readable run start --project <projectId> [--conversation <id>] [--message "<text>"]
                [--plugin <id>] [--inputs <json>] [--grant-caps a,b]
                [--agent claude|codex|gemini] [--model <id>] [--follow] [--json]
-  od run redesign [--path <folder>] [--message "<text>" | --prompt-file <path|->]
+  readable run redesign [--path <folder>] [--message "<text>" | --prompt-file <path|->]
                [--agent claude] [--model <id>] [--follow] [--json]
-  od run watch  <runId>                     ND-JSON event stream on stdout.
-  od run cancel <runId>                     Request cancellation.
-  od run list   [--project <id>]            List recent runs.
-  od run info   <runId>                     One run's status.
+  readable run watch  <runId>                     ND-JSON event stream on stdout.
+  readable run cancel <runId>                     Request cancellation.
+  readable run list   [--project <id>]            List recent runs.
+  readable run info   <runId>                     One run's status.
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base.
+  --daemon-url <url>   Readable Studio daemon HTTP base.
   --identity-token-file <path|->
-                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
+                       Hosted identity (or READABLE_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -4714,7 +4854,7 @@ Common options:
     case 'info': {
       const id = rest.find((a) => !a.startsWith('-'));
       if (!id) {
-        console.error('Usage: od run info <runId>');
+        console.error('Usage: readable run info <runId>');
         process.exit(2);
       }
       const resp = await client.request(`/api/runs/${encodeURIComponent(id)}`);
@@ -4726,7 +4866,7 @@ Common options:
     case 'cancel': {
       const id = rest.find((a) => !a.startsWith('-'));
       if (!id) {
-        console.error('Usage: od run cancel <runId>');
+        console.error('Usage: readable run cancel <runId>');
         process.exit(2);
       }
       const resp = await client.request(`/api/runs/${encodeURIComponent(id)}/cancel`, { method: 'POST' }, true);
@@ -4738,7 +4878,7 @@ Common options:
     case 'watch': {
       const id = rest.find((a) => !a.startsWith('-'));
       if (!id) {
-        console.error('Usage: od run watch <runId>');
+        console.error('Usage: readable run watch <runId>');
         process.exit(2);
       }
       await streamRunEvents(client, id);
@@ -4746,7 +4886,7 @@ Common options:
     }
     case 'redesign': {
       if (client.hosted) {
-        console.error('od run redesign is local-only; use od run start for hosted projects');
+        console.error('readable run redesign is local-only; use readable run start for hosted projects');
         process.exit(2);
       }
       const parts = collectCliPositionals(rest, PROJECT_STRING_FLAGS);
@@ -4926,7 +5066,7 @@ Common options:
       return;
     }
     default:
-      console.error(`unknown subcommand: od run ${sub}`);
+      console.error(`unknown subcommand: readable run ${sub}`);
       process.exit(2);
   }
 }
@@ -4970,7 +5110,7 @@ async function streamRunEvents(client, runId) {
   }
 }
 
-// `od shell --project <id>` opens an interactive PTY rooted at the project's
+// `readable shell --project <id>` opens an interactive PTY rooted at the project's
 // working directory and attaches to it. This is the CLI parity for the web
 // Terminal tab — both surfaces drive `/api/projects/:id/terminals`. Output
 // streams down over SSE; local keystrokes are POSTed back up to /stdin. When
@@ -4979,12 +5119,12 @@ async function streamRunEvents(client, runId) {
 async function runShell(args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od shell --project <projectId> [--shell <path>] [--json]
+  readable shell --project <projectId> [--shell <path>] [--json]
                                   Open an interactive shell in the project's
                                   working directory and attach to it.
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base.
+  --daemon-url <url>   Readable Studio daemon HTTP base.
   --json               Print the created terminal session as JSON and exit
                        (does not attach).`);
     process.exit(args.length === 0 ? 2 : 0);
@@ -5176,7 +5316,7 @@ async function safeHostedCliFetch(baseOrigin, input, init) {
 
 async function createContentCliClient(flags, { stdinInUse = false } = {}) {
   const base = (await projectDaemonUrl(flags)).replace(/\/$/, '');
-  const identityFile = flags['identity-token-file'] ?? process.env.OD_HOSTED_IDENTITY_TOKEN_FILE;
+  const identityFile = flags['identity-token-file'] ?? process.env.READABLE_HOSTED_IDENTITY_TOKEN_FILE;
   if (typeof identityFile !== 'string' || identityFile.length === 0) {
     return {
       hosted: false,
@@ -5223,7 +5363,7 @@ async function createContentCliClient(flags, { stdinInUse = false } = {}) {
       if (mutation) {
         const current = session ?? await loadSession();
         headers.set('origin', current.publicOrigin);
-        headers.set('X-Open-Design-CSRF', current.csrfToken);
+        headers.set('X-Readable-Studio-CSRF', current.csrfToken);
       }
       return safeHostedCliFetch(baseOrigin, `${baseOrigin}${pathname}`, { ...init, headers });
     };
@@ -5253,14 +5393,14 @@ async function runHostedArtifacts(args) {
   const rest = args.slice(1);
   if (rest.includes('--help') || rest.includes('-h')) {
     console.log(`Usage:
-  od artifacts save --html-file <path|-> [--identifier <id>] [--title <title>] [--json]
-  od artifacts lint --html-file <path|-> [--json]
-  od artifacts download <artifactId>
+  readable artifacts save --html-file <path|-> [--identifier <id>] [--title <title>] [--json]
+  readable artifacts lint --html-file <path|-> [--json]
+  readable artifacts download <artifactId>
 
 Common options:
   --daemon-url <url>
   --identity-token-file <path|->
-                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).`);
+                       Hosted identity (or READABLE_HOSTED_IDENTITY_TOKEN_FILE).`);
     process.exit(0);
   }
   const flags = parseFlags(rest, {
@@ -5274,7 +5414,7 @@ Common options:
   if (command === 'download') {
     const [artifactId] = positionalArgs(rest, HOSTED_ARTIFACT_STRING_FLAGS);
     if (!artifactId || !/^oda_[A-Za-z0-9_-]{43}$/u.test(artifactId)) {
-      console.error('Usage: od artifacts download <artifactId>');
+      console.error('Usage: readable artifacts download <artifactId>');
       process.exit(2);
     }
     const response = await client.request(`/api/artifacts/${encodeURIComponent(artifactId)}/download`);
@@ -5283,7 +5423,7 @@ Common options:
     return;
   }
   if (typeof htmlFile !== 'string' || htmlFile.length === 0) {
-    console.error(`Usage: od artifacts ${command} --html-file <path|-> [--json]`);
+    console.error(`Usage: readable artifacts ${command} --html-file <path|-> [--json]`);
     process.exit(2);
   }
   let html;
@@ -5316,28 +5456,28 @@ Common options:
 async function runFiles(args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od files list   <projectId>                  List files in a project.
-  od files read   <projectId> <relpath>        Stream file bytes to stdout.
-  od files write  <projectId> <relpath> [< stdin]
+  readable files list   <projectId>                  List files in a project.
+  readable files read   <projectId> <relpath>        Stream file bytes to stdout.
+  readable files write  <projectId> <relpath> [< stdin]
                                                Write content from stdin.
-  od files upload <projectId> <localpath> [--as <relpath>]
+  readable files upload <projectId> <localpath> [--as <relpath>]
                                                Upload a local file.
-  od files rename <projectId> <from> <to>       Rename a project file.
-  od files delete <projectId> <relpath>         Delete a project file.
-  od files search <projectId> --query <text> [--pattern <glob>] [--max <n>]
-  od files folders <list|create|delete> <projectId> [<relpath>]
-  od files preview <projectId> <relpath>        Mint a scoped file preview.
-  od files preview-url <projectId> <relpath>    Mint an opaque preview URL.
-  od files archive <projectId> [--root <relpath>]
+  readable files rename <projectId> <from> <to>       Rename a project file.
+  readable files delete <projectId> <relpath>         Delete a project file.
+  readable files search <projectId> --query <text> [--pattern <glob>] [--max <n>]
+  readable files folders <list|create|delete> <projectId> [<relpath>]
+  readable files preview <projectId> <relpath>        Mint a scoped file preview.
+  readable files preview-url <projectId> <relpath>    Mint an opaque preview URL.
+  readable files archive <projectId> [--root <relpath>]
                                                Stream a bounded project archive.
-  od files export-manifest <projectId>          Print the hosted export manifest.
-  od files diff   <projectId> <relpathA> [<relpathB> | --against -]
+  readable files export-manifest <projectId>          Print the hosted export manifest.
+  readable files diff   <projectId> <relpathA> [<relpathB> | --against -]
                                                Print a unified diff.
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base.
+  --daemon-url <url>   Readable Studio daemon HTTP base.
   --identity-token-file <path|->
-                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
+                       Hosted identity (or READABLE_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -5352,7 +5492,7 @@ Common options:
     case 'list': {
       const [id] = positional;
       if (!id) {
-        console.error('Usage: od files list <projectId>');
+        console.error('Usage: readable files list <projectId>');
         process.exit(2);
       }
       const query = typeof flags.since === 'string' ? `?since=${encodeURIComponent(flags.since)}` : '';
@@ -5366,7 +5506,7 @@ Common options:
     case 'read': {
       const [id, rel] = positional;
       if (!id || !rel) {
-        console.error('Usage: od files read <projectId> <relpath>');
+        console.error('Usage: readable files read <projectId> <relpath>');
         process.exit(2);
       }
       const resp = await client.request(`/api/projects/${encodeURIComponent(id)}/files/${encodeProjectRelpath(rel)}`);
@@ -5378,7 +5518,7 @@ Common options:
     case 'upload': {
       const [id, localPath] = positional;
       if (!id || !localPath) {
-        console.error('Usage: od files upload <projectId> <localpath> [--as <relpath>]');
+        console.error('Usage: readable files upload <projectId> <localpath> [--as <relpath>]');
         process.exit(2);
       }
       const buf = readFileSync(localPath);
@@ -5411,7 +5551,7 @@ Common options:
     case 'write': {
       const [id, rel] = positional;
       if (!id || !rel) {
-        console.error('Usage: od files write <projectId> <relpath> [< stdin]');
+        console.error('Usage: readable files write <projectId> <relpath> [< stdin]');
         process.exit(2);
       }
       let body;
@@ -5439,7 +5579,7 @@ Common options:
     case 'rename': {
       const [id, from, to] = positional;
       if (!id || !from || !to) {
-        console.error('Usage: od files rename <projectId> <from> <to>');
+        console.error('Usage: readable files rename <projectId> <from> <to>');
         process.exit(2);
       }
       const body = {
@@ -5456,7 +5596,7 @@ Common options:
     case 'delete': {
       const [id, name] = positional;
       if (!id || !name) {
-        console.error('Usage: od files delete <projectId> <name>');
+        console.error('Usage: readable files delete <projectId> <name>');
         process.exit(2);
       }
       const canonical = canonicalCliRelativePath(name);
@@ -5472,7 +5612,7 @@ Common options:
     case 'search': {
       const [id] = positional;
       if (!id || typeof flags.query !== 'string' || flags.query.length === 0) {
-        console.error('Usage: od files search <projectId> --query <text> [--pattern <glob>] [--max <n>]');
+        console.error('Usage: readable files search <projectId> --query <text> [--pattern <glob>] [--max <n>]');
         process.exit(2);
       }
       const query = new URLSearchParams({ q: flags.query });
@@ -5488,7 +5628,7 @@ Common options:
     case 'folders': {
       const [action, id, relative] = positional;
       if (!['list', 'create', 'delete'].includes(action) || !id || (action !== 'list' && !relative)) {
-        console.error('Usage: od files folders <list|create|delete> <projectId> [<relpath>]');
+        console.error('Usage: readable files folders <list|create|delete> <projectId> [<relpath>]');
         process.exit(2);
       }
       const mutation = action !== 'list';
@@ -5507,7 +5647,7 @@ Common options:
     case 'preview-url': {
       const [id, relative] = positional;
       if (!id || !relative) {
-        console.error(`Usage: od files ${sub} <projectId> <relpath>`);
+        console.error(`Usage: readable files ${sub} <projectId> <relpath>`);
         process.exit(2);
       }
       const canonical = canonicalCliRelativePath(relative);
@@ -5525,7 +5665,7 @@ Common options:
     case 'archive': {
       const [id] = positional;
       if (!id) {
-        console.error('Usage: od files archive <projectId> [--root <relpath>]');
+        console.error('Usage: readable files archive <projectId> [--root <relpath>]');
         process.exit(2);
       }
       const suffix = typeof flags.root === 'string'
@@ -5539,7 +5679,7 @@ Common options:
     case 'export-manifest': {
       const [id] = positional;
       if (!id) {
-        console.error('Usage: od files export-manifest <projectId>');
+        console.error('Usage: readable files export-manifest <projectId>');
         process.exit(2);
       }
       const resp = await client.request(`/api/projects/${encodeURIComponent(id)}/export/manifest`);
@@ -5551,7 +5691,7 @@ Common options:
       const [id, relA, relB] = positional;
       const against = typeof flags.against === 'string' ? flags.against : null;
       if (!id || !relA || (!relB && !against) || (relB && against)) {
-        console.error('Usage: od files diff <projectId> <relpathA> [<relpathB> | --against -]');
+        console.error('Usage: readable files diff <projectId> <relpathA> [<relpathB> | --against -]');
         process.exit(2);
       }
       const left = await fetchProjectFileText(client, id, relA);
@@ -5565,7 +5705,7 @@ Common options:
       return;
     }
     default:
-      console.error(`unknown subcommand: od files ${sub}`);
+      console.error(`unknown subcommand: readable files ${sub}`);
       process.exit(2);
   }
 }
@@ -5589,7 +5729,7 @@ async function mintCliImportToken(baseDir) {
   if (typeof socketPath !== 'string' || socketPath.length === 0) return null;
   let result;
   try {
-    const { requestJsonIpc } = await import('@open-design/sidecar');
+    const { requestJsonIpc } = await import('@readable-studio/sidecar');
     result = await requestJsonIpc(
       socketPath,
       { type: SIDECAR_MESSAGES.MINT_IMPORT_TOKEN, input: { baseDir } },
@@ -5710,7 +5850,7 @@ function renderDiffLineContent(value) {
   return String(value).replace(/\r/g, '\\r');
 }
 
-// `od templates …` is the headless face of NewProjectPanel /
+// `readable templates …` is the headless face of NewProjectPanel /
 // ExamplesTab — same /api/templates store, same DTO shapes. External
 // agents (hermes-agent, openclaw, custom bots) use these to snapshot a
 // project as a reusable starting point, list everything the user has
@@ -5719,14 +5859,14 @@ function renderDiffLineContent(value) {
 async function runTemplates(args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od templates list                                  List user-saved templates.
-  od templates save  <projectId> --name <name>      Snapshot a project's current
+  readable templates list                                  List user-saved templates.
+  readable templates save  <projectId> --name <name>      Snapshot a project's current
                                                     files as a new template.
                      [--description <text>]
-  od templates delete <id>                          Delete a saved template by id.
+  readable templates delete <id>                          Delete a saved template by id.
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base.
+  --daemon-url <url>   Readable Studio daemon HTTP base.
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -5743,7 +5883,7 @@ Common options:
   // Extract positional arguments while stepping past `--flag value`
   // pairs for any string-valued template flag. Without this the id has
   // to be the very first token after the sub-verb, so a headless caller
-  // that prefixes shared options (`od templates save --daemon-url ...
+  // that prefixes shared options (`readable templates save --daemon-url ...
   // proj-1 --name Cards`) would hit the missing-id usage path before
   // ever reaching the daemon. Mirrors the `positionalArgs` helper in
   // `runAutomation`.
@@ -5783,7 +5923,7 @@ Common options:
       if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
       const templates = Array.isArray(data?.templates) ? data.templates : [];
       if (templates.length === 0) {
-        console.log('No templates. Save one with `od templates save <projectId> --name "..."`.');
+        console.log('No templates. Save one with `readable templates save <projectId> --name "..."`.');
         return;
       }
       for (const t of templates) console.log(`${t.id}\t${t.name}`);
@@ -5795,7 +5935,7 @@ Common options:
       // so callers can put shared options before or after the id.
       const projectId = positionalArgs(rest)[0] ?? '';
       if (!projectId) {
-        console.error('Usage: od templates save <projectId> --name <name> [--description <text>]');
+        console.error('Usage: readable templates save <projectId> --name <name> [--description <text>]');
         process.exit(2);
       }
       const name = typeof flags.name === 'string' ? flags.name.trim() : '';
@@ -5841,7 +5981,7 @@ Common options:
     case 'delete': {
       const id = positionalArgs(rest)[0] ?? '';
       if (!id) {
-        console.error('Usage: od templates delete <id>');
+        console.error('Usage: readable templates delete <id>');
         process.exit(2);
       }
       let resp;
@@ -5866,7 +6006,7 @@ Common options:
       return;
     }
     default:
-      console.error(`unknown subcommand: od templates ${sub}`);
+      console.error(`unknown subcommand: readable templates ${sub}`);
       process.exit(2);
   }
 }
@@ -5874,19 +6014,19 @@ Common options:
 async function runConversation(args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od conversation new  <projectId> [--title "<title>"] [--seed-from <cid>] [--fork-after <mid>] [--mode design|chat]
+  readable conversation new  <projectId> [--title "<title>"] [--seed-from <cid>] [--fork-after <mid>] [--mode design|chat]
                                            Create a conversation in a project.
                                            --seed-from copies another
                                            conversation's messages in (Side Chat).
                                            --fork-after stops the copy at one
                                            source message.
-  od conversation list <projectId>           List conversations in a project.
-  od conversation info <conversationId>      Print one conversation.
+  readable conversation list <projectId>           List conversations in a project.
+  readable conversation info <conversationId>      Print one conversation.
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base.
+  --daemon-url <url>   Readable Studio daemon HTTP base.
   --identity-token-file <path|->
-                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
+                       Hosted identity (or READABLE_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -5899,7 +6039,7 @@ Common options:
     case 'new': {
       const [id] = positionalArgs(rest, PROJECT_STRING_FLAGS);
       if (!id) {
-        console.error('Usage: od conversation new <projectId> [--title "<title>"] [--seed-from <cid>] [--fork-after <mid>]');
+        console.error('Usage: readable conversation new <projectId> [--title "<title>"] [--seed-from <cid>] [--fork-after <mid>]');
         process.exit(2);
       }
       const body = {};
@@ -5931,7 +6071,7 @@ Common options:
     case 'list': {
       const id = rest.find((a) => !a.startsWith('-'));
       if (!id) {
-        console.error('Usage: od conversation list <projectId>');
+        console.error('Usage: readable conversation list <projectId>');
         process.exit(2);
       }
       const resp = await client.request(`/api/projects/${encodeURIComponent(id)}/conversations`);
@@ -5943,7 +6083,7 @@ Common options:
     case 'info': {
       const id = rest.find((a) => !a.startsWith('-'));
       if (!id) {
-        console.error('Usage: od conversation info <conversationId>');
+        console.error('Usage: readable conversation info <conversationId>');
         process.exit(2);
       }
       if (client.hosted) {
@@ -5957,7 +6097,7 @@ Common options:
       return;
     }
     default:
-      console.error(`unknown subcommand: od conversation ${sub}`);
+      console.error(`unknown subcommand: readable conversation ${sub}`);
       process.exit(2);
   }
 }
@@ -6077,9 +6217,9 @@ function formatCheckpointTime(value) {
 }
 
 // ---------------------------------------------------------------------------
-// Subcommand: od chat  (Side Chat — context-seeded conversations)
+// Subcommand: readable chat  (Side Chat — context-seeded conversations)
 //
-// `od chat new --project <id> [--seed-from <cid>] [--fork-after <mid>] [--title "<t>"] [--json]`
+// `readable chat new --project <id> [--seed-from <cid>] [--fork-after <mid>] [--title "<t>"] [--json]`
 //   Creates a new conversation that inherits another conversation's context
 //   by copying its messages, optionally truncating at one source message.
 //   Mirrors the web chat fork action and POSTs to the same
@@ -6090,32 +6230,32 @@ function formatCheckpointTime(value) {
 async function runChat(args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od chat new --project <id> [--seed-from <cid>] [--fork-after <mid>] [--title "<title>"] [--mode design|chat] [--json]
+  readable chat new --project <id> [--seed-from <cid>] [--fork-after <mid>] [--title "<title>"] [--mode design|chat] [--json]
                                            Create a Side Chat — a new conversation
                                            that copies in another conversation's
                                            context (--seed-from). Use
                                            --fork-after to stop at one source
                                            message.
-  od chat checkpoints --project <id> --conversation <id> [--json]
+  readable chat checkpoints --project <id> --conversation <id> [--json]
                                            List rollback checkpoints for one
                                            conversation.
-  od chat checkpoint diff --project <id> --checkpoint <id> [--json]
+  readable chat checkpoint diff --project <id> --checkpoint <id> [--json]
                                            Show file changes for one checkpoint.
-  od chat rollback --project <id> --conversation <id> --message <id>
+  readable chat rollback --project <id> --conversation <id> --message <id>
                    --mode files-only|chat-only|files-and-chat
                    [--checkpoint <id>]
                    [--conflict-policy fail|overwrite|keep-current]
                    [--json]
                                            Restore files, chat history, or both
                                            through the daemon rollback API.
-  od chat rollback-request --project <id> --conversation <id> --run <runId>
+  readable chat rollback-request --project <id> --conversation <id> --run <runId>
                            --mode files-only
                            [--reason "..." | --prompt-file <path|->]
                            [--json]
                                            Request a files-only agent rollback
                                            for a run, returning an opaque
                                            request id and expiry.
-  od chat rollback-execute --project <id> --conversation <id>
+  readable chat rollback-execute --project <id> --conversation <id>
                            --request <id>
                            [--conflict-policy fail|overwrite|keep-current]
                            [--json]
@@ -6123,9 +6263,9 @@ async function runChat(args) {
                                            trusted desktop approval.
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base.
+  --daemon-url <url>   Readable Studio daemon HTTP base.
   --identity-token-file <path|->
-                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
+                       Hosted identity (or READABLE_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -6148,7 +6288,7 @@ Common options:
         ? flags.project
         : positionalArgs(rest, CHAT_STRING_FLAGS)[0];
       if (!id) {
-        console.error('Usage: od chat new --project <id> [--seed-from <cid>] [--fork-after <mid>] [--title "<title>"]');
+        console.error('Usage: readable chat new --project <id> [--seed-from <cid>] [--fork-after <mid>] [--title "<title>"]');
         process.exit(2);
       }
       const body = {};
@@ -6184,8 +6324,8 @@ Common options:
       return;
     }
     case 'checkpoints': {
-      const projectId = requireChatFlag(flags, 'project', 'Usage: od chat checkpoints --project <id> --conversation <id> [--json]');
-      const conversationId = requireChatFlag(flags, 'conversation', 'Usage: od chat checkpoints --project <id> --conversation <id> [--json]');
+      const projectId = requireChatFlag(flags, 'project', 'Usage: readable chat checkpoints --project <id> --conversation <id> [--json]');
+      const conversationId = requireChatFlag(flags, 'conversation', 'Usage: readable chat checkpoints --project <id> --conversation <id> [--json]');
       const query = new URLSearchParams({ conversationId }).toString();
       let resp;
       try {
@@ -6203,11 +6343,11 @@ Common options:
     case 'checkpoint': {
       const action = positionalArgs(rest, CHAT_STRING_FLAGS)[0];
       if (action !== 'diff') {
-        console.error('Usage: od chat checkpoint diff --project <id> --checkpoint <id> [--json]');
+        console.error('Usage: readable chat checkpoint diff --project <id> --checkpoint <id> [--json]');
         process.exit(2);
       }
-      const projectId = requireChatFlag(flags, 'project', 'Usage: od chat checkpoint diff --project <id> --checkpoint <id> [--json]');
-      const checkpointId = requireChatFlag(flags, 'checkpoint', 'Usage: od chat checkpoint diff --project <id> --checkpoint <id> [--json]');
+      const projectId = requireChatFlag(flags, 'project', 'Usage: readable chat checkpoint diff --project <id> --checkpoint <id> [--json]');
+      const checkpointId = requireChatFlag(flags, 'checkpoint', 'Usage: readable chat checkpoint diff --project <id> --checkpoint <id> [--json]');
       let resp;
       try {
         resp = await fetch(`${base}/api/projects/${encodeURIComponent(projectId)}/checkpoints/${encodeURIComponent(checkpointId)}/diff?base=current`);
@@ -6222,9 +6362,9 @@ Common options:
       return;
     }
     case 'rollback': {
-      const projectId = requireChatFlag(flags, 'project', 'Usage: od chat rollback --project <id> --conversation <id> --message <id> --mode files-only|chat-only|files-and-chat [--checkpoint <id>] [--json]');
-      const conversationId = requireChatFlag(flags, 'conversation', 'Usage: od chat rollback --project <id> --conversation <id> --message <id> --mode files-only|chat-only|files-and-chat [--checkpoint <id>] [--json]');
-      const targetMessageId = requireChatFlag(flags, 'message', 'Usage: od chat rollback --project <id> --conversation <id> --message <id> --mode files-only|chat-only|files-and-chat [--checkpoint <id>] [--json]');
+      const projectId = requireChatFlag(flags, 'project', 'Usage: readable chat rollback --project <id> --conversation <id> --message <id> --mode files-only|chat-only|files-and-chat [--checkpoint <id>] [--json]');
+      const conversationId = requireChatFlag(flags, 'conversation', 'Usage: readable chat rollback --project <id> --conversation <id> --message <id> --mode files-only|chat-only|files-and-chat [--checkpoint <id>] [--json]');
+      const targetMessageId = requireChatFlag(flags, 'message', 'Usage: readable chat rollback --project <id> --conversation <id> --message <id> --mode files-only|chat-only|files-and-chat [--checkpoint <id>] [--json]');
       const mode = normalizeRollbackMode(flags.mode);
       if (!mode) {
         console.error('--mode is required and must be one of: files-only | chat-only | files-and-chat');
@@ -6266,7 +6406,7 @@ Common options:
       return;
     }
     case 'rollback-execute': {
-      const usage = 'Usage: od chat rollback-execute --project <id> --conversation <id> --request <id> [--conflict-policy fail|overwrite|keep-current] [--json]';
+      const usage = 'Usage: readable chat rollback-execute --project <id> --conversation <id> --request <id> [--conflict-policy fail|overwrite|keep-current] [--json]';
       const projectId = requireChatFlag(flags, 'project', usage);
       const conversationId = requireChatFlag(flags, 'conversation', usage);
       const requestId = requireChatFlag(flags, 'request', usage);
@@ -6293,7 +6433,7 @@ Common options:
       return;
     }
     case 'rollback-request': {
-      const usage = 'Usage: od chat rollback-request --project <id> --conversation <id> --run <runId> --mode files-only [--reason "..." | --prompt-file <path|->] [--json]';
+      const usage = 'Usage: readable chat rollback-request --project <id> --conversation <id> --run <runId> --mode files-only [--reason "..." | --prompt-file <path|->] [--json]';
       const projectId = requireChatFlag(flags, 'project', usage);
       const conversationId = requireChatFlag(flags, 'conversation', usage);
       const runId = requireChatFlag(flags, 'run', usage);
@@ -6341,41 +6481,41 @@ Common options:
       return;
     }
     default:
-      console.error(`unknown subcommand: od chat ${sub}`);
+      console.error(`unknown subcommand: readable chat ${sub}`);
       process.exit(2);
   }
 }
 
 // ---------------------------------------------------------------------------
-// Subcommand: od daemon  (Phase 1.5 lifecycle, plan §6 / §3.F2)
+// Subcommand: readable daemon  (Phase 1.5 lifecycle, plan §6 / §3.F2)
 //
-// `od daemon start [--headless] [--serve-web] [--port <n>] [--host <addr>]`
+// `readable daemon start [--headless] [--serve-web] [--port <n>] [--host <addr>]`
 //   - --headless: implies --no-open, never tries to launch a browser.
-//                 The default `od` (no subcommand) keeps its
+//                 The default `readable` (no subcommand) keeps its
 //                 desktop-friendly behaviour for back-compat.
 //   - --serve-web: same as --headless but allows the Next.js bundle to
 //                  serve over the existing port. v1 doesn't bundle a
 //                  separate web port; the flag is reserved so downstream
 //                  packaged callers can branch on it.
 //
-// `od daemon status [--json] [--daemon-url <url>]` calls /api/daemon/status.
-// `od daemon stop   [--daemon-url <url>]`         calls POST /api/daemon/shutdown.
+// `readable daemon status [--json] [--daemon-url <url>]` calls /api/daemon/status.
+// `readable daemon stop   [--daemon-url <url>]`         calls POST /api/daemon/shutdown.
 // ---------------------------------------------------------------------------
 
 async function runDaemon(args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od daemon start [--headless] [--serve-web] [--port <n>] [--host <addr>] [--no-open]
+  readable daemon start [--headless] [--serve-web] [--port <n>] [--host <addr>] [--no-open]
                                           Start the daemon (Phase 1.5 headless mode).
-  od daemon status [--json] [--daemon-url <url>]
+  readable daemon status [--json] [--daemon-url <url>]
                                           Print the daemon's runtime snapshot.
-  od daemon stop   [--daemon-url <url>]   Send a graceful shutdown signal.
-  od daemon db     status                 Print SQLite path + size + table row counts.
-  od daemon db     verify [--quick]       Run integrity_check + foreign_key_check.
-  od daemon db     vacuum                 Run SQLite VACUUM to reclaim space after deletes.
+  readable daemon stop   [--daemon-url <url>]   Send a graceful shutdown signal.
+  readable daemon db     status                 Print SQLite path + size + table row counts.
+  readable daemon db     verify [--quick]       Run integrity_check + foreign_key_check.
+  readable daemon db     vacuum                 Run SQLite VACUUM to reclaim space after deletes.
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base.
+  --daemon-url <url>   Readable Studio daemon HTTP base.
   --headless           No browser auto-open; aliased --no-open.
   --serve-web          Serve the web UI over the existing port (no electron).
   --json               Emit raw JSON.`);
@@ -6390,24 +6530,24 @@ Common options:
     case 'stop':    return runDaemonStop(flags);
     case 'db':      return runDaemonDb(rest, flags);
     default:
-      console.error(`unknown subcommand: od daemon ${sub}`);
+      console.error(`unknown subcommand: readable daemon ${sub}`);
       process.exit(2);
   }
 }
 
-// Plan §3.GG1 — `od daemon db status`. Prints a SQLite inventory
+// Plan §3.GG1 — `readable daemon db status`. Prints a SQLite inventory
 // (file path, size on disk, schema version, per-table row counts).
 async function runDaemonDb(rest, flags) {
   const sub = rest[0];
   if (!sub || sub === 'help' || rest.includes('--help') || rest.includes('-h')) {
     console.log(`Usage:
-  od daemon db status [--json] [--daemon-url <url>]
-  od daemon db verify [--quick] [--json] [--daemon-url <url>]
-  od daemon db vacuum [--json] [--daemon-url <url>]
+  readable daemon db status [--json] [--daemon-url <url>]
+  readable daemon db verify [--quick] [--json] [--daemon-url <url>]
+  readable daemon db vacuum [--json] [--daemon-url <url>]
 
 status:
   Prints a structured inventory of the daemon's SQLite backend:
-    - file path (under .od/ by default; OD_DATA_DIR overrides)
+    - file path (under .readable-studio/ by default; READABLE_DATA_DIR overrides)
     - size on disk (primary + WAL + SHM)
     - schema version (user_version PRAGMA)
     - per-table row counts (system tables excluded)
@@ -6466,7 +6606,7 @@ vacuum:
     process.exit(data.ok ? 0 : 4);
   }
   if (sub !== 'status') {
-    console.error(`unknown subcommand: od daemon db ${sub}`);
+    console.error(`unknown subcommand: readable daemon db ${sub}`);
     process.exit(2);
   }
   const resp = await fetch(`${base}/api/daemon/db`);
@@ -6504,8 +6644,8 @@ function formatBytes(n) {
 }
 
 async function runDaemonStart(flags) {
-  const port = Number(flags.port ?? process.env.OD_PORT ?? 7456);
-  const host = String(flags.host ?? process.env.OD_BIND_HOST ?? '127.0.0.1');
+  const port = Number(flags.port ?? process.env[SIDECAR_ENV.DAEMON_PORT] ?? 7456);
+  const host = String(flags.host ?? process.env.READABLE_BIND_HOST ?? '127.0.0.1');
   const headless = Boolean(flags.headless || flags['no-open'] || flags['serve-web']);
   const runtime = await startDaemonRuntime({
     host,
@@ -6513,7 +6653,7 @@ async function runDaemonStart(flags) {
     openBrowser: !headless,
     port,
   });
-  console.log(`[od] listening on ${runtime.url} (${headless ? 'headless' : 'desktop'})`);
+  console.log(`[readable] listening on ${runtime.url} (${headless ? 'headless' : 'desktop'})`);
 
   await new Promise((resolve) => {
     let shuttingDown = false;
@@ -6567,7 +6707,7 @@ async function runDaemonStop(flags) {
 }
 
 // ---------------------------------------------------------------------------
-// Subcommand: od atoms / od skills / od design-systems / od craft / od status
+// Subcommand: readable atoms / readable skills / readable design-systems / readable craft / readable status
 //
 // Plan §3.H2 / §3.H3 / spec §12.2 — design-library + status introspection
 // CLI parity. Every UI feature reachable via /api/* gets a CLI mirror
@@ -6581,12 +6721,12 @@ async function libraryDaemonUrl(flags) {
 async function runAtoms(args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od atoms list             List first-party atoms (implemented + planned).
-  od atoms show <id>        Print one atom's metadata.
-  od atoms info <id>        Print metadata + the bundled SKILL.md body.
+  readable atoms list             List first-party atoms (implemented + planned).
+  readable atoms show <id>        Print one atom's metadata.
+  readable atoms info <id>        Print metadata + the bundled SKILL.md body.
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base.
+  --daemon-url <url>   Readable Studio daemon HTTP base.
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -6609,7 +6749,7 @@ Common options:
     case 'show': {
       const id = rest.find((a) => !a.startsWith('-'));
       if (!id) {
-        console.error('Usage: od atoms show <id>');
+        console.error('Usage: readable atoms show <id>');
         process.exit(2);
       }
       const resp = await fetch(`${base}/api/atoms`);
@@ -6626,7 +6766,7 @@ Common options:
     case 'info': {
       const id = rest.find((a) => !a.startsWith('-'));
       if (!id) {
-        console.error('Usage: od atoms info <id>');
+        console.error('Usage: readable atoms info <id>');
         process.exit(2);
       }
       const resp = await fetch(`${base}/api/atoms/${encodeURIComponent(id)}`);
@@ -6652,7 +6792,7 @@ Common options:
       return;
     }
     default:
-      console.error(`unknown subcommand: od atoms ${sub}`);
+      console.error(`unknown subcommand: readable atoms ${sub}`);
       process.exit(2);
   }
 }
@@ -6660,8 +6800,8 @@ Common options:
 async function runLibraryList(name, args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od ${name} list           List ${name}.
-  od ${name} show <id>      Print one entry.`);
+  readable ${name} list           List ${name}.
+  readable ${name} show <id>      Print one entry.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
   const sub = args[0];
@@ -6685,7 +6825,7 @@ async function runLibraryList(name, args) {
     case 'show': {
       const id = rest.find((a) => !a.startsWith('-'));
       if (!id) {
-        console.error(`Usage: od ${name} show <id>`);
+        console.error(`Usage: readable ${name} show <id>`);
         process.exit(2);
       }
       const resp = await fetch(`${base}${apiPath}/${encodeURIComponent(id)}`);
@@ -6695,7 +6835,7 @@ async function runLibraryList(name, args) {
       return;
     }
     default:
-      console.error(`unknown subcommand: od ${name} ${sub}`);
+      console.error(`unknown subcommand: readable ${name} ${sub}`);
       process.exit(2);
   }
 }
@@ -6706,10 +6846,10 @@ async function runCraft(args)         { return runLibraryList('craft', args); }
 async function runFonts(args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od fonts list            List fonts installed on this machine.
+  readable fonts list            List fonts installed on this machine.
 
 Options:
-  --daemon-url <url>   Open Design daemon HTTP base.
+  --daemon-url <url>   Readable Studio daemon HTTP base.
   --refresh            Rescan installed fonts (bypass the daemon cache).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
@@ -6742,7 +6882,7 @@ Options:
       return;
     }
     default:
-      console.error(`unknown subcommand: od fonts ${sub}`);
+      console.error(`unknown subcommand: readable fonts ${sub}`);
       process.exit(2);
   }
 }
@@ -6760,7 +6900,7 @@ async function runDesignSystems(args) {
   return runLibraryList('design-systems', args);
 }
 
-// od design-systems import-local <path> [--name <name>]
+// readable design-systems import-local <path> [--name <name>]
 //   [--import-mode <mode>] [--craft <slug,slug>] [--json] [--daemon-url <url>]
 //
 // Imports a local app/design-system project through the same daemon endpoint as
@@ -6769,10 +6909,10 @@ async function runDesignSystems(args) {
 async function runDesignSystemImportLocal(args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od design-systems import-local <path> [--name <name>] [--import-mode <mode>] [--craft <slugs>] [--json] [--daemon-url <url>]
-  od design-systems import-local --path <path> [--name <name>] [--json]
+  readable design-systems import-local <path> [--name <name>] [--import-mode <mode>] [--craft <slugs>] [--json] [--daemon-url <url>]
+  readable design-systems import-local --path <path> [--name <name>] [--json]
 
-Imports a local project directory as an editable Open Design design system.
+Imports a local project directory as an editable Readable Studio design system.
 
   <path>                 Local project directory to scan.
   --path <path>          Path alternative for scripts that prefer named flags.
@@ -6785,7 +6925,7 @@ Imports a local project directory as an editable Open Design design system.
   const flags = parseFlags(args, { string: stringFlags, boolean: LIBRARY_BOOLEAN_FLAGS });
   const localPath = typeof flags.path === 'string' ? flags.path : positionalArgs(args, stringFlags)[0];
   if (!localPath) {
-    console.error('Usage: od design-systems import-local <path>');
+    console.error('Usage: readable design-systems import-local <path>');
     process.exit(2);
   }
   const pathModule = await import('node:path');
@@ -6795,15 +6935,15 @@ Imports a local project directory as an editable Open Design design system.
   return postDesignSystemImport(flags, '/api/design-systems/import/local', body);
 }
 
-// od design-systems import-github <url> [--branch <branch>] [--name <name>]
+// readable design-systems import-github <url> [--branch <branch>] [--name <name>]
 //   [--import-mode <mode>] [--craft <slug,slug>] [--json] [--daemon-url <url>]
 async function runDesignSystemImportGithub(args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od design-systems import-github <url> [--branch <branch>] [--name <name>] [--import-mode <mode>] [--craft <slugs>] [--json] [--daemon-url <url>]
-  od design-systems import-github --url <url> [--branch <branch>] [--json]
+  readable design-systems import-github <url> [--branch <branch>] [--name <name>] [--import-mode <mode>] [--craft <slugs>] [--json] [--daemon-url <url>]
+  readable design-systems import-github --url <url> [--branch <branch>] [--json]
 
-Imports a public GitHub repository as an editable Open Design design system.
+Imports a public GitHub repository as an editable Readable Studio design system.
 
   <url>                  Repository root URL, e.g. https://github.com/acme/design-kit.
   --url <url>            URL alternative for scripts that prefer named flags.
@@ -6817,7 +6957,7 @@ Imports a public GitHub repository as an editable Open Design design system.
   const flags = parseFlags(args, { string: stringFlags, boolean: LIBRARY_BOOLEAN_FLAGS });
   const url = typeof flags.url === 'string' ? flags.url : positionalArgs(args, stringFlags)[0];
   if (!url) {
-    console.error('Usage: od design-systems import-github <url>');
+    console.error('Usage: readable design-systems import-github <url>');
     process.exit(2);
   }
   const body = designSystemImportRequestBody(flags, {
@@ -6859,7 +6999,7 @@ async function postDesignSystemImport(flags, endpoint, body) {
   }
 }
 
-// od design-systems rebuild-token-contract <id> [--force] [--json]
+// readable design-systems rebuild-token-contract <id> [--force] [--json]
 //
 // Starts the same review-gated token contract rebuild job exposed in the web
 // design-system detail view. Without --force the daemon only queues a job when
@@ -6867,7 +7007,7 @@ async function postDesignSystemImport(flags, endpoint, body) {
 async function runDesignSystemTokenContractRebuild(args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od design-systems rebuild-token-contract <id> [--force] [--json] [--daemon-url <url>]
+  readable design-systems rebuild-token-contract <id> [--force] [--json] [--daemon-url <url>]
 
 Starts a review-gated TOKEN_SCHEMA token contract rebuild for an editable imported design system.
 
@@ -6881,7 +7021,7 @@ Starts a review-gated TOKEN_SCHEMA token contract rebuild for an editable import
   });
   const id = positionalArgs(args, LIBRARY_STRING_FLAGS)[0];
   if (!id) {
-    console.error('Usage: od design-systems rebuild-token-contract <id>');
+    console.error('Usage: readable design-systems rebuild-token-contract <id>');
     process.exit(2);
   }
   const base = (await libraryDaemonUrl(flags)).replace(/\/$/, '');
@@ -6901,7 +7041,7 @@ Starts a review-gated TOKEN_SCHEMA token contract rebuild for an editable import
   console.log(`Token contract rebuild not queued for ${id}: ${decision?.reason ?? 'no rebuild needed'}`);
 }
 
-// od design-systems import-shadcn <reference> [--name <name>]
+// readable design-systems import-shadcn <reference> [--name <name>]
 //   [--import-mode <mode>] [--craft <slug,slug>] [--json] [--daemon-url <url>]
 //
 // Imports a shadcn registry item as an editable user design system via
@@ -6912,9 +7052,9 @@ Starts a review-gated TOKEN_SCHEMA token contract rebuild for an editable import
 async function runDesignSystemImportShadcn(args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od design-systems import-shadcn <reference> [--name <name>] [--import-mode <mode>] [--craft <slugs>] [--json] [--daemon-url <url>]
+  readable design-systems import-shadcn <reference> [--name <name>] [--import-mode <mode>] [--craft <slugs>] [--json] [--daemon-url <url>]
 
-Imports a shadcn registry item as an Open Design design system.
+Imports a shadcn registry item as a Readable Studio design system.
 
   <reference>            "<owner>/<repo>/<item>" (e.g. shadcn/ui/theme-zinc)
                          or an https URL to a registry-item JSON document.
@@ -6927,14 +7067,14 @@ Imports a shadcn registry item as an Open Design design system.
   const flags = parseFlags(args, { string: stringFlags, boolean: LIBRARY_BOOLEAN_FLAGS });
   const reference = positionalArgs(args, stringFlags)[0];
   if (!reference) {
-    console.error('Usage: od design-systems import-shadcn <reference>');
+    console.error('Usage: readable design-systems import-shadcn <reference>');
     process.exit(2);
   }
   const body = designSystemImportRequestBody(flags, { reference });
   return postDesignSystemImport(flags, '/api/design-systems/import/shadcn', body);
 }
 
-// od design-systems rename <id> --title <new-title> [--json]
+// readable design-systems rename <id> --title <new-title> [--json]
 // Renames an editable (user-created) design system via PATCH
 // /api/design-systems/:id. Built-in systems are read-only and the daemon
 // returns 404, surfaced here as a structured failure. Arg parsing lives in
@@ -6942,15 +7082,15 @@ Imports a shadcn registry item as an Open Design design system.
 async function runDesignSystemRename(args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od design-systems rename <id> --title <new-title> [--json] [--daemon-url <url>]
-  od design-systems rename <id> "<new title>" [--json]
+  readable design-systems rename <id> --title <new-title> [--json] [--daemon-url <url>]
+  readable design-systems rename <id> "<new title>" [--json]
 
 Renames an editable (user-created) design system. Built-in systems are read-only.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
   const parsed = parseDesignSystemRenameArgs(args);
   if (!parsed) {
-    console.error('Usage: od design-systems rename <id> --title <new-title>');
+    console.error('Usage: readable design-systems rename <id> --title <new-title>');
     process.exit(2);
   }
   const flags = parseFlags(args, {
@@ -6971,17 +7111,17 @@ Renames an editable (user-created) design system. Built-in systems are read-only
 }
 
 async function runStatus(args) {
-  // Alias of `od daemon status`.
+  // Alias of `readable daemon status`.
   return runDaemon(['status', ...args]);
 }
 
 // ---------------------------------------------------------------------------
-// Subcommand: od diagnostics export <path> [--json]
+// Subcommand: readable diagnostics export <path> [--json]
 //
 // CLI surface for the Settings → About “Export diagnostics” feature. The
 // daemon already exposes the bundle behind a local-loopback HTTP endpoint;
 // this command is a thin shell over that endpoint so headless callers (CI,
-// `od doctor` follow-ups, shell scripts) can collect a support bundle
+// `readable doctor` follow-ups, shell scripts) can collect a support bundle
 // without driving the web UI.
 // ---------------------------------------------------------------------------
 
@@ -6989,14 +7129,14 @@ async function runDiagnostics(args) {
   const sub = args[0];
   if (!sub || sub === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od diagnostics export [<path>] [--output <path>] [--json] [--daemon-url <url>]
+  readable diagnostics export [<path>] [--output <path>] [--json] [--daemon-url <url>]
 
 Bundles daemon/web/desktop logs, machine info, and recent crash reports
 into a zip. The bundle is the same one Settings → About → Export
 diagnostics produces.
 
   <path>                 Where to write the zip. Defaults to
-                         ./open-design-diagnostics-<timestamp>.zip in the
+                         ./readable-studio-diagnostics-<timestamp>.zip in the
                          current working directory. Alias: --output <path>.
   --json                 Print {path, sizeBytes} on stdout instead of a
                          human-readable summary. The file is still written
@@ -7005,7 +7145,7 @@ diagnostics produces.
     process.exit(0);
   }
   if (sub !== 'export') {
-    console.error(`unknown subcommand: od diagnostics ${sub}`);
+    console.error(`unknown subcommand: readable diagnostics ${sub}`);
     process.exit(2);
   }
 
@@ -7017,7 +7157,7 @@ diagnostics produces.
   const base = (await libraryDaemonUrl(flags)).replace(/\/$/, '');
 
   const { DIAGNOSTICS_EXPORT_PATH, DIAGNOSTICS_FILENAME_PREFIX, diagnosticsFileName } =
-    await import('@open-design/diagnostics');
+    await import('@readable-studio/diagnostics');
   const fs = await import('node:fs/promises');
   const path = await import('node:path');
 
@@ -7070,17 +7210,17 @@ async function runVersion(args) {
 }
 
 // ---------------------------------------------------------------------------
-// Subcommand: od doctor / od config (Phase 4 CLI parity tail).
+// Subcommand: readable doctor / readable config (Phase 4 CLI parity tail).
 //
 // Plan §3.I2 / spec §12.2.
 //
-// `od doctor` — repo-wide diagnostics. Hits /api/daemon/status, lists
+// `readable doctor` — repo-wide diagnostics. Hits /api/daemon/status, lists
 // installed plugins + runs the per-plugin doctor, lists skills /
 // design-systems / craft / atoms. Exits non-zero when any plugin
 // doctor returns ok=false. Useful in CI: a failed exit causes the
 // pipeline to surface plugin-system regressions.
 //
-// `od config get/set/list/unset` — wraps GET/PUT /api/app-config so a
+// `readable config get/set/list/unset` — wraps GET/PUT /api/app-config so a
 // code agent can flip provider keys / agent settings / pet config
 // without leaving the terminal. JSON values pass through unchanged;
 // scalar strings/numbers/booleans are coerced.
@@ -7090,7 +7230,7 @@ async function runDoctor(args) {
   const flags = parseFlags(args, { string: CONFIG_STRING_FLAGS, boolean: CONFIG_BOOLEAN_FLAGS });
   if (flags.help || flags.h) {
     console.log(`Usage:
-  od doctor [--json]   Print a daemon + plugin + design-library health summary.
+  readable doctor [--json]   Print a daemon + plugin + design-library health summary.
 
 Exit code is non-zero when any installed plugin's doctor returns ok=false
 or the daemon cannot be reached.`);
@@ -7198,15 +7338,15 @@ or the daemon cannot be reached.`);
 async function runConfig(args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  od config list                      Print the full app config as JSON.
-  od config get <key>                 Print one top-level key.
-  od config set <key> <value>         Set a top-level key (string / number / boolean).
-  od config set <key> --value-json '<json>'
+  readable config list                      Print the full app config as JSON.
+  readable config get <key>                 Print one top-level key.
+  readable config set <key> <value>         Set a top-level key (string / number / boolean).
+  readable config set <key> --value-json '<json>'
                                        Set a key to a JSON value.
-  od config unset <key>               Remove a top-level key.
+  readable config unset <key>               Remove a top-level key.
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base.
+  --daemon-url <url>   Readable Studio daemon HTTP base.
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -7240,7 +7380,7 @@ Common options:
     case 'get': {
       const key = rest.find((a) => !a.startsWith('-'));
       if (!key) {
-        console.error('Usage: od config get <key>');
+        console.error('Usage: readable config get <key>');
         process.exit(2);
       }
       const cfg = await fetchConfig();
@@ -7258,7 +7398,7 @@ Common options:
         && a !== flags['value-json']);
       const [key, scalarValue] = positional;
       if (!key) {
-        console.error('Usage: od config set <key> <value> | od config set <key> --value-json <json>');
+        console.error('Usage: readable config set <key> <value> | readable config set <key> --value-json <json>');
         process.exit(2);
       }
       let parsed;
@@ -7288,7 +7428,7 @@ Common options:
     case 'unset': {
       const key = rest.find((a) => !a.startsWith('-'));
       if (!key) {
-        console.error('Usage: od config unset <key>');
+        console.error('Usage: readable config unset <key>');
         process.exit(2);
       }
       const cfg = await fetchConfig();
@@ -7303,13 +7443,13 @@ Common options:
       return;
     }
     default:
-      console.error(`unknown subcommand: od config ${sub}`);
+      console.error(`unknown subcommand: readable config ${sub}`);
       process.exit(2);
   }
 }
 
 // ---------------------------------------------------------------------------
-// Subcommand: od agent …
+// Subcommand: readable agent …
 // ---------------------------------------------------------------------------
 
 async function runAgent(args) {
@@ -7358,7 +7498,7 @@ async function runAgent(args) {
     case 'disable': {
       const ids = positionalArgs(rest, AGENT_STRING_FLAGS);
       if (ids.length === 0) {
-        console.error(`Usage: od agent ${sub} <id> [<id>...]`);
+        console.error(`Usage: readable agent ${sub} <id> [<id>...]`);
         process.exit(2);
       }
       const cfg = await fetchConfig();
@@ -7387,32 +7527,32 @@ async function runAgent(args) {
       return;
     }
     default:
-      console.error(`unknown subcommand: od agent ${sub}`);
+      console.error(`unknown subcommand: readable agent ${sub}`);
       process.exit(2);
   }
 }
 
 function printAgentHelp() {
   console.log(`Usage:
-  od agent list [--json]
+  readable agent list [--json]
       List enabled agents and their install status.
 
-  od agent enable <id> [<id>...] [--json]
+  readable agent enable <id> [<id>...] [--json]
       Add agents to the enabled scan set.
 
-  od agent disable <id> [<id>...] [--json]
+  readable agent disable <id> [<id>...] [--json]
       Remove agents from the enabled scan set.
 
-  od agent reset [--json]
+  readable agent reset [--json]
       Clear the enabled set and fall back to defaults (codex + cursor-agent).
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base.
+  --daemon-url <url>   Readable Studio daemon HTTP base.
   --json               Emit raw JSON.`);
 }
 
 // ---------------------------------------------------------------------------
-// Subcommand: od memory …
+// Subcommand: readable memory …
 //
 // Headless surface for the same editable markdown memory tree shown in
 // Settings. Agents can inspect what will be injected into future prompts,
@@ -7421,22 +7561,22 @@ Common options:
 
 function printMemoryHelp() {
   console.log(`Usage:
-  od memory tree list [--json]
+  readable memory tree list [--json]
       List derived memory-tree folders and entry nodes.
 
-  od memory tree view <id> [--json]
+  readable memory tree view <id> [--json]
       Print one folder node or entry body.
 
-  od memory tree edit <id> [--name <title>] [--description <text>]
+  readable memory tree edit <id> [--name <title>] [--description <text>]
                        [--type user|feedback|project|reference]
                        [--body <markdown> | --body-file <path|->] [--json]
       Patch an editable entry node. Folder nodes are derived from entry types.
 
-  od memory tree move <id> --type user|feedback|project|reference [--json]
+  readable memory tree move <id> --type user|feedback|project|reference [--json]
       Move an entry node to a different memory bucket while preserving its id.
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base.`);
+  --daemon-url <url>   Readable Studio daemon HTTP base.`);
 }
 
 function memoryPositionals(values) {
@@ -7524,7 +7664,7 @@ async function runMemory(args) {
   }
   const topic = args[0];
   if (topic !== 'tree') {
-    console.error(`unknown subcommand: od memory ${topic}`);
+    console.error(`unknown subcommand: readable memory ${topic}`);
     printMemoryHelp();
     process.exit(2);
   }
@@ -7561,7 +7701,7 @@ async function runMemory(args) {
   if (action === 'view') {
     const id = parts[1];
     if (!id) {
-      console.error('Usage: od memory tree view <id>');
+      console.error('Usage: readable memory tree view <id>');
       process.exit(2);
     }
     const treeData = await fetchMemoryTree(base);
@@ -7592,7 +7732,7 @@ async function runMemory(args) {
   if (action === 'edit') {
     const id = parts[1];
     if (!id) {
-      console.error('Usage: od memory tree edit <id> [--name ...] [--description ...] [--type ...] [--body ...|--body-file ...]');
+      console.error('Usage: readable memory tree edit <id> [--name ...] [--description ...] [--type ...] [--body ...|--body-file ...]');
       process.exit(2);
     }
     const body = {};
@@ -7615,7 +7755,7 @@ async function runMemory(args) {
     const id = parts[1];
     const type = flags.type ?? parts[2];
     if (!id || !type) {
-      console.error('Usage: od memory tree move <id> --type user|feedback|project|reference');
+      console.error('Usage: readable memory tree move <id> --type user|feedback|project|reference');
       process.exit(2);
     }
     const data = await patchMemoryTreeNode(base, id, { type });
@@ -7624,13 +7764,13 @@ async function runMemory(args) {
     return;
   }
 
-  console.error(`unknown subcommand: od memory tree ${action}`);
+  console.error(`unknown subcommand: readable memory tree ${action}`);
   printMemoryHelp();
   process.exit(2);
 }
 
 // ---------------------------------------------------------------------------
-// Subcommand: od automation …
+// Subcommand: readable automation …
 //
 // Headless surface for the Automations tab. This is the dual-track contract:
 // every capability the Automations UI exposes is reachable here so an
@@ -7804,22 +7944,22 @@ async function readPromptFromFlags(flags) {
 
 function printAutomationHelp() {
   console.log(`Usage:
-  od automation template list                                List built-in automation templates.
-  od automation template get <id>                            Print one built-in automation template.
-  od automation source ingest --source-kind <kind> --title <title>
+  readable automation template list                                List built-in automation templates.
+  readable automation template get <id>                            Print one built-in automation template.
+  readable automation source ingest --source-kind <kind> --title <title>
                               [--source-ref <ref>] [--template <id>]
                               [--body <markdown> | --body-file <path|->]
                               [--compression off|balanced|aggressive]
                               [--json]
-  od automation source list [--limit 20] [--json]             List ingested source packets.
-  od automation source get <id> [--json]                      Print one source packet.
-  od automation proposal list [--status pending-review]       List self-evolution proposals.
-  od automation proposal get <id>                             Print one proposal.
-  od automation proposal apply <id>                           Apply a reviewable proposal.
-  od automation proposal reject <id> [--reason "<why>"]       Reject a reviewable proposal.
-  od automation list                                         List automations.
-  od automation get <id>                                     Print one automation.
-  od automation create --name "<title>" --prompt "<text>"
+  readable automation source list [--limit 20] [--json]             List ingested source packets.
+  readable automation source get <id> [--json]                      Print one source packet.
+  readable automation proposal list [--status pending-review]       List self-evolution proposals.
+  readable automation proposal get <id>                             Print one proposal.
+  readable automation proposal apply <id>                           Apply a reviewable proposal.
+  readable automation proposal reject <id> [--reason "<why>"]       Reject a reviewable proposal.
+  readable automation list                                         List automations.
+  readable automation get <id>                                     Print one automation.
+  readable automation create --name "<title>" --prompt "<text>"
                        --schedule <spec>
                        [--target new-project|reuse=<projectId>]
                        [--disabled] [--json]
@@ -7827,17 +7967,17 @@ function printAutomationHelp() {
                        [--skill <id>[,<id>]] [--plugin <id>[,<id>]]
                        [--mcp <id>[,<id>]]
                        [--agent <id>]
-  od automation update <id> [--name ...] [--prompt ...]
+  readable automation update <id> [--name ...] [--prompt ...]
                             [--schedule ...] [--target ...]
                             [--skill ...] [--plugin ...] [--mcp ...]
                             [--enabled|--disabled]
                             Patch fields.
-  od automation run <id>                                       Trigger a manual run; prints projectId/conversationId.
-  od automation runs <id> [--limit 10]                         Print run history.
-  od automation crystallize-run <routineId> <runId> [--json]    Turn a succeeded run into skill/memory proposals.
-  od automation pause <id>                                     Mark disabled.
-  od automation resume <id>                                    Mark enabled.
-  od automation delete <id>                                    Remove the automation (history retained).
+  readable automation run <id>                                       Trigger a manual run; prints projectId/conversationId.
+  readable automation runs <id> [--limit 10]                         Print run history.
+  readable automation crystallize-run <routineId> <runId> [--json]    Turn a succeeded run into skill/memory proposals.
+  readable automation pause <id>                                     Mark disabled.
+  readable automation resume <id>                                    Mark enabled.
+  readable automation delete <id>                                    Remove the automation (history retained).
 
 Schedule formats:
   hourly:<minute>                    Every hour at :MM.
@@ -7852,7 +7992,7 @@ Output:
   can drive the full automation lifecycle headlessly.
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base.`);
+  --daemon-url <url>   Readable Studio daemon HTTP base.`);
 }
 
 async function runAutomation(args) {
@@ -7896,7 +8036,7 @@ async function runAutomation(args) {
   const requireId = (label) => {
     const id = positionalArgs(rest)[0];
     if (!id) {
-      console.error(`Usage: od automation ${label} <id>`);
+      console.error(`Usage: readable automation ${label} <id>`);
       process.exit(2);
     }
     return id;
@@ -7946,7 +8086,7 @@ async function runAutomation(args) {
       if (action === 'get') {
         const id = parts[1];
         if (!id) {
-          console.error('Usage: od automation template get <id>');
+          console.error('Usage: readable automation template get <id>');
           process.exit(2);
         }
         let resp;
@@ -7960,7 +8100,7 @@ async function runAutomation(args) {
         const data = await resp.json();
         return writeJson(flags.json ? data : (data.template ?? data));
       }
-      console.error(`unknown subcommand: od automation template ${action}`);
+      console.error(`unknown subcommand: readable automation template ${action}`);
       printAutomationHelp();
       process.exit(2);
     }
@@ -7972,7 +8112,7 @@ async function runAutomation(args) {
       if (action === 'ingest') {
         const sourceKind = flags['source-kind'] ?? (sub === 'ingest' ? parts[0] : parts[1]);
         if (!sourceKind) {
-          console.error('Usage: od automation source ingest --source-kind <kind> --body-file <path|->');
+          console.error('Usage: readable automation source ingest --source-kind <kind> --body-file <path|->');
           process.exit(2);
         }
         const bodyMarkdown = await readAutomationIngestBody();
@@ -8058,7 +8198,7 @@ async function runAutomation(args) {
       if (action === 'get') {
         const id = parts[1];
         if (!id) {
-          console.error('Usage: od automation source get <id>');
+          console.error('Usage: readable automation source get <id>');
           process.exit(2);
         }
         let resp;
@@ -8071,7 +8211,7 @@ async function runAutomation(args) {
         if (!resp.ok) return structuredHttpFailure(resp);
         return writeJson(await resp.json());
       }
-      console.error(`unknown subcommand: od automation source ${action}`);
+      console.error(`unknown subcommand: readable automation source ${action}`);
       printAutomationHelp();
       process.exit(2);
     }
@@ -8112,7 +8252,7 @@ async function runAutomation(args) {
       if (action === 'get') {
         const id = parts[1];
         if (!id) {
-          console.error('Usage: od automation proposal get <id>');
+          console.error('Usage: readable automation proposal get <id>');
           process.exit(2);
         }
         let resp;
@@ -8128,7 +8268,7 @@ async function runAutomation(args) {
       if (action === 'apply' || action === 'reject') {
         const id = parts[1];
         if (!id) {
-          console.error(`Usage: od automation proposal ${action} <id>`);
+          console.error(`Usage: readable automation proposal ${action} <id>`);
           process.exit(2);
         }
         let resp;
@@ -8153,7 +8293,7 @@ async function runAutomation(args) {
         console.log(`[automation proposal] ${action === 'apply' ? 'applied' : 'rejected'} ${data.proposal?.id ?? id}`);
         return;
       }
-      console.error(`unknown subcommand: od automation proposal ${action}`);
+      console.error(`unknown subcommand: readable automation proposal ${action}`);
       printAutomationHelp();
       process.exit(2);
     }
@@ -8170,7 +8310,7 @@ async function runAutomation(args) {
       if (flags.json) return writeJson(data);
       const routines = data.routines ?? [];
       if (routines.length === 0) {
-        console.log('No automations. Create one with `od automation create --name "..." --prompt "..." --schedule daily:09:00`.');
+        console.log('No automations. Create one with `readable automation create --name "..." --prompt "..." --schedule daily:09:00`.');
         return;
       }
       console.log('# id\tname\tschedule\ttarget\tstatus\tnextRun');
@@ -8230,7 +8370,7 @@ async function runAutomation(args) {
       const routineId = parts[0];
       const runId = parts[1];
       if (!routineId || !runId) {
-        console.error('Usage: od automation crystallize-run <routineId> <runId> [--json]');
+        console.error('Usage: readable automation crystallize-run <routineId> <runId> [--json]');
         process.exit(2);
       }
       let resp;
@@ -8436,7 +8576,7 @@ async function runAutomation(args) {
       return;
     }
     default:
-      console.error(`unknown subcommand: od automation ${sub}`);
+      console.error(`unknown subcommand: readable automation ${sub}`);
       printAutomationHelp();
       process.exit(2);
   }

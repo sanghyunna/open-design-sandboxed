@@ -1,6 +1,6 @@
 # RFC: Auto-detect & launch dev server for folder-imported projects
 
-**Status:** Draft (for nexu-io/open-design Issue, post #597 merge)
+**Status:** Draft (for nexu-io/readable-studio Issue, post #597 merge)
 **Author:** @infinity-nft
 **Related:** #597 (folder import — single mode)
 
@@ -8,25 +8,25 @@
 
 When a user imports an existing local folder as a project (#597), the
 folder is often a real frontend project (Next.js / Vite / CRA / Astro /
-plain `npm run dev`). Currently OD opens such projects as a static file
+plain `npm run dev`). Currently Readable Studio opens such projects as a static file
 panel — the user has to launch the dev server themselves in another
 terminal and then iframe-load it manually.
 
-This RFC proposes letting OD detect a dev-server config from the
+This RFC proposes letting Readable Studio detect a dev-server config from the
 imported folder's `package.json` and offer to launch it inline, so the
 preview pane shows the live app instead of static HTML.
 
 ## Problem
 
 After landing #597, the user picks `~/projects/marketing-site/` (a
-Next.js app). What they see in OD's preview pane:
+Next.js app). What they see in Readable Studio's preview pane:
 
 - File panel with `next.config.js`, `pages/index.tsx`, etc.
 - No way to render the app — it needs `next dev` running on port 3000.
 
 What they want:
 
-- Click "Open folder" → OD detects `next dev` script → asks "Launch
+- Click "Open folder" → Readable Studio detects `next dev` script → asks "Launch
   dev server?" → preview pane shows the live app at localhost:3000
   inside the iframe.
 
@@ -77,13 +77,13 @@ timeout) before resolving, so the UI can show a clear "starting…" /
 ## Open questions
 
 1. **Permission model** — running `npm install` + `npm run dev` on a
-   user folder is more privileged than reading files. Should OD prompt
+   user folder is more privileged than reading files. Should Readable Studio prompt
    on first launch ("This folder will run `pnpm dev` — proceed?") with
    per-project consent, similar to VS Code's "trust" prompt?
 2. **Auto-install missing dependencies** — if `node_modules` is missing,
-   should OD offer to run `pnpm install` first? Or fail clearly and let
+   should Readable Studio offer to run `pnpm install` first? Or fail clearly and let
    the user run it themselves?
-3. **Port conflicts** — if 3000 is taken, should OD pick the next free
+3. **Port conflicts** — if 3000 is taken, should Readable Studio pick the next free
    port, or refuse and surface the conflict? Vite has its own
    auto-increment; matching that would be least surprising.
 4. **Resource cleanup on project close** — kill the dev server when the
@@ -93,8 +93,8 @@ timeout) before resolving, so the UI can show a clear "starting…" /
 5. **Subprocess output streaming** — should the daemon stream the dev
    server's stdout/stderr to the UI (so users see Next/Vite errors
    inline) or just spawn detached?
-6. **Non-folder projects** — current OD generates HTML files in
-   `.od/projects/<id>/`. Should those projects also get a "launch dev
+6. **Non-folder projects** — current Readable Studio generates HTML files in
+   `.readable-studio/projects/<id>/`. Should those projects also get a "launch dev
    server" affordance if they happen to have a `package.json`? Or is
    this strictly a folder-import feature?
 
@@ -108,7 +108,7 @@ discussion lands.
 
 ## Out of scope
 
-- HMR support (dev servers handle their own HMR; OD just iframes)
+- HMR support (dev servers handle their own HMR; Readable Studio just iframes)
 - Production builds (`pnpm build` is the user's concern)
-- Custom proxy / rewrites between OD daemon and dev server
+- Custom proxy / rewrites between Readable Studio daemon and dev server
 - Authenticated dev servers (e.g. behind a login)

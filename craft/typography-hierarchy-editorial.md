@@ -4,7 +4,7 @@ Extends `typography.md` + `typography-hierarchy.md`. Defines hierarchy
 behavior for editorial surfaces: long-form articles, magazine layouts,
 digital guides, editorial landing pages, and blog posts.
 
-> Opt in via `od.craft.requires: [typography, typography-hierarchy, typography-hierarchy-editorial]`.
+> Opt in via `readable.craft.requires: [typography, typography-hierarchy, typography-hierarchy-editorial]`.
 
 ---
 

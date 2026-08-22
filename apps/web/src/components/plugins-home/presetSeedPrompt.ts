@@ -5,7 +5,7 @@
 // cards (HomeHero) and the plugin detail modal's "Replicate this content"
 // action (HomeView) stay in lockstep. They used to diverge: the cards surfaced
 // a friendly description while the detail modal dumped the raw
-// `od.useCase.query` — which for many plugins is a generator-facing
+// `readable.useCase.query` — which for many plugins is a generator-facing
 // meta-instruction ("follow the en field verbatim; start from example.html"),
 // useless as a human seed.
 //
@@ -13,7 +13,7 @@
 // that rides along as plugin context (SKILL.md + example.html) once the plugin
 // is applied, so the output still faithfully recreates the reference.
 
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 import type { Locale } from '../../i18n';
 import { localizePluginDescription } from './localization';
 
@@ -35,7 +35,7 @@ export function pluginPresetQuery(
   record: InstalledPluginRecord,
   locale: Locale,
 ): string | null {
-  const query = record.manifest?.od?.useCase?.query;
+  const query = record.manifest?.readable?.useCase?.query;
   if (typeof query === 'string') return query;
   if (query && typeof query === 'object') {
     const localized = query as Record<string, unknown>;
@@ -59,7 +59,7 @@ export function renderPluginPresetQuery(
   record: InstalledPluginRecord,
   query: string,
 ): string {
-  const fields = record.manifest?.od?.inputs ?? [];
+  const fields = record.manifest?.readable?.inputs ?? [];
   const valueByName = new Map<string, string>();
   for (const field of fields) {
     const value = field.default ?? field.placeholder ?? field.label ?? field.name;

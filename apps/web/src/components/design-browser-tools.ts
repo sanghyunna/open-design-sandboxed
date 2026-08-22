@@ -74,7 +74,7 @@ function normalizeLocalFsPath(path: string | null | undefined): string | null {
 
 export const BROWSER_CANCEL_PICKER_SCRIPT = `
 (() => {
-  const cancel = window.__openDesignBrowserPickerCancel;
+  const cancel = window.__readableStudioBrowserPickerCancel;
   if (typeof cancel === 'function') {
     try { cancel(); } catch (_) {}
   }
@@ -94,17 +94,17 @@ export const BROWSER_SERIALIZE_HTML_SCRIPT = `
 export function browserElementPickerScript(filePath: string): string {
   return `
 (() => new Promise((resolve) => {
-  const previousCancel = window.__openDesignBrowserPickerCancel;
+  const previousCancel = window.__readableStudioBrowserPickerCancel;
   if (typeof previousCancel === 'function') {
     try { previousCancel(); } catch (_) {}
   }
   const filePath = ${JSON.stringify(filePath)};
   const style = document.createElement('style');
-  style.setAttribute('data-open-design-browser-picker', 'true');
+  style.setAttribute('data-readable-studio-browser-picker', 'true');
   style.textContent = [
     '* { cursor: crosshair !important; }',
-    '.__open_design_browser_pick_hover__ { outline: 2px solid #1677ff !important; outline-offset: 2px !important; }',
-    '.__open_design_browser_pick_hover__::selection { background: rgba(22, 119, 255, 0.22) !important; }'
+    '.__readable_studio_browser_pick_hover__ { outline: 2px solid #1677ff !important; outline-offset: 2px !important; }',
+    '.__readable_studio_browser_pick_hover__::selection { background: rgba(22, 119, 255, 0.22) !important; }'
   ].join('\\n');
   document.head.appendChild(style);
 
@@ -153,8 +153,8 @@ export function browserElementPickerScript(filePath: string): string {
     return parts.join(' > ') || 'body';
   }
   function selectorFor(el) {
-    const odId = el.getAttribute('data-od-id');
-    if (odId) return { elementId: odId, selector: '[data-od-id="' + escAttr(odId) + '"]' };
+    const odId = el.getAttribute('data-readable-id');
+    if (odId) return { elementId: odId, selector: '[data-readable-id="' + escAttr(odId) + '"]' };
     const screenLabel = el.getAttribute('data-screen-label');
     if (screenLabel) return { elementId: screenLabel, selector: '[data-screen-label="' + escAttr(screenLabel) + '"]' };
     const selector = domSelectorFor(el);
@@ -209,9 +209,9 @@ export function browserElementPickerScript(filePath: string): string {
   }
   function setHover(el) {
     if (hovered === el) return;
-    if (hovered) hovered.classList.remove('__open_design_browser_pick_hover__');
+    if (hovered) hovered.classList.remove('__readable_studio_browser_pick_hover__');
     hovered = el;
-    if (hovered) hovered.classList.add('__open_design_browser_pick_hover__');
+    if (hovered) hovered.classList.add('__readable_studio_browser_pick_hover__');
   }
   function cleanup(result) {
     if (finished) return;
@@ -219,9 +219,9 @@ export function browserElementPickerScript(filePath: string): string {
     document.removeEventListener('mousemove', onMove, true);
     document.removeEventListener('click', onClick, true);
     document.removeEventListener('keydown', onKeyDown, true);
-    if (hovered) hovered.classList.remove('__open_design_browser_pick_hover__');
+    if (hovered) hovered.classList.remove('__readable_studio_browser_pick_hover__');
     style.remove();
-    window.__openDesignBrowserPickerCancel = null;
+    window.__readableStudioBrowserPickerCancel = null;
     resolve(result || null);
   }
   function onMove(ev) {
@@ -238,7 +238,7 @@ export function browserElementPickerScript(filePath: string): string {
     if (ev.key === 'Escape') cleanup(null);
   }
 
-  window.__openDesignBrowserPickerCancel = () => cleanup(null);
+  window.__readableStudioBrowserPickerCancel = () => cleanup(null);
   document.addEventListener('mousemove', onMove, true);
   document.addEventListener('click', onClick, true);
   document.addEventListener('keydown', onKeyDown, true);

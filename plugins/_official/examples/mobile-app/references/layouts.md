@@ -21,7 +21,7 @@ If you reach for a class not on this list, define it in the seed's `<style>` fir
 Top: greeting + title. Body: 4–6 list rows, hairline-separated. Tab bar: yes.
 
 ```html
-<div class="header" data-od-id="header">
+<div class="header" data-readable-id="header">
   <div>
     <p class="greeting">Tuesday · April 22</p>
     <h1>Inbox</h1>
@@ -31,7 +31,7 @@ Top: greeting + title. Body: 4–6 list rows, hairline-separated. Tab bar: yes.
   </button>
 </div>
 
-<section class="pad" data-od-id="filters" style="margin-bottom: 8px;">
+<section class="pad" data-readable-id="filters" style="margin-bottom: 8px;">
   <div class="row" style="overflow-x: auto; padding-bottom: 4px;">
     <span class="pill">All · 14</span>
     <span class="tag">Mentions</span>
@@ -40,7 +40,7 @@ Top: greeting + title. Body: 4–6 list rows, hairline-separated. Tab bar: yes.
   </div>
 </section>
 
-<section class="pad" data-od-id="feed">
+<section class="pad" data-readable-id="feed">
   <div class="list-row">
     <div class="avatar"></div>
     <div class="body">
@@ -81,21 +81,21 @@ Top: greeting + title. Body: 4–6 list rows, hairline-separated. Tab bar: yes.
 Hero image up top, eyebrow + title + meta, body text, primary action floating at the bottom. Tab bar: no.
 
 ```html
-<div class="ph-img wide" style="border-radius: 0; aspect-ratio: 4/3;" data-od-id="hero">[ Hero image ]</div>
+<div class="ph-img wide" style="border-radius: 0; aspect-ratio: 4/3;" data-readable-id="hero">[ Hero image ]</div>
 
-<section class="pad" style="padding-top: 18px;" data-od-id="meta">
+<section class="pad" style="padding-top: 18px;" data-readable-id="meta">
   <span class="pill">Studio session</span>
   <h1 class="h2" style="margin: 10px 0 6px;">Filebase v3 — what we shipped, what we cut.</h1>
   <p class="meta">Mira Hassan · April 22 · 9 min read</p>
 </section>
 
-<section class="pad stack" style="margin-top: 18px; gap: 14px;" data-od-id="body">
+<section class="pad stack" style="margin-top: 18px; gap: 14px;" data-readable-id="body">
   <p>The biggest unlock in v3 was the new content-defined chunker. On Final Cut projects, post-edit re-uploads dropped 38× — from full multi-GB pushes to the few hundred KB that actually changed.</p>
   <p>What we cut: per-folder compression. It looked great on benchmarks; on real footage it was slower than no compression at all because the chunker was already doing the dedup work.</p>
   <p>Next quarter: dual-region replication on R2 + S3, rolling out to Enterprise first.</p>
 </section>
 
-<section class="pad" style="padding-top: 24px; padding-bottom: 8px;" data-od-id="cta">
+<section class="pad" style="padding-top: 24px; padding-bottom: 8px;" data-readable-id="cta">
   <button class="btn-primary">Save to library</button>
 </section>
 ```
@@ -105,7 +105,7 @@ Hero image up top, eyebrow + title + meta, body text, primary action floating at
 Illustration block + headline + subhead + paginator + primary CTA. Tab bar: no. Status bar still visible.
 
 ```html
-<section class="pad stack" style="height: 100%; padding-top: 24px; padding-bottom: 24px; gap: 24px;" data-od-id="onboarding">
+<section class="pad stack" style="height: 100%; padding-top: 24px; padding-bottom: 24px; gap: 24px;" data-readable-id="onboarding">
   <div class="ph-img square" style="aspect-ratio: 1/1; max-width: 240px; margin: 0 auto;">[ Illustration ]</div>
 
   <div style="text-align: center;">
@@ -136,7 +136,7 @@ Illustration block + headline + subhead + paginator + primary CTA. Tab bar: no. 
 Avatar + name + meta row; stat row; tabbed content underneath. Tab bar: yes (often the surrounding app's tabs).
 
 ```html
-<section class="pad" style="padding-top: 8px;" data-od-id="head">
+<section class="pad" style="padding-top: 8px;" data-readable-id="head">
   <div class="row" style="gap: 16px;">
     <div class="avatar" style="width: 64px; height: 64px;"></div>
     <div>
@@ -150,7 +150,7 @@ Avatar + name + meta row; stat row; tabbed content underneath. Tab bar: yes (oft
   </div>
 </section>
 
-<section class="pad" data-od-id="stats" style="margin-top: 18px;">
+<section class="pad" data-readable-id="stats" style="margin-top: 18px;">
   <div class="grid-3">
     <div class="card flat" style="text-align: center;">
       <div class="num" style="font-size: 22px; letter-spacing: -0.02em;">218</div>
@@ -167,7 +167,7 @@ Avatar + name + meta row; stat row; tabbed content underneath. Tab bar: yes (oft
   </div>
 </section>
 
-<section class="pad" data-od-id="tabs" style="margin-top: 12px;">
+<section class="pad" data-readable-id="tabs" style="margin-top: 12px;">
   <div class="row" style="border-bottom: 1px solid var(--border); gap: 24px;">
     <span style="padding: 12px 0; border-bottom: 2px solid var(--accent); color: var(--fg); font-weight: 500; font-size: 14px;">Posts</span>
     <span style="padding: 12px 0; color: var(--muted); font-size: 14px;">Replies</span>
@@ -175,7 +175,7 @@ Avatar + name + meta row; stat row; tabbed content underneath. Tab bar: yes (oft
   </div>
 </section>
 
-<section class="pad" data-od-id="post-list" style="margin-top: 4px;">
+<section class="pad" data-readable-id="post-list" style="margin-top: 4px;">
   <div class="list-row" style="grid-template-columns: 1fr;">
     <div class="body">
       <div class="title">"Bandwidth pricing went up 4× — sync engine choice is no longer cosmetic."</div>
@@ -196,11 +196,11 @@ Avatar + name + meta row; stat row; tabbed content underneath. Tab bar: yes (oft
 Stacked card sections (item summary → details → totals), bottom-fixed CTA. Tab bar: no.
 
 ```html
-<section class="pad" style="padding-top: 12px;" data-od-id="title">
+<section class="pad" style="padding-top: 12px;" data-readable-id="title">
   <h1 class="h2">Confirm order</h1>
 </section>
 
-<section class="pad" data-od-id="item">
+<section class="pad" data-readable-id="item">
   <div class="card row" style="gap: 14px; align-items: flex-start;">
     <div class="ph-img square" style="width: 64px; height: 64px; aspect-ratio: 1; border-radius: 10px;"></div>
     <div style="flex: 1;">
@@ -211,7 +211,7 @@ Stacked card sections (item summary → details → totals), bottom-fixed CTA. T
   </div>
 </section>
 
-<section class="pad stack" data-od-id="details" style="margin-top: 14px; gap: 10px;">
+<section class="pad stack" data-readable-id="details" style="margin-top: 14px; gap: 10px;">
   <div class="card flat row-between">
     <span>Seats</span>
     <span class="num">40</span>
@@ -226,14 +226,14 @@ Stacked card sections (item summary → details → totals), bottom-fixed CTA. T
   </div>
 </section>
 
-<section class="pad" data-od-id="totals" style="margin-top: 14px;">
+<section class="pad" data-readable-id="totals" style="margin-top: 14px;">
   <div class="card row-between" style="border-top: 1px solid var(--fg); border-radius: 0; padding: 16px 0; background: transparent;">
     <span style="font-weight: 600;">Total today</span>
     <span class="num" style="font-size: 22px; letter-spacing: -0.01em;">$1,920</span>
   </div>
 </section>
 
-<section class="pad" style="padding-top: 16px; padding-bottom: 12px;" data-od-id="cta">
+<section class="pad" style="padding-top: 16px; padding-bottom: 12px;" data-readable-id="cta">
   <button class="btn-primary">Pay $1,920</button>
   <p class="meta" style="text-align: center; margin: 12px 0 0;">By tapping Pay you agree to the terms.</p>
 </section>
@@ -244,7 +244,7 @@ Stacked card sections (item summary → details → totals), bottom-fixed CTA. T
 A single accent-coloured hero card dominates; small supporting content underneath. Tab bar: yes.
 
 ```html
-<div class="header" data-od-id="header">
+<div class="header" data-readable-id="header">
   <div>
     <p class="greeting">Tuesday · April 22</p>
     <h1>Two pomodoros to lunch.</h1>
@@ -254,7 +254,7 @@ A single accent-coloured hero card dominates; small supporting content underneat
   </button>
 </div>
 
-<section class="pad" data-od-id="hero-card" style="margin-top: 4px;">
+<section class="pad" data-readable-id="hero-card" style="margin-top: 4px;">
   <div class="card accent" style="padding: 28px 24px; text-align: center;">
     <p class="meta" style="margin: 0 0 6px; color: rgba(255,255,255,0.72);">FOCUS SESSION</p>
     <div class="num" style="font-size: 64px; line-height: 1; letter-spacing: -0.03em; font-weight: 600; margin: 8px 0 18px;">15:42</div>
@@ -266,7 +266,7 @@ A single accent-coloured hero card dominates; small supporting content underneat
   </div>
 </section>
 
-<section class="pad" data-od-id="stats-row" style="margin-top: 18px;">
+<section class="pad" data-readable-id="stats-row" style="margin-top: 18px;">
   <p class="meta" style="margin: 0 0 8px;">TODAY</p>
   <div class="grid-3">
     <div class="card"><div class="num" style="font-size: 22px;">3</div><div class="meta">Sessions</div></div>
@@ -275,7 +275,7 @@ A single accent-coloured hero card dominates; small supporting content underneat
   </div>
 </section>
 
-<section class="pad" data-od-id="up-next" style="margin-top: 18px;">
+<section class="pad" data-readable-id="up-next" style="margin-top: 18px;">
   <p class="meta" style="margin: 0 0 8px;">UP NEXT</p>
   <div>
     <div class="list-row" style="grid-template-columns: 22px 1fr auto;">

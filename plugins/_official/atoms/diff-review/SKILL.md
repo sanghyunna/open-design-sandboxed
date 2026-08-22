@@ -1,7 +1,7 @@
 ---
 name: diff-review
 description: Render the patch-edit run's accumulated changes as a reviewable diff, surface it through a GenUI choice surface, and persist the user's accept / reject decision into the artifact manifest.
-od:
+readable:
   scenario: code-migration
   mode: review
 ---

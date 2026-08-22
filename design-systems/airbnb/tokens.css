@@ -8,7 +8,7 @@
  * an app: the interface disappears so the listings can breathe.
  *
  * This file pre-compiles the values described in `DESIGN.md` into the
- * schema shared with every OD design system. Agents should paste the
+ * schema shared with every Readable Studio design system. Agents should paste the
  * `:root { … }` block verbatim into the first `<style>` of an artifact,
  * then resolve every value via `var(--*)` from that point on.
  *

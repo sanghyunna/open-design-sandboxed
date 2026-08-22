@@ -18,7 +18,7 @@ import { ChatComposer, type ChatComposerHandle } from '../../src/components/Chat
 import { I18nProvider } from '../../src/i18n';
 import { ko } from '../../src/i18n/locales/ko';
 import type { Locale } from '../../src/i18n/types';
-import type { AppliedPluginSnapshot } from '@open-design/contracts';
+import type { AppliedPluginSnapshot } from '@readable-studio/contracts';
 import { composerText, pressEnter, typeAndSettle } from '../helpers/lexical-composer';
 
 const COMMUNITY_PLUGIN = {
@@ -33,7 +33,7 @@ const COMMUNITY_PLUGIN = {
     name: 'community-deck',
     title: 'Community Deck',
     description: 'Official deck starter',
-    od: { kind: 'skill' },
+    readable: { kind: 'skill' },
   },
   fsPath: '/plugins/community-deck',
   installedAt: 0,

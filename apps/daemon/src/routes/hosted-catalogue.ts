@@ -1,4 +1,4 @@
-import { HOSTED_CSRF_HEADER } from '@open-design/contracts';
+import { HOSTED_CSRF_HEADER } from '@readable-studio/contracts';
 import express, { type Express, type RequestHandler } from 'express';
 
 import type { createHostedCatalogueAdapter } from '../hosted-catalogue-adapter.js';
@@ -48,7 +48,7 @@ export function registerHostedCatalogueRoutes(
   app.post('/api/tools/design-systems/read', async (request, response) => {
     const authorization = request.get('authorization');
     const token = authorization?.match(/^Bearer ([^\s]+)$/u)?.[1] ?? null;
-    const carrierToken = request.get('x-open-design-tool-token') ?? null;
+    const carrierToken = request.get('x-readable-studio-tool-token') ?? null;
     if (token == null || carrierToken == null || carrierToken.length === 0) {
       hostedApiFailure(response, 403, 'TOOL_TOKEN_MISSING', 'hosted tool token is required');
       return;

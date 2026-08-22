@@ -1,4 +1,4 @@
-import * as platform from '@open-design/platform';
+import * as platform from '@readable-studio/platform';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const envHttpProxyAgentConstructor = vi.fn();

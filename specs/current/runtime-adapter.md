@@ -1,8 +1,12 @@
-# Runtime Adapter Current State
+# Runtime adapter
+
+## Product context
+
+Runtime adapters perform AI generation within Readable Studio's `Source Text -> AI Generation -> Direct Editing -> Standalone HTML` workflow. They remain integrated with the web UI, `readable` CLI, plugins, and project files. They do not own direct editing or export.
 
 ## Purpose
 
-Runtime Adapter is the daemon layer responsible for adapting local AI agent CLIs. It converts Open Design's unified generation requests into the actual command-line invocations for each CLI, and converts CLI output into streaming events that the frontend can consume.
+The runtime adapter layer converts Readable Studio generation requests into controlled invocations of local AI agent CLIs and converts CLI output into streaming events consumed by the frontend.
 
 The current implementation is concentrated in:
 
@@ -12,7 +16,9 @@ The current implementation is concentrated in:
 - `apps/daemon/src/json-event-stream.ts`: parsing structured JSON/JSONL output from Codex, Gemini, OpenCode, and Cursor Agent.
 - `apps/daemon/src/acp.ts`: model detection and streaming session orchestration for the ACP JSON-RPC runtime.
 
-## Currently Supported Runtimes
+## Registered runtimes
+
+Codex and Cursor Agent are enabled for scanning by default. Other registered adapters are scanned only after the user enables them in Settings.
 
 `AGENT_DEFS` in `apps/daemon/src/agents.ts` defines 8 local runtimes:
 
@@ -67,7 +73,7 @@ Flow:
 
 1. The frontend submits `agentId`, user message, system prompt, project ID, attachments, model, and reasoning options.
 2. The daemon uses `getAgentDef(agentId)` to find the runtime definition.
-3. The daemon creates or locates `.od/projects/<projectId>/` as the agent working directory.
+3. The daemon creates or locates `.readable-studio/projects/<projectId>/` as the agent working directory.
 4. The daemon validates uploaded image paths and project attachment paths.
 5. The daemon combines the system prompt, working directory hint, existing file list, attachment list, and user request into one prompt.
 6. The daemon prepares additional readable directories: `skills/` and `design-systems/`.
@@ -270,7 +276,7 @@ Existing protections include:
 - Reasoning options must exist in the runtime definition's `reasoningOptions`.
 - Image paths must be located inside the daemon temporary upload directory.
 - Attachment paths must be located inside the project working directory.
-- Agent working directories are constrained to `.od/projects/<projectId>/`.
+- Agent working directories are constrained to `.readable-studio/projects/<projectId>/`.
 - ACP runtimes have timeout protection for the initialize, session/new, session/set_model, and session/prompt stages.
 - ACP runtimes listen for `stdin` errors and proactively clean up detection processes after model detection completes.
 - When the SSE connection closes, the daemon sends `SIGTERM` to the subprocess.

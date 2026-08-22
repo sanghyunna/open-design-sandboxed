@@ -89,7 +89,7 @@ function pathInside(root: string, candidate: string): boolean {
   return relative === '' || (!path.isAbsolute(relative) && relative !== '..' && !relative.startsWith(`..${path.sep}`));
 }
 
-const WORKSPACE_SELF_LINK = path.join('node_modules', '.pnpm', 'node_modules', '@open-design', 'daemon');
+const WORKSPACE_SELF_LINK = path.join('node_modules', '.pnpm', 'node_modules', '@readable-studio', 'daemon');
 
 type RelocationContext = {
   sourceRoot: string;
@@ -335,7 +335,7 @@ function runBuildCommand(args: string[]): void {
 }
 
 function auditHostedProductionGraph(stage: string): void {
-  const auditRoot = mkdtempSync(path.join(os.tmpdir(), 'od-hosted-pi-audit-'));
+  const auditRoot = mkdtempSync(path.join(os.tmpdir(), 'readable-hosted-pi-audit-'));
   try {
     // Running from outside the workspace prevents pnpm from silently auditing
     // unrelated web/tools importers. The deployed package manifest and its
@@ -385,8 +385,8 @@ function build(stage: string): void {
     fail(`refusing to overwrite output outside a fresh .tmp directory: ${stage}`);
   }
   mkdirSync(path.dirname(stage), { recursive: true });
-  runBuildCommand(['--filter', '@open-design/daemon', 'build']);
-  runBuildCommand(['--filter', '@open-design/daemon', 'deploy', '--prod', '--no-optional', '--ignore-scripts', '--legacy', deployStage]);
+  runBuildCommand(['--filter', '@readable-studio/daemon', 'build']);
+  runBuildCommand(['--filter', '@readable-studio/daemon', 'deploy', '--prod', '--no-optional', '--ignore-scripts', '--legacy', deployStage]);
   removeWorkspaceSelfLink(deployStage);
   relocateTree(deployStage, stage);
   rmSync(deployStage, { recursive: true, force: true });
@@ -412,7 +412,7 @@ function message(stopReason = 'stop', useBroker = false, text = 'hosted fixture 
   return {
     role: 'assistant',
     content: useBroker
-      ? [{ type: 'toolCall', id: 'hosted-broker-call', name: 'od_hosted_broker', arguments: { operation: 'project:file:read', path: 'large.txt' } }]
+      ? [{ type: 'toolCall', id: 'hosted-broker-call', name: 'readable_hosted_broker', arguments: { operation: 'project:file:read', path: 'large.txt' } }]
       : [{ type: 'text', text: stopReason === 'stop' ? text : '' }],
     api: 'openai-completions',
     provider: 'hosted-fixture',
@@ -435,7 +435,7 @@ function stream(context = {}, options = {}) {
   const projectContextLoaded = typeof contextSentinel === 'string'
     && contextSentinel.length > 0
     && contextText.includes(contextSentinel);
-  const useBroker = Boolean(process.env.OD_HOSTED_PI_BROKER_SOCKET)
+  const useBroker = Boolean(process.env.READABLE_HOSTED_PI_BROKER_SOCKET)
     && !hasToolResult
     && !projectContextLoaded;
   let final = message(useBroker ? 'toolUse' : 'stop', useBroker, responseText);
@@ -496,7 +496,7 @@ fs.writeFileSync(process.env.HOSTED_PI_GUARD_MARKER, 'loaded');
 const deny = () => { throw new Error('hosted Pi smoke attempted network or process execution'); };
 global.fetch = deny;
 const net = require('node:net');
-const brokerSocket = process.env.OD_HOSTED_PI_BROKER_SOCKET;
+const brokerSocket = process.env.READABLE_HOSTED_PI_BROKER_SOCKET;
 const allowBrokerSocket = (original) => function (...args) {
   const first = args[0];
   const socket = typeof first === 'string' ? first : first && typeof first.path === 'string' ? first.path : undefined;
@@ -735,7 +735,7 @@ async function runRpcSmoke(stage: string): Promise<void> {
   const runtime = await import(pathToFileURL(path.join(runtimeDir, 'hosted-pi-runtime.js')).href);
   const piRpc = await import(pathToFileURL(path.join(stage, 'dist', 'pi-rpc.js')).href) as StagedPiRpc;
   const brokerModule = await import(pathToFileURL(path.join(runtimeDir, 'hosted-pi-broker.js')).href);
-  const smokeRoot = path.join(os.tmpdir(), `od-hosted-pi-smoke-${process.pid}-${Date.now()}`);
+  const smokeRoot = path.join(os.tmpdir(), `readable-hosted-pi-smoke-${process.pid}-${Date.now()}`);
   const project = path.join(smokeRoot, 'project');
   const runtimeRoot = path.join(smokeRoot, 'runtime');
   const sessionDir = path.join(smokeRoot, 'sessions');
@@ -949,9 +949,9 @@ async function runRpcSmoke(stage: string): Promise<void> {
       fail('fixture turn did not emit usage');
     }
     const brokerToolEnd = lines.find((line) => line.type === 'tool_execution_end'
-      && line.toolName === 'od_hosted_broker');
+      && line.toolName === 'readable_hosted_broker');
     if (!brokerToolEnd || brokerToolEnd.isError === true || !JSON.stringify(brokerToolEnd.result).includes('large-fixture')) {
-      fail('Pi did not execute the staged od_hosted_broker extension through the broker socket');
+      fail('Pi did not execute the staged readable_hosted_broker extension through the broker socket');
     }
     if (existsSync(maliciousMarker) || lines.some((line) => {
       const text = JSON.stringify(line);
@@ -1016,7 +1016,7 @@ async function runRpcSmoke(stage: string): Promise<void> {
 async function check(stage: string): Promise<void> {
   verifyArtifact(stage, false);
   verifyRelocatableTree(stage);
-  const extractedRoot = mkdtempSync(path.join(os.tmpdir(), 'od-hosted-pi-extracted-'));
+  const extractedRoot = mkdtempSync(path.join(os.tmpdir(), 'readable-hosted-pi-extracted-'));
   const extracted = path.join(extractedRoot, 'artifact');
   try {
     relocateTree(stage, extracted);

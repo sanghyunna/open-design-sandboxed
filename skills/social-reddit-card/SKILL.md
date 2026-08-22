@@ -18,7 +18,7 @@ example_tagline: "Reddit dark mode with a vote rail"
 example_desc: "An AITA-style story with 12.3k upvotes and 1.2k comments"
 example_source_url: "https://hyperframes.heygen.com/catalog"
 example_source_label: "hyperframes · reddit-post"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

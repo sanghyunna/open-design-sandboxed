@@ -10,7 +10,7 @@ triggers:
   - "neon lime editorial grid"
   - "high contrast strategy slides"
   - "Swiss fintech template"
-od:
+readable:
   mode: template
   surface: video
   type: hyperframes

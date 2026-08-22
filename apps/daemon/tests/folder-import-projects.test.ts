@@ -13,18 +13,18 @@ import {
 } from '../src/projects.js';
 
 function withSandboxMode<T>(run: () => T): T {
-  const previous = process.env.OD_SANDBOX_MODE;
-  process.env.OD_SANDBOX_MODE = '1';
+  const previous = process.env.READABLE_SANDBOX_MODE;
+  process.env.READABLE_SANDBOX_MODE = '1';
   try {
     return run();
   } finally {
-    if (previous == null) delete process.env.OD_SANDBOX_MODE;
-    else process.env.OD_SANDBOX_MODE = previous;
+    if (previous == null) delete process.env.READABLE_SANDBOX_MODE;
+    else process.env.READABLE_SANDBOX_MODE = previous;
   }
 }
 
 describe('resolveProjectDir', () => {
-  const projectsRoot = '/var/od/projects';
+  const projectsRoot = '/var/readable/projects';
   const projectId = 'proj-abc';
 
   it('returns the standard path when no metadata is given', () => {
@@ -89,7 +89,7 @@ describe('detectEntryFile', () => {
   let dir = '';
 
   beforeEach(() => {
-    dir = mkdtempSync(path.join(tmpdir(), 'od-detect-entry-'));
+    dir = mkdtempSync(path.join(tmpdir(), 'readable-detect-entry-'));
   });
 
   afterEach(() => {
@@ -129,7 +129,7 @@ describe('listFiles with metadata.baseDir', () => {
   let baseDir = '';
 
   beforeEach(async () => {
-    baseDir = mkdtempSync(path.join(tmpdir(), 'od-list-'));
+    baseDir = mkdtempSync(path.join(tmpdir(), 'readable-list-'));
     await writeFile(path.join(baseDir, 'index.html'), '<!doctype html>');
     await writeFile(path.join(baseDir, 'app.css'), 'body{}');
     await mkdir(path.join(baseDir, 'node_modules', 'react'), { recursive: true });
@@ -164,7 +164,7 @@ describe('listFiles with metadata.baseDir', () => {
 
   // Regression: callers that pass the metadata object directly as opts
   // (instead of wrapping it in `{ metadata }`) were silently scanning the
-  // standard .od/projects/<id>/ instead of the imported folder. Codex
+  // standard .readable-studio/projects/<id>/ instead of the imported folder. Codex
   // review of #624 caught one in chat-route. Lock the contract: when a
   // bare metadata object is passed at the top level, listFiles must
   // ignore it and fall back to the standard project dir — no false
@@ -195,7 +195,7 @@ describe('listFiles with metadata.baseDir', () => {
   });
 
   it('skips dependency dirs for non-baseDir projects too', async () => {
-    const standardDir = mkdtempSync(path.join(tmpdir(), 'od-list-std-'));
+    const standardDir = mkdtempSync(path.join(tmpdir(), 'readable-list-std-'));
     try {
       await mkdir(path.join(standardDir, 'std-project'), { recursive: true });
       await mkdir(path.join(standardDir, 'std-project', 'node_modules'));

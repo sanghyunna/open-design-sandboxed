@@ -8,7 +8,7 @@ triggers:
   - "invoice"
   - "bill"
   - "billing statement"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: finance

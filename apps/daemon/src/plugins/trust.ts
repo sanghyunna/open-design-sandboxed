@@ -4,13 +4,13 @@
 //   - Local installs default to `trusted` (the user copied the folder
 //     here themselves).
 //   - Anything else (bundled / marketplace / github / url / project) defaults
-//     to `restricted` until an explicit `od plugin trust <id>` flips it. Phase
+//     to `restricted` until an explicit `readable plugin trust <id>` flips it. Phase
 //     2A wires the marketplace trust roll-up; we just expose the helpers now.
 //   - `restricted` plugins ship the prompt:inject capability only. Apply-time
 //     adds explicit grants (e.g. `mcp:<name>`) onto the
 //     snapshot; we never widen the registry-stored cache here.
 
-import type { InstalledPluginRecord, PluginManifest, TrustTier } from '@open-design/contracts';
+import type { InstalledPluginRecord, PluginManifest, TrustTier } from '@readable-studio/contracts';
 
 export const TRUSTED_DEFAULT_CAPABILITIES: ReadonlyArray<string> = [
   'prompt:inject',
@@ -35,18 +35,18 @@ export function defaultCapabilities(trust: TrustTier): string[] {
 // grant decisions consult this; the doctor reports under-grants here too.
 export function requiredCapabilities(manifest: PluginManifest): string[] {
   const required = new Set<string>(['prompt:inject']);
-  const od = manifest.od;
+  const readable = manifest.readable;
 
-  for (const mcp of od?.context?.mcp ?? []) {
+  for (const mcp of readable?.context?.mcp ?? []) {
     if (mcp?.name) required.add(`mcp:${mcp.name}`);
   }
-  for (const surface of od?.genui?.surfaces ?? []) {
+  for (const surface of readable?.genui?.surfaces ?? []) {
     if (surface?.kind) required.add(`genui:${surface.kind}`);
   }
-  if ((od?.pipeline?.stages?.length ?? 0) > 0) {
+  if ((readable?.pipeline?.stages?.length ?? 0) > 0) {
     required.add('pipeline:*');
   }
-  for (const cap of od?.capabilities ?? []) {
+  for (const cap of readable?.capabilities ?? []) {
     if (typeof cap === 'string' && cap.length > 0) required.add(cap);
   }
   return Array.from(required.values()).sort();
@@ -73,7 +73,7 @@ function stripOptionalSuffix(cap: string): string {
 }
 
 // Plan §3.A2 / spec §9.1. The capability vocabulary that a `restricted`
-// plugin can be promoted to via `od plugin trust`. Anything outside this
+// plugin can be promoted to via `readable plugin trust`. Anything outside this
 // set is rejected at the HTTP layer.
 const KNOWN_TOP_LEVEL_CAPABILITIES = new Set<string>([
   'prompt:inject',
@@ -89,7 +89,7 @@ const KNOWN_TOP_LEVEL_CAPABILITIES = new Set<string>([
   'genui:custom-component',
 ]);
 
-const SCOPED_MCP_RE = /^mcp:[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const SCOPED_MCP_RE = /^mcp:[a-z0-9][a-z0-9._-]*$/;
 
 export interface InvalidCapabilityIssue {
   capability: string;

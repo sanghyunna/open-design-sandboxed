@@ -3,7 +3,7 @@
 <p align="center"><b>English</b> · <a href="docs/i18n/MAINTAINERS.pt-BR.md">Português (Brasil)</a> · <a href="docs/i18n/MAINTAINERS.de.md">Deutsch</a> · <a href="docs/i18n/MAINTAINERS.fr.md">Français</a> · <a href="docs/i18n/MAINTAINERS.zh-CN.md">简体中文</a> · <a href="docs/i18n/MAINTAINERS.ja-JP.md">日本語</a></p>
 
 This document defines the rules for becoming, serving as, and stepping down from
-a Maintainer of `sanghyunna/open-design-sandboxed`. The Core Team's individual roster is
+a Maintainer of `sanghyunna/readable-studio`. The Core Team's individual roster is
 maintained internally and is not enumerated here — what matters publicly are
 the rules everyone plays by.
 
@@ -17,7 +17,7 @@ the rules everyone plays by.
 |---|---|
 | **Contributor** | Anyone with at least 1 merged PR. No special permissions. |
 | **External Maintainer** | A community contributor promoted under the rules below. Can review, approve, close/reopen issues, and self-assign issues. **Cannot click the merge button** — that stays with the Core Team. |
-| **Core Team** | Open Design's internal team. Holds full repository write access and is the final authority on governance decisions. Roster maintained internally. |
+| **Core Team** | Readable Studio's internal team. Holds full repository write access and is the final authority on governance decisions. Roster maintained internally. |
 
 The rest of this document is about **External Maintainers** unless stated otherwise.
 
@@ -49,7 +49,7 @@ There are **three** entry criteria. All three must be met.
 
 ### 1. Contribution volume
 
-- **≥ 20 merged PRs** to `sanghyunna/open-design-sandboxed`.
+- **≥ 20 merged PRs** to `sanghyunna/readable-studio`.
 
 This is a soft floor, not an automatic ticket. Hitting 20 PRs gets you into
 consideration; it does not guarantee the role.
@@ -71,7 +71,7 @@ least 5 of 7 admission lines, and trigger zero veto lines.**
 
 #### Early-project waiver (auto-expires when repo turns 6 months old)
 
-While `sanghyunna/open-design-sandboxed` is younger than six months from initial commit,
+While `sanghyunna/readable-studio` is younger than six months from initial commit,
 the **cross-project activity** veto (#6) may be waived by Core Team consensus
 when:
 

@@ -1913,7 +1913,7 @@ describe('SettingsDialog execution settings Local CLI interactions', () => {
     );
 
     fireEvent.click(screen.getByRole('tab', { name: /Local CLI/i }));
-    fireEvent.click(screen.getByRole('button', { name: /^Open Design AMR\b/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^AMR\b/ }));
 
     const modelPickers = screen.getAllByRole('combobox', {
       name: en['settings.modelPicker'],
@@ -2185,7 +2185,7 @@ describe('SettingsDialog execution settings Local CLI interactions', () => {
     );
 
     fireEvent.click(screen.getByRole('tab', { name: /Local CLI.*1 installed/i }));
-    fireEvent.click(screen.getByRole('button', { name: /^Open Design AMR\b/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^AMR\b/ }));
 
     expect(screen.queryByText('1.0.0')).toBeNull();
     expect(screen.queryByText(/AMR \(vela\)/i)).toBeNull();
@@ -2210,9 +2210,9 @@ describe('SettingsDialog execution settings Local CLI interactions', () => {
 
 describe('SettingsDialog MCP server interactions', () => {
   const installInfo = {
-    command: '/Applications/Open Design.app/Contents/Resources/open-design/bin/node',
+    command: '/Applications/Readable Studio.app/Contents/Resources/readable-studio/bin/node',
     args: [
-      '/Applications/Open Design.app/Contents/Resources/app/node_modules/@open-design/daemon/dist/cli.js',
+      '/Applications/Readable Studio.app/Contents/Resources/app/node_modules/@readable-studio/daemon/dist/cli.js',
       'mcp',
       '--daemon-url',
       'http://127.0.0.1:51706',
@@ -2267,10 +2267,10 @@ describe('SettingsDialog MCP server interactions', () => {
     });
     expect(screen.getByText(/Run this in your terminal/i)).toBeTruthy();
     await waitFor(() => {
-      expect(screen.getByText(/claude mcp add-json --scope user open-design/i)).toBeTruthy();
+      expect(screen.getByText(/claude mcp add-json --scope user readable-studio/i)).toBeTruthy();
     });
     expect(screen.getByText(/Restart your client to pick up the new server/i)).toBeTruthy();
-    expect(screen.getByText(/Open Design must be running for MCP tool calls to succeed/i)).toBeTruthy();
+    expect(document.querySelector('.mcp-running-note')?.textContent?.trim()).toBeTruthy();
   });
 
   it('switches client instructions and snippet content when a different MCP client is selected', async () => {
@@ -2280,7 +2280,7 @@ describe('SettingsDialog MCP server interactions', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/claude mcp add-json --scope user open-design/i)).toBeTruthy();
+      expect(screen.getByText(/claude mcp add-json --scope user readable-studio/i)).toBeTruthy();
     });
 
     fireEvent.click(screen.getByRole('button', { name: /Claude Code/i }));
@@ -2289,7 +2289,7 @@ describe('SettingsDialog MCP server interactions', () => {
     await waitFor(() => {
       expect(screen.getByText(/Append this table to ~\/\.codex\/config\.toml/i)).toBeTruthy();
     });
-    expect(screen.getByText(/\[mcp_servers\.open-design\]/i)).toBeTruthy();
+    expect(screen.getByText(/\[mcp_servers\.readable-studio\]/i)).toBeTruthy();
 
     // Scope to the picker trigger ("Codex" + the TOML method chip) so
     // we don't collide with the new one-click "Install in Codex" /
@@ -2311,14 +2311,14 @@ describe('SettingsDialog MCP server interactions', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/claude mcp add-json --scope user open-design/i)).toBeTruthy();
+      expect(screen.getByText(/claude mcp add-json --scope user readable-studio/i)).toBeTruthy();
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy MCP configuration snippet' }));
 
     await waitFor(() => {
       expect(writeTextMock).toHaveBeenCalledWith(
-        expect.stringContaining("claude mcp add-json --scope user open-design"),
+        expect.stringContaining("claude mcp add-json --scope user readable-studio"),
       );
     });
     expect(screen.getByText('Copied')).toBeTruthy();
@@ -2343,7 +2343,7 @@ describe('SettingsDialog MCP server interactions', () => {
 describe('SettingsDialog language interactions', () => {
   afterEach(() => {
     cleanup();
-    window.localStorage.removeItem('open-design:locale');
+    window.localStorage.removeItem('readable-studio:locale');
     document.documentElement.removeAttribute('lang');
     document.documentElement.removeAttribute('dir');
   });
@@ -2364,7 +2364,7 @@ describe('SettingsDialog language interactions', () => {
     fireEvent.click(screen.getByRole('radio', { name: new RegExp(LOCALE_LABEL.ko) }));
 
     expect(screen.getByRole('radio', { name: new RegExp(LOCALE_LABEL.ko) }).getAttribute('aria-checked')).toBe('true');
-    expect(window.localStorage.getItem('open-design:locale')).toBe('ko');
+    expect(window.localStorage.getItem('readable-studio:locale')).toBe('ko');
     expect(document.documentElement.getAttribute('lang')).toBe('ko');
     expect(document.documentElement.getAttribute('dir')).toBe('ltr');
   });
@@ -2374,13 +2374,13 @@ describe('SettingsDialog language interactions', () => {
 
     fireEvent.click(screen.getByRole('radio', { name: new RegExp(LOCALE_LABEL.ko) }));
 
-    expect(window.localStorage.getItem('open-design:locale')).toBe('ko');
+    expect(window.localStorage.getItem('readable-studio:locale')).toBe('ko');
     expect(document.documentElement.getAttribute('lang')).toBe('ko');
 
     fireEvent.click(screen.getByTitle(ko['common.close']));
     expect(onPersist).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalledTimes(1);
-    expect(window.localStorage.getItem('open-design:locale')).toBe('ko');
+    expect(window.localStorage.getItem('readable-studio:locale')).toBe('ko');
     expect(document.documentElement.getAttribute('lang')).toBe('ko');
     expect(document.documentElement.getAttribute('dir')).toBe('ltr');
   });
@@ -2688,7 +2688,7 @@ describe('SettingsDialog appearance interactions', () => {
         agentCliEnv: {
           codex: { CODEX_BIN: '/tmp/codex-dev' },
           amr: {
-            OPEN_DESIGN_AMR_PROFILE: 'prod',
+            READABLE_AMR_PROFILE: 'prod',
             AMR_API_BASE_URL: 'https://draft.example.test',
           },
         },
@@ -2705,7 +2705,7 @@ describe('SettingsDialog appearance interactions', () => {
           theme: 'dark',
           agentCliEnv: {
             amr: {
-              OPEN_DESIGN_AMR_PROFILE: 'local',
+              READABLE_AMR_PROFILE: 'local',
               AMR_API_BASE_URL: 'https://daemon.example.test',
             },
           },
@@ -2730,7 +2730,7 @@ describe('SettingsDialog appearance interactions', () => {
         agentCliEnv: {
           codex: { CODEX_BIN: '/tmp/codex-dev' },
           amr: {
-            OPEN_DESIGN_AMR_PROFILE: 'local',
+            READABLE_AMR_PROFILE: 'local',
             AMR_API_BASE_URL: 'https://draft.example.test',
           },
         },
@@ -2757,7 +2757,7 @@ describe('SettingsDialog appearance interactions', () => {
           },
           agentCliEnv: {
             amr: {
-              OPEN_DESIGN_AMR_PROFILE: 'prod',
+              READABLE_AMR_PROFILE: 'prod',
             },
           },
         },
@@ -2766,7 +2766,7 @@ describe('SettingsDialog appearance interactions', () => {
           agentModels: {},
           agentCliEnv: {
             amr: {
-              OPEN_DESIGN_AMR_PROFILE: 'local',
+              READABLE_AMR_PROFILE: 'local',
             },
           },
         },
@@ -2780,13 +2780,13 @@ describe('SettingsDialog appearance interactions', () => {
         {
           codex: { CODEX_BIN: '/tmp/codex-dev' },
           amr: {
-            OPEN_DESIGN_AMR_PROFILE: 'prod',
+            READABLE_AMR_PROFILE: 'prod',
             AMR_API_BASE_URL: 'https://draft.example.test',
           },
         },
         {
           amr: {
-            OPEN_DESIGN_AMR_PROFILE: 'local',
+            READABLE_AMR_PROFILE: 'local',
             AMR_API_BASE_URL: 'https://daemon.example.test',
           },
         },
@@ -2794,7 +2794,7 @@ describe('SettingsDialog appearance interactions', () => {
     ).toEqual({
       codex: { CODEX_BIN: '/tmp/codex-dev' },
       amr: {
-        OPEN_DESIGN_AMR_PROFILE: 'local',
+        READABLE_AMR_PROFILE: 'local',
         AMR_API_BASE_URL: 'https://draft.example.test',
       },
     });

@@ -5,7 +5,7 @@
  *
  * Before this fix, every `<a>` rendered from chat markdown carried
  * `target="_blank"` with no `onClick`. In Electron that hits the desktop
- * `setWindowOpenHandler` and creates a new `od://` BrowserWindow; relative
+ * `setWindowOpenHandler` and creates a new `readable-studio://` BrowserWindow; relative
  * hrefs like `template.html` have no base so the new window can't resolve
  * them and the user lands on the home screen. The fix detects in-project
  * file paths in chat markdown and routes them through the existing
@@ -148,7 +148,7 @@ describe('AssistantMessage — chat file-link routing (#1239)', () => {
     const { container } = render(
       <AssistantMessage
         message={messageWithText(
-          '已完成单文件原型：[index.html](/Users/mac/open-design/open-design-preview-0.10.0/projects/Web%20Prototype/index.html)。',
+          '已完成单文件原型：[index.html](/Users/mac/readable-studio/readable-studio-preview-0.10.0/projects/Web%20Prototype/index.html)。',
         )}
         streaming={false}
         projectId="project-1"

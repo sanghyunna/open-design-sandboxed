@@ -14,7 +14,7 @@ triggers:
   - "trading analysis dashboard template"
   - "Wall Street-style dashboard"
   - "high-tech financial dashboard template"
-od:
+readable:
   mode: template
   platform: desktop
   scenario: live-artifacts

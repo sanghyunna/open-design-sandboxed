@@ -8,7 +8,7 @@ triggers:
   - "honest review"
   - "dev tool review"
 - "Evaluation"
-od:
+readable:
   mode: deck
   scenario: engineering
   featured: 30

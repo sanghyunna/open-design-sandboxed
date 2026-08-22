@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { createTabToTracking } from '@open-design/contracts/analytics';
-import { isOpenDesignHostAvailable, pickHostWorkingDir } from '@open-design/host';
-import type { OpenDesignHostProjectImportSuccess } from '@open-design/host';
+import { createTabToTracking } from '@readable-studio/contracts/analytics';
+import { isReadableStudioHostAvailable, pickHostWorkingDir } from '@readable-studio/host';
+import type { ReadableStudioHostProjectImportSuccess } from '@readable-studio/host';
 import { useAnalytics } from '../analytics/provider';
 import {
   trackDesignSystemApplyResult,
@@ -13,7 +13,7 @@ import type {
   TrackingDesignSystemApplyTargetKind,
   TrackingDesignSystemOrigin,
   TrackingDesignSystemStatusValue,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 
 import { useT } from '../i18n';
 import type { Dict } from '../i18n/types';
@@ -105,7 +105,7 @@ interface Props {
   // never sees the path or the HMAC token; it only receives the
   // host-owned project identifiers and forwards them here so App-level
   // state can refresh through the daemon API.
-  onImportFolderResponse?: (response: OpenDesignHostProjectImportSuccess) => Promise<void> | void;
+  onImportFolderResponse?: (response: ReadableStudioHostProjectImportSuccess) => Promise<void> | void;
   loading?: boolean;
   initialTab?: CreateTab;
 }
@@ -495,7 +495,7 @@ export function NewProjectPanel({
     setWorkingDirPicking(true);
     setWorkingDirError(null);
     try {
-      if (isOpenDesignHostAvailable()) {
+      if (isReadableStudioHostAvailable()) {
         const result = await pickHostWorkingDir();
         if (result.ok) {
           setWorkingDir(result.baseDir);
@@ -504,7 +504,7 @@ export function NewProjectPanel({
         }
         if ('canceled' in result && result.canceled) return;
         setWorkingDirError({
-          message: `Couldn't open the folder picker (${'reason' in result ? result.reason : 'host unavailable'}). Please update Open Design and try again.`,
+          message: `Couldn't open the folder picker (${'reason' in result ? result.reason : 'host unavailable'}). Please update Readable Studio and try again.`,
         });
         return;
       }
@@ -611,7 +611,7 @@ export function NewProjectPanel({
         <div className="newproj-working-dir-row">
           <button
             type="button"
-            className={`ghost newproj-working-dir od-tooltip${workingDir ? ' picked' : ''}`}
+            className={`ghost newproj-working-dir readable-tooltip${workingDir ? ' picked' : ''}`}
             onClick={() => void handlePickWorkingDir()}
             disabled={workingDirPicking}
             title={workingDir ?? t('projectFolderPicker.homeTitle')}

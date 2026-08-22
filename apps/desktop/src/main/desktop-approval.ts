@@ -4,15 +4,15 @@ import type {
   DesktopRollbackApprovalDecisionRequest,
   DesktopRollbackApprovalDecisionResponse,
   DesktopRollbackApprovalNextResponse,
-} from "@open-design/contracts";
-import { SIDECAR_ENV } from "@open-design/sidecar-proto";
+} from "@readable-studio/contracts";
+import { SIDECAR_ENV } from "@readable-studio/sidecar-proto";
 
 const NEXT_APPROVAL_PATH = "/api/desktop/rollback-approvals/next";
 const RETRY_DELAY_MS = 1_000;
 const APPROVE_BUTTON_ID = 1;
 
 const DESKTOP_ROLLBACK_SAFETY_WARNING =
-  "Approving can overwrite current files. Open Design creates a safety checkpoint before the rollback.";
+  "Approving can overwrite current files. Readable Studio creates a safety checkpoint before the rollback.";
 
 type DesktopRollbackApproval = Readonly<
   NonNullable<DesktopRollbackApprovalNextResponse["approval"]>

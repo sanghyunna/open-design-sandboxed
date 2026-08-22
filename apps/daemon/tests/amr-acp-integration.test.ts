@@ -186,7 +186,7 @@ describe('AMR runtime def', () => {
   });
 
   it('retries transient `vela model list --format json` failures before succeeding', async () => {
-    const tempDir = mkdtempSync(path.join(tmpdir(), 'od-amr-retry-'));
+    const tempDir = mkdtempSync(path.join(tmpdir(), 'readable-amr-retry-'));
     const stateFile = path.join(tempDir, 'retry-state.json');
     const wrapperPath = path.join(tempDir, 'vela-wrapper');
     const wrapperSource = `#!/usr/bin/env node
@@ -202,7 +202,7 @@ if (args[0] === 'model' && args[1] === 'list') {
   state.attempts += 1;
   if (stateFile) writeFileSync(stateFile, JSON.stringify(state), 'utf8');
   if (state.attempts < 3) {
-    process.stderr.write('Get "https://amr-link.open-design.ai/v1/models": context deadline exceeded\\n');
+    process.stderr.write('Get "https://amr-link.example.test/v1/models": context deadline exceeded\\n');
     process.exit(1);
   }
 }
@@ -582,7 +582,7 @@ describe('AMR ACP transport — end-to-end against fake vela stub', () => {
     expect(classifyAmrAccountFailure(message)).toMatchObject({
       code: 'AMR_INSUFFICIENT_BALANCE',
       action: 'recharge',
-      actionUrl: 'https://open-design.ai/amr/wallet?source=open_design',
+      actionUrl: 'https://vela.powerformer.net/wallet?source=readable_studio',
     });
   });
 

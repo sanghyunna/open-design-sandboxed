@@ -1,7 +1,7 @@
 # `mocks/golden/` — daemon-event regression snapshots
 
 Each `<trace-id>.events.json` is a committed snapshot of the event
-sequence that flows out of the OD daemon's stream handler when fed the
+sequence that flows out of the Readable Studio daemon's stream handler when fed the
 matching mock CLI's output for that recording.
 
 The shape is:
@@ -32,7 +32,7 @@ makes that test fail loudly.
 ## Updating after an intentional parser change
 
 ```bash
-MOCKS_GOLDEN_UPDATE=1 pnpm --filter @open-design/daemon test mocks-golden
+MOCKS_GOLDEN_UPDATE=1 pnpm --filter @readable-studio/daemon test mocks-golden
 git diff mocks/golden/
 git add mocks/golden/ && git commit -m "mocks: refresh goldens — parser X now emits Y"
 ```

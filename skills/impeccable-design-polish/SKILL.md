@@ -12,7 +12,7 @@ triggers:
   - "harden ui"
   - "live review"
   - "less AI-looking"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

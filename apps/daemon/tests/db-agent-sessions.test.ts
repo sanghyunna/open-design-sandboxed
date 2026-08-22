@@ -19,7 +19,7 @@ describe('agent_sessions persistence', () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(path.join(os.tmpdir(), 'od-agent-sessions-'));
+    tempDir = mkdtempSync(path.join(os.tmpdir(), 'readable-agent-sessions-'));
   });
 
   afterEach(() => {
@@ -74,7 +74,7 @@ describe('agent_sessions persistence', () => {
 describe('agent_sessions stable_prompt_hash', () => {
   let tempDir: string;
   beforeEach(() => {
-    tempDir = mkdtempSync(path.join(os.tmpdir(), 'od-agent-sessions-hash-'));
+    tempDir = mkdtempSync(path.join(os.tmpdir(), 'readable-agent-sessions-hash-'));
   });
   afterEach(() => {
     closeDatabase();

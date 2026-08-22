@@ -108,7 +108,7 @@ describe('PreviewDrawOverlay', () => {
 
   it('queues a note when Enter submits from the draw input', async () => {
     const annotation = vi.fn();
-    window.addEventListener('opendesign:annotation', annotation);
+    window.addEventListener('readable-studio:annotation', annotation);
 
     try {
       const { container } = render(
@@ -129,13 +129,13 @@ describe('PreviewDrawOverlay', () => {
         note: 'Please inspect this panel.',
       });
     } finally {
-      window.removeEventListener('opendesign:annotation', annotation);
+      window.removeEventListener('readable-studio:annotation', annotation);
     }
   });
 
   it('does not submit a note when Enter confirms IME composition', () => {
     const annotation = vi.fn();
-    window.addEventListener('opendesign:annotation', annotation);
+    window.addEventListener('readable-studio:annotation', annotation);
 
     try {
       const { container } = render(
@@ -153,7 +153,7 @@ describe('PreviewDrawOverlay', () => {
 
       expect(annotation).not.toHaveBeenCalled();
     } finally {
-      window.removeEventListener('opendesign:annotation', annotation);
+      window.removeEventListener('readable-studio:annotation', annotation);
     }
   });
 
@@ -162,7 +162,7 @@ describe('PreviewDrawOverlay', () => {
       const detail = (event as CustomEvent<{ ack?: (result: { ok: boolean }) => void }>).detail;
       detail.ack?.({ ok: true });
     });
-    window.addEventListener('opendesign:annotation', annotation);
+    window.addEventListener('readable-studio:annotation', annotation);
 
     try {
       const { container, getByRole } = render(
@@ -196,7 +196,7 @@ describe('PreviewDrawOverlay', () => {
       fireEvent.click(queueButton);
       await waitFor(() => expect(annotation).toHaveBeenCalledTimes(2));
     } finally {
-      window.removeEventListener('opendesign:annotation', annotation);
+      window.removeEventListener('readable-studio:annotation', annotation);
     }
   });
 
@@ -205,7 +205,7 @@ describe('PreviewDrawOverlay', () => {
       const detail = (event as CustomEvent<{ ack?: (result: { ok: boolean }) => void }>).detail;
       detail.ack?.({ ok: true });
     });
-    window.addEventListener('opendesign:annotation', annotation);
+    window.addEventListener('readable-studio:annotation', annotation);
 
     try {
       const { container, getByRole } = render(
@@ -228,7 +228,7 @@ describe('PreviewDrawOverlay', () => {
         }),
       });
     } finally {
-      window.removeEventListener('opendesign:annotation', annotation);
+      window.removeEventListener('readable-studio:annotation', annotation);
     }
   });
 
@@ -305,7 +305,7 @@ describe('PreviewDrawOverlay', () => {
     });
 
     expect(postMessage).toHaveBeenCalledWith(
-      { type: 'od:preview-scroll-by', left: 8, top: 96 },
+      { type: 'readable-studio:preview-scroll-by', left: 8, top: 96 },
       '*',
     );
   });
@@ -340,7 +340,7 @@ describe('PreviewDrawOverlay', () => {
     });
 
     expect(postMessage).toHaveBeenCalledWith(
-      { type: 'od:preview-scroll-by', left: 4, top: 72 },
+      { type: 'readable-studio:preview-scroll-by', left: 4, top: 72 },
       '*',
     );
   });
@@ -363,9 +363,9 @@ describe('PreviewDrawOverlay', () => {
     const { getByRole } = render(
       <PreviewDrawOverlay active captureViewport>
         {/* URL-load frame is the visible/active one (e.g. a deck) but has no bridge */}
-        <iframe title="url" data-od-active="true" />
+        <iframe title="url" data-readable-active="true" />
         {/* srcDoc frame is mounted but hidden; it hosts the snapshot bridge */}
-        <iframe title="srcdoc" data-od-render-mode="srcdoc" data-od-active="false" />
+        <iframe title="srcdoc" data-readable-render-mode="srcdoc" data-readable-active="false" />
       </PreviewDrawOverlay>,
     );
 
@@ -373,7 +373,7 @@ describe('PreviewDrawOverlay', () => {
 
     await waitFor(() => expect(snapshot).toHaveBeenCalled());
     const usedIframe = snapshot.mock.calls[0]?.[0] as HTMLIFrameElement;
-    expect(usedIframe.getAttribute('data-od-render-mode')).toBe('srcdoc');
+    expect(usedIframe.getAttribute('data-readable-render-mode')).toBe('srcdoc');
   });
 
   it('portals the draw toolbar out of the scaled/clipped device frame to the preview body', async () => {
@@ -410,7 +410,7 @@ describe('PreviewDrawOverlay', () => {
       const detail = (event as CustomEvent<{ ack?: (result: { ok: boolean }) => void }>).detail;
       detail.ack?.({ ok: true });
     });
-    window.addEventListener('opendesign:annotation', annotation);
+    window.addEventListener('readable-studio:annotation', annotation);
 
     let host: HTMLElement | null = null;
     const captureSnapshot = vi.fn(async () => {
@@ -433,7 +433,7 @@ describe('PreviewDrawOverlay', () => {
       await waitFor(() => expect(annotation).toHaveBeenCalledTimes(1));
       expect(container.querySelector<HTMLElement>('.preview-draw-toolbar')?.style.visibility).toBe('');
     } finally {
-      window.removeEventListener('opendesign:annotation', annotation);
+      window.removeEventListener('readable-studio:annotation', annotation);
       restoreCompositeMocks();
     }
   });

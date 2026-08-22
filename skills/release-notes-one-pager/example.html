@@ -20,7 +20,7 @@
     body { margin: 0; font: 16px/1.55 var(--font-body); color: var(--fg); background: var(--bg); }
     .container { max-width: 1120px; margin: 0 auto; padding: 0 32px; }
     .section { padding: 72px 0; }
-    .section[data-od-id="hero"] { padding: 96px 0 84px; }
+    .section[data-readable-id="hero"] { padding: 96px 0 84px; }
     .section + .section { border-top: 1px solid var(--border); }
     .topnav { position: sticky; top: 0; z-index: 10; background: color-mix(in oklch, var(--bg) 92%, transparent); border-bottom: 1px solid var(--border); backdrop-filter: blur(10px); }
     .topnav-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; }
@@ -56,7 +56,7 @@
   </style>
 </head>
 <body>
-  <header class="topnav" data-od-id="topnav">
+  <header class="topnav" data-readable-id="topnav">
     <div class="container topnav-inner">
       <span class="logo">Release notes</span>
       <nav>
@@ -68,7 +68,7 @@
   </header>
 
   <main id="content">
-    <section class="section" data-od-id="hero">
+    <section class="section" data-readable-id="hero">
       <div class="container hero">
         <p class="eyebrow">Release notes · Version: v2.3.1 · Date: —</p>
         <h1>v2.3.1</h1>
@@ -76,7 +76,7 @@
       </div>
     </section>
 
-    <section class="section" id="added" data-od-id="added">
+    <section class="section" id="added" data-readable-id="added">
       <div class="container">
         <div class="row-between" style="margin-bottom: 24px;">
           <h2>Added</h2>
@@ -92,7 +92,7 @@
       </div>
     </section>
 
-    <section class="section" id="fixed" data-od-id="fixed">
+    <section class="section" id="fixed" data-readable-id="fixed">
       <div class="container">
         <div class="row-between" style="margin-bottom: 24px;">
           <h2>Fixed</h2>
@@ -108,7 +108,7 @@
       </div>
     </section>
 
-    <section class="section" id="breaking-changes" data-od-id="breaking-changes">
+    <section class="section" id="breaking-changes" data-readable-id="breaking-changes">
       <div class="container">
         <div class="row-between" style="margin-bottom: 24px;">
           <h2>Breaking changes</h2>
@@ -124,7 +124,7 @@
       </div>
     </section>
 
-    <section class="section" id="known-issues" data-od-id="known-issues">
+    <section class="section" id="known-issues" data-readable-id="known-issues">
       <div class="container">
         <div class="row-between" style="margin-bottom: 16px;">
           <h2>Known issues</h2>
@@ -134,7 +134,7 @@
       </div>
     </section>
 
-    <section class="section" id="upgrade-note" data-od-id="upgrade-note">
+    <section class="section" id="upgrade-note" data-readable-id="upgrade-note">
       <div class="container">
         <div class="row-between" style="margin-bottom: 16px;">
           <h2>Upgrade note</h2>
@@ -146,7 +146,7 @@
 
   </main>
 
-  <footer class="pagefoot" data-od-id="footer">
+  <footer class="pagefoot" data-readable-id="footer">
     <div class="container row-between">
       <span>© —</span>
       <span class="meta">Release notes · v2.3.1</span>

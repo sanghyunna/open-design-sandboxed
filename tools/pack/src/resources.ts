@@ -11,7 +11,7 @@ function resolveToolsPackRoot(startDir: string): string {
     try {
       const raw = readFileSync(join(current, "package.json"), "utf8");
       const parsed = JSON.parse(raw) as { name?: unknown };
-      if (parsed.name === "@open-design/tools-pack") {
+      if (parsed.name === "@readable-studio/tools-pack") {
         return current;
       }
     } catch {
@@ -29,25 +29,11 @@ function resolveToolsPackRoot(startDir: string): string {
 export const toolsPackRoot = resolveToolsPackRoot(dirname(fileURLToPath(import.meta.url)));
 export const resourcesRoot = join(toolsPackRoot, "resources");
 
-export const macResources = {
-  entitlements: join(resourcesRoot, "mac", "entitlements.mac.plist"),
-  entitlementsInherit: join(resourcesRoot, "mac", "entitlements.mac.inherit.plist"),
-  icon: join(resourcesRoot, "mac", "icon.icns"),
-  iconPng: join(resourcesRoot, "mac", "icon.png"),
-  notarizeHook: join(resourcesRoot, "mac", "notarize.cjs"),
-  webStandaloneAfterPackHook: join(resourcesRoot, "web-standalone-after-pack.cjs"),
-} as const;
-
 export const winResources = {
   icon: join(resourcesRoot, "win", "icon.ico"),
   sevenZipDll: join(resourcesRoot, "win", "7zip", "7z.dll"),
   sevenZipExe: join(resourcesRoot, "win", "7zip", "7z.exe"),
   webStandaloneAfterPackHook: join(resourcesRoot, "web-standalone-after-pack.cjs"),
-} as const;
-
-export const linuxResources = {
-  icon: join(resourcesRoot, "linux", "icon.png"),
-  desktopTemplate: join(resourcesRoot, "linux", "open-design.desktop.template"),
 } as const;
 
 const BUNDLED_RESOURCE_TREES = [
@@ -77,7 +63,6 @@ export async function copyBundledResourceTrees({
 }: {
   workspaceRoot: string;
   resourceRoot: string;
-  portable?: boolean;
 }): Promise<void> {
   for (const entry of BUNDLED_RESOURCE_TREES) {
     await cp(join(workspaceRoot, entry.from), join(resourceRoot, entry.to), {

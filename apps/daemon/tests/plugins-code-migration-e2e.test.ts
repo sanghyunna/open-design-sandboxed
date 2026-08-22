@@ -23,7 +23,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import type { ArtifactManifest } from '@open-design/contracts';
+import type { ArtifactManifest } from '@readable-studio/contracts';
 import { runCodeImport } from '../src/plugins/atoms/code-import.js';
 import { runDesignExtract } from '../src/plugins/atoms/design-extract.js';
 import { runTokenMap, type DesignSystemTokenBag } from '../src/plugins/atoms/token-map.js';
@@ -45,7 +45,7 @@ const designSystem: DesignSystemTokenBag = {
 };
 
 beforeEach(async () => {
-  const tmp = await mkdtemp(path.join(os.tmpdir(), 'od-pipeline-e2e-'));
+  const tmp = await mkdtemp(path.join(os.tmpdir(), 'readable-pipeline-e2e-'));
   repo = path.join(tmp, 'repo');
   cwd  = path.join(tmp, 'cwd');
   await mkdir(repo, { recursive: true });
@@ -148,7 +148,7 @@ describe('code-migration pipeline — full atom chain', () => {
     // 8. handoff. With accept + both build/test signals AND a 'cli'
     //    exportTarget, the manifest promotes to 'deployable-app'.
     const initialManifest: ArtifactManifest = {
-      version:  1,
+      schema: 'readable-studio.artifact-manifest.v1',
       kind:     'react-component',
       title:    'Button (re-tokenised)',
       entry:    'components/Button.tsx',
@@ -158,7 +158,7 @@ describe('code-migration pipeline — full atom chain', () => {
     const handoff = await runHandoffAtom({
       cwd,
       manifest: initialManifest,
-      exportTarget: { surface: 'cli', target: '/tmp/od-export', exportedAt: Date.now() },
+      exportTarget: { surface: 'cli', target: '/tmp/readable-export', exportedAt: Date.now() },
     });
     expect(handoff.signals.decision).toBe('accept');
     expect(handoff.signals.buildPassing).toBe(true);
@@ -180,7 +180,7 @@ describe('code-migration pipeline — full atom chain', () => {
     const handoff = await runHandoffAtom({
       cwd,
       manifest: {
-        version: 1, kind: 'react-component', title: 'X', entry: 'x.tsx',
+        schema: 'readable-studio.artifact-manifest.v1', kind: 'react-component', title: 'X', entry: 'x.tsx',
         renderer: 'react-component', exports: [],
       },
     });

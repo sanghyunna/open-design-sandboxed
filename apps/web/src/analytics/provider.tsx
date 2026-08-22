@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import type { AnalyticsConfigureGlobals } from '@open-design/contracts/analytics';
+import type { AnalyticsConfigureGlobals } from '@readable-studio/contracts/analytics';
 import {
   detectClientType,
   getAnonymousId,

@@ -7,7 +7,7 @@ triggers:
   - "workshop"
   - "training deck"
   - "lesson"
-od:
+readable:
   mode: deck
   scenario: education
   upstream: "https://github.com/lewislulu/html-ppt-skill"

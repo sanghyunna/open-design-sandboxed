@@ -18,7 +18,7 @@ example_tagline: "Aurora Violet fluid"
 example_desc: "Multi-layer radial-gradient breathing background + difference-blend text"
 example_source_url: "https://github.com/nexu-io/html-anything"
 example_source_label: "html-frames · vfx-liquid-background"
-od:
+readable:
   mode: video
   surface: video
   scenario: video

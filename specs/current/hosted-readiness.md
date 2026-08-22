@@ -1,10 +1,10 @@
 # Hosted readiness contract (Issue #63)
 
 Status: final evidence candidate `2c184451` passed exact required checks in
-[workflow run 31204885460](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31204885460)
-for [PR #67](https://github.com/sanghyunna/open-design-sandboxed/pull/67). PR11
+[workflow run 31204885460](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31204885460)
+for [PR #67](https://github.com/sanghyunna/readable-studio-sandboxed/pull/67). PR11
 is frozen at `8491375b`; its exact Windows, Linux, and Nix checks passed in
-[workflow run 31197265316](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31197265316).
+[workflow run 31197265316](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31197265316).
 No Databricks capacity claim is in scope.
 
 This document is the executable review contract for the local hosted composition in
@@ -50,7 +50,7 @@ name, while the reverse binding and marker make a collision fail closed.
 
 - Hosted uses a distinct Next standalone build, never the default production static
   export.
-- The build serializes `<html data-od-composition="hosted">`; the marker therefore
+- The build serializes `<html data-readable-composition="hosted">`; the marker therefore
   exists before the layout theme script and React hydration. It is composition
   metadata, not authentication.
 - One public web sidecar origin serves the browser. It proxies only the exact `/api`
@@ -60,7 +60,7 @@ name, while the reverse binding and marker make a collision fail closed.
 - The sidecar forwards a strict allowlist of non-authority request headers and at
   most one supported credential carrier. A valid CLI `Authorization: Bearer` value
   takes precedence; otherwise only the browser's Secure/HttpOnly/SameSite
-  `__Host-od-hosted` cookie is forwarded. The single path-scoped, cryptographic
+  `__Host-readable-hosted` cookie is forwarded. The single path-scoped, cryptographic
   `odpvb_*` preview proof may accompany it; every other cookie is removed. All
   assertion-like and undeclared headers are dropped. The selected carrier is
   cryptographically verified before it can yield a `userKey`. The sidecar then sets
@@ -71,7 +71,7 @@ name, while the reverse binding and marker make a collision fail closed.
   adapter's verified credential, never from a forwarded header. The local loopback
   Origin rewrite is forbidden.
 - Before hydration, hosted theme/config code applies fixed defaults without reading
-  `open-design:config`. Hosted config persistence is an allowlist of non-secret UI
+  `readable-studio:config`. Hosted config persistence is an allowlist of non-secret UI
   preferences. Provider drafts remain component memory only.
 - Hosted boot does not start local app-config sync, local agent discovery, AMR/Vela
   polling, MCP/OAuth, plugin/template administration, notification service workers,
@@ -114,11 +114,11 @@ from a client header, query, path, or body.
 
 `GET /api/hosted/session` returns the configured public origin, a 10-minute nonce,
 its expiry, and no identity data. Browser requests bind that nonce to the verified
-`__Host-od-hosted` session; the CLI supplies its verified bearer credential from
-`--identity-token-file <path|->` or `OD_HOSTED_IDENTITY_TOKEN_FILE` (never plaintext
+`__Host-readable-hosted` session; the CLI supplies its verified bearer credential from
+`--identity-token-file <path|->` or `READABLE_HOSTED_IDENTITY_TOKEN_FILE` (never plaintext
 argv or persistent config). The shared web/CLI request helper sends unsafe requests
 with the exact returned origin in `Origin` and the nonce in
-`X-Open-Design-CSRF`. On one `401` or `419`, it refreshes the hosted session and
+`X-Readable-Studio-CSRF`. On one `401` or `419`, it refreshes the hosted session and
 retries once with the identical normalized body and `clientRequestId`. CLI base URL
 and returned public origin must have equal canonical origins; redirects to another
 origin are rejected.
@@ -137,7 +137,7 @@ Provider GET returns `{provider,configured}`. PUT accepts exactly `{provider,key
 and returns `{result:'set',provider,configured:true}`. Test accepts exactly
 `{provider}` and returns `{result:'passed',provider,model}`. DELETE accepts no body
 and returns `{result:'cleared',provider:null,configured:false}`. The nonce header is
-exactly `X-Open-Design-CSRF`. Provider key files and stdin remove exactly one final
+exactly `X-Readable-Studio-CSRF`. Provider key files and stdin remove exactly one final
 LF or CRLF; all other bytes, including spaces, are preserved. Empty, NUL-containing,
 line-broken, or greater-than-16-KiB secrets are rejected and no response contains a
 secret or reversible derivative.
@@ -364,7 +364,7 @@ protection/ruleset URL or exact-SHA manual record belongs in the ledger before W
 is marked frozen.
 
 Wave 0 enforcement was verified at the
-[`main` branch protection endpoint](https://api.github.com/repos/sanghyunna/open-design-sandboxed/branches/main/protection):
+[`main` branch protection endpoint](https://api.github.com/repos/sanghyunna/readable-studio-sandboxed/branches/main/protection):
 strict required checks name exactly the three jobs above, two approvals are required,
 stale approvals are dismissed, conversation resolution and admin enforcement are
 enabled, and force pushes and deletion are disabled.
@@ -375,14 +375,14 @@ Each row is filled only after checking out and validating that exact commit.
 
 | Boundary | Commit | Windows | Linux | Focused/prior suites | Review/enforcement |
 | --- | --- | --- | --- | --- | --- |
-| C2 | `23eadb71` | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31034456875/job/92402933808) | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31034456875/job/92402934003) | 111 focused daemon tests; 6 tools-pack workspace-build tests; daemon/tools-pack typechecks; staged Pi build/check; `pnpm guard`; `pnpm typecheck`; [Nix pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31034456875/job/92402934008) | Spec `CLEAN`; standards `CLEAN`; protection verified |
+| C2 | `23eadb71` | [pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31034456875/job/92402933808) | [pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31034456875/job/92402934003) | 111 focused daemon tests; 6 tools-pack workspace-build tests; daemon/tools-pack typechecks; staged Pi build/check; `pnpm guard`; `pnpm typecheck`; [Nix pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31034456875/job/92402934008) | Spec `CLEAN`; standards `CLEAN`; protection verified |
 | PR03 | `031a2273` | n/a | n/a | 127 focused daemon tests; 6 tools-pack workspace-build tests; `pnpm guard`; `pnpm typecheck` | Spec `CLEAN`; standards `CLEAN` |
-| PR04 | `b9d847f8` | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31060919679/job/92488515096) | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31060919679/job/92488515086) | 49 focused daemon tests; 49 focused web tests; Windows/Linux staged Pi build/check; `pnpm guard`; `pnpm typecheck`; [Nix pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31060919679/job/92488515055) | Spec `CLEAN`; standards `CLEAN`; hosted entry screenshot captured at `docs/screenshots/09-hosted-entry.png` |
-| PR05 | `0b2c9077` | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31063828315/job/92497244814) | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31063828315/job/92497244803) | Prior PR04 suite; Windows/Linux staged Pi build/check; [Nix pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31063828315/job/92497244773) | covered by final full-range Spec/Standards review |
-| PR06 | `c4f5e98b` | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31063917935/job/92497511370) | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31063917935/job/92497511372) | PR06 snapshot manifest including PR05 storage and failpoints; Windows/Linux staged Pi build/check; [Nix pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31063917935/job/92497511355) | covered by final full-range Spec/Standards review |
+| PR04 | `b9d847f8` | [pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31060919679/job/92488515096) | [pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31060919679/job/92488515086) | 49 focused daemon tests; 49 focused web tests; Windows/Linux staged Pi build/check; `pnpm guard`; `pnpm typecheck`; [Nix pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31060919679/job/92488515055) | Spec `CLEAN`; standards `CLEAN`; hosted entry screenshot captured at `docs/screenshots/09-hosted-entry.png` |
+| PR05 | `0b2c9077` | [pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31063828315/job/92497244814) | [pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31063828315/job/92497244803) | Prior PR04 suite; Windows/Linux staged Pi build/check; [Nix pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31063828315/job/92497244773) | covered by final full-range Spec/Standards review |
+| PR06 | `c4f5e98b` | [pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31063917935/job/92497511370) | [pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31063917935/job/92497511372) | PR06 snapshot manifest including PR05 storage and failpoints; Windows/Linux staged Pi build/check; [Nix pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31063917935/job/92497511355) | covered by final full-range Spec/Standards review |
 | PR07 | `5b181a7c` | n/a | n/a | Exact-boundary hosted traffic suite passed on Linux; the historical staged-artifact job later failed and Windows was cancelled, so no platform pass is claimed; PR07 was re-run by the green PR09 and PR10 composed gates | covered by final full-range Spec/Standards review |
 | PR08 | `5079cc1a` | not recorded at this exact SHA | not recorded at this exact SHA | Protected content boundary; its junction/symlink and content suites were re-run by the green PR09 and PR10 composed gates | covered by final full-range Spec/Standards review |
-| PR09 | `1bc831d7` | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31096551257/job/92599845416) | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31096551257/job/92599845461) | Complete prior hosted suite plus PR06/PR07/PR08/PR09 boundary suites and staged artifact smoke; [Nix pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31096551257/job/92599845381) | covered by final full-range Spec/Standards review |
-| PR10 | `dc3d7ba0` | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31185767658/job/92889771600) | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31185767658/job/92889771535) | Complete composed hosted gate; 3 local acceptance/recovery specs; tools-pack manifest test; web sidecar tests; e2e/tools-pack typechecks; `pnpm guard`; `pnpm typecheck`; [Nix pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31185767658/job/92889771489). Local acceptance does not prove Databricks Apps ingress/identity, Unity Catalog persistence, production Gateway connectivity, or Databricks capacity | Spec `CLEAN`; standards `CLEAN`; exact-SHA required checks green |
-| PR11 | `8491375b` | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31197265316/job/92928466226) | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31197265316/job/92928466155) | Complete composed hosted gate plus the reusable two-repetition 1/2/4/8-user local capacity workload and machine-readable report; [Nix pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31197265316/job/92928466216). The report explicitly leaves Databricks ingress, identity, persistence, Gateway, autoscaling, quotas, and admission capacity unproven | Preliminary full-range review found measurement and repository-ownership issues; corrective commits `37adc311` through `17bb6ca4` address them |
-| final evidence | `2c184451` | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31204885460/job/92953372240) | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31204885460/job/92953372387) | Capacity 1/1 passed in 1,257.91s; acceptance/recovery 2/2; daemon/e2e/web and root typechecks; web sidecar 20/20; tools-pack 1/1; `pnpm guard` 45/45; [Nix pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31204885460/job/92953372192). Hosted/export daemon integration passed 145/148; the same three PR07 20-second timeouts reproduce before the review refactors at `7be9ccc1`, so no new failure is attributed to this range. Final capacity measurement correction passed e2e typecheck and diff-check | Spec `CLEAN`; Standards code/structure `CLEAN`; hosted entry screenshot captured |
+| PR09 | `1bc831d7` | [pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31096551257/job/92599845416) | [pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31096551257/job/92599845461) | Complete prior hosted suite plus PR06/PR07/PR08/PR09 boundary suites and staged artifact smoke; [Nix pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31096551257/job/92599845381) | covered by final full-range Spec/Standards review |
+| PR10 | `dc3d7ba0` | [pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31185767658/job/92889771600) | [pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31185767658/job/92889771535) | Complete composed hosted gate; 3 local acceptance/recovery specs; tools-pack manifest test; web sidecar tests; e2e/tools-pack typechecks; `pnpm guard`; `pnpm typecheck`; [Nix pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31185767658/job/92889771489). Local acceptance does not prove Databricks Apps ingress/identity, Unity Catalog persistence, production Gateway connectivity, or Databricks capacity | Spec `CLEAN`; standards `CLEAN`; exact-SHA required checks green |
+| PR11 | `8491375b` | [pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31197265316/job/92928466226) | [pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31197265316/job/92928466155) | Complete composed hosted gate plus the reusable two-repetition 1/2/4/8-user local capacity workload and machine-readable report; [Nix pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31197265316/job/92928466216). The report explicitly leaves Databricks ingress, identity, persistence, Gateway, autoscaling, quotas, and admission capacity unproven | Preliminary full-range review found measurement and repository-ownership issues; corrective commits `37adc311` through `17bb6ca4` address them |
+| final evidence | `2c184451` | [pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31204885460/job/92953372240) | [pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31204885460/job/92953372387) | Capacity 1/1 passed in 1,257.91s; acceptance/recovery 2/2; daemon/e2e/web and root typechecks; web sidecar 20/20; tools-pack 1/1; `pnpm guard` 45/45; [Nix pass](https://github.com/sanghyunna/readable-studio-sandboxed/actions/runs/31204885460/job/92953372192). Hosted/export daemon integration passed 145/148; the same three PR07 20-second timeouts reproduce before the review refactors at `7be9ccc1`, so no new failure is attributed to this range. Final capacity measurement correction passed e2e typecheck and diff-check | Spec `CLEAN`; Standards code/structure `CLEAN`; hosted entry screenshot captured |

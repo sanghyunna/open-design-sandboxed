@@ -1,6 +1,6 @@
 // Plan §3.H2 — `/api/craft` and `/api/craft/:id` route shape.
 //
-// `od craft list` and `od craft show <id>` are thin HTTP wrappers
+// `readable craft list` and `readable craft show <id>` are thin HTTP wrappers
 // around these endpoints. We pin the JSON shape so the CLI doesn't
 // drift from the daemon contract.
 

@@ -25,7 +25,7 @@ import type {
   AppliedPluginSnapshot,
   ApplyResult,
   InstalledPluginRecord,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import {
   applyPlugin,
   MissingInputError,
@@ -42,7 +42,7 @@ import {
   linkSnapshotToRun,
 } from './snapshots.js';
 import { getManifestContextCraft } from './context-craft.js';
-import type { RegistryView } from '@open-design/plugin-runtime';
+import type { RegistryView } from '@readable-studio/plugin-runtime';
 
 type SqliteDb = Database.Database;
 
@@ -59,7 +59,7 @@ export interface ResolveSnapshotInput {
   // skill / design-system catalogs (server.ts wires them).
   registry: RegistryView;
   // Optional active-project DS binding. Forwarded to `applyPlugin` so
-  // plugins that declared `od.context.designSystem.primary: true` get
+  // plugins that declared `readable.context.designSystem.primary: true` get
   // bound to the project's DS at apply time.
   activeProjectDesignSystem?: { id: string; title?: string } | undefined;
 }
@@ -324,7 +324,7 @@ export function capabilitiesRequiredError(args: {
   missing: string[];
 }): ResolveSnapshotError {
   const remediation = [
-    `od plugin trust ${args.pluginId} --capabilities ${args.missing.join(',')}`,
+    `readable plugin trust ${args.pluginId} --capabilities ${args.missing.join(',')}`,
     `or pass --grant-caps ${args.missing.join(',')} to the apply / run command`,
   ];
   return {

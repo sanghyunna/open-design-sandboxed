@@ -57,9 +57,9 @@
       "holdMs": 2500,
       "hash": "45f70624f603247c"
     },
-    "od-code-migration": {
-      "video": "od-code-migration.aa33dda205aa79a5.mp4",
-      "poster": "od-code-migration.aa33dda205aa79a5.poster.jpg",
+    "readable-code-migration": {
+      "video": "readable-code-migration.aa33dda205aa79a5.mp4",
+      "poster": "readable-code-migration.aa33dda205aa79a5.poster.jpg",
       "durationMs": 1323,
       "holdMs": 2500,
       "hash": "aa33dda205aa79a5"
@@ -407,9 +407,9 @@
       "holdMs": 2500,
       "hash": "ac3e218fb4919591"
     },
-    "od-new-generation": {
-      "video": "od-new-generation.0ca0819285dc12f5.mp4",
-      "poster": "od-new-generation.0ca0819285dc12f5.poster.jpg",
+    "readable-new-generation": {
+      "video": "readable-new-generation.0ca0819285dc12f5.mp4",
+      "poster": "readable-new-generation.0ca0819285dc12f5.poster.jpg",
       "durationMs": 103,
       "holdMs": 2500,
       "hash": "0ca0819285dc12f5"
@@ -421,9 +421,9 @@
       "holdMs": 2500,
       "hash": "3eb328d95ab20968"
     },
-    "example-open-design-landing": {
-      "video": "example-open-design-landing.ebbf0231d87db539.mp4",
-      "poster": "example-open-design-landing.ebbf0231d87db539.poster.jpg",
+    "example-readable-studio-landing": {
+      "video": "example-readable-studio-landing.ebbf0231d87db539.mp4",
+      "poster": "example-readable-studio-landing.ebbf0231d87db539.poster.jpg",
       "durationMs": 7500,
       "holdMs": 2500,
       "hash": "ebbf0231d87db539"
@@ -813,9 +813,9 @@
       "holdMs": 2500,
       "hash": "d07686a788f852c2"
     },
-    "example-open-design-landing-deck": {
-      "video": "example-open-design-landing-deck.5ce058c5a510a264.mp4",
-      "poster": "example-open-design-landing-deck.5ce058c5a510a264.poster.jpg",
+    "example-readable-studio-landing-deck": {
+      "video": "example-readable-studio-landing-deck.5ce058c5a510a264.mp4",
+      "poster": "example-readable-studio-landing-deck.5ce058c5a510a264.poster.jpg",
       "durationMs": 6935,
       "holdMs": 2500,
       "hash": "5ce058c5a510a264"

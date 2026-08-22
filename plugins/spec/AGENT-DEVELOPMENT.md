@@ -2,25 +2,25 @@
 
 Language: English | [简体中文](AGENT-DEVELOPMENT.zh-CN.md)
 
-Give this file to a coding agent when you want it to create or improve an Open Design plugin.
+Give this file to a coding agent when you want it to create or improve a Readable Studio plugin.
 
 ## Mission
 
-Create a portable Open Design plugin that can:
+Create a portable Readable Studio plugin that can:
 
 1. Run as a normal Agent Skill through `SKILL.md`.
-2. Install into Open Design through `open-design.json`.
+2. Install into Readable Studio through `readable-studio.json`.
 3. Be validated locally.
-4. Be published as an independent open source repo or submitted as a PR to Open Design.
+4. Be published as an independent open source repo or submitted as a PR to Readable Studio.
 
 ## Required Reading
 
 Read these files before editing:
 
 - `plugins/spec/SPEC.md`
-- `docs/schemas/open-design.plugin.v1.json`
+- `docs/schemas/readable-studio.plugin.v1.json`
 - `docs/plugins-spec.md` when you need deeper product semantics
-- `plugins/spec/PUBLISHING-REGISTRIES.md` when the user asks to publish outside Open Design
+- `plugins/spec/PUBLISHING-REGISTRIES.md` when the user asks to publish outside Readable Studio
 - A nearby example under `plugins/spec/examples/`
 
 ## Build Procedure
@@ -31,12 +31,12 @@ Read these files before editing:
 ```text
 <plugin-id>/
   SKILL.md
-  open-design.json
+  readable-studio.json
   README.md
 ```
 
-3. Keep the `SKILL.md` portable. It may mention Open Design behavior, but the core workflow must still make sense in any Agent Skills compatible agent.
-4. Put OD-specific display, `specVersion`, plugin `version`, inputs, preview, pipeline, atoms, and capabilities in `open-design.json`.
+3. Keep the `SKILL.md` portable. It may mention Readable Studio behavior, but the core workflow must still make sense in any Agent Skills compatible agent.
+4. Put Readable Studio-specific display, `specVersion`, plugin `version`, inputs, preview, pipeline, atoms, and capabilities in `readable-studio.json`.
 5. Add `examples/`, `preview/`, `assets/`, or `references/` only when they materially help the agent produce better results.
 6. Add `evals/evals.json` when the plugin has enough behavior to regress.
 7. If publishing externally, prepare registry-safe README sections for skills.sh, ClawHub, and canonical GitHub source.
@@ -47,7 +47,7 @@ The plugin is not done until:
 
 - `SKILL.md` has a clear "Use this plugin when..." description.
 - The workflow states the expected output files or handoff result.
-- `open-design.json` validates against the v1 shape and carries explicit `specVersion` plus plugin `version`.
+- `readable-studio.json` validates against the v1 shape and carries explicit `specVersion` plus plugin `version`.
 - The declared atoms are known first-party atoms or clearly marked future work.
 - The declared capabilities are the minimum needed.
 - Visual plugins include a preview or concrete example output.
@@ -59,15 +59,15 @@ Run what is available in this environment:
 
 ```bash
 pnpm guard
-pnpm --filter @open-design/plugin-runtime typecheck
+pnpm --filter @readable-studio/plugin-runtime typecheck
 ```
 
 If the daemon CLI is built:
 
 ```bash
-od plugin validate ./<plugin-id>
-od plugin install ./<plugin-id>
-od plugin apply <plugin-id> --input key=value
+readable plugin validate ./<plugin-id>
+readable plugin install ./<plugin-id>
+readable plugin apply <plugin-id> --input key=value
 ```
 
 ## PR Output

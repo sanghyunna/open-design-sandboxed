@@ -29,7 +29,7 @@ let tempRoot: string;
 let identityFile: string;
 
 beforeAll(async () => {
-  tempRoot = await mkdtemp(path.join(tmpdir(), 'od-hosted-content-cli-'));
+  tempRoot = await mkdtemp(path.join(tmpdir(), 'readable-hosted-content-cli-'));
   identityFile = path.join(tempRoot, 'identity.txt');
   await writeFile(identityFile, 'identity-secret\n');
   server = http.createServer(async (request, response) => {
@@ -241,7 +241,7 @@ describe('hosted PR08 content CLI', () => {
       undefined,
       true,
       false,
-      { OD_HOSTED_IDENTITY_TOKEN_FILE: identityFile },
+      { READABLE_HOSTED_IDENTITY_TOKEN_FILE: identityFile },
     )).stdout).toBe('<h1>saved</h1>');
 
     const content = contentRequests();
@@ -264,7 +264,7 @@ describe('hosted PR08 content CLI', () => {
     const writes = contentRequests().filter(({ url }) => url.endsWith('/files'));
     expect(writes).toHaveLength(2);
     expect(writes[0]!.body).toEqual(writes[1]!.body);
-    expect(writes[0]!.headers['x-open-design-csrf']).not.toBe(writes[1]!.headers['x-open-design-csrf']);
+    expect(writes[0]!.headers['x-readable-studio-csrf']).not.toBe(writes[1]!.headers['x-readable-studio-csrf']);
 
     requests.length = 0;
     const traversal = await runCli(
@@ -370,7 +370,7 @@ function expectAuthorized(records: RequestRecord[]): void {
     expect(record.headers.authorization).toBe('Bearer identity-secret');
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(record.method)) {
       expect(record.headers.origin).toBe(baseOrigin);
-      expect(record.headers['x-open-design-csrf']).toMatch(/^csrf-/u);
+      expect(record.headers['x-readable-studio-csrf']).toMatch(/^csrf-/u);
     }
   }
 }
@@ -390,7 +390,7 @@ async function runCli(
   const result = await new Promise<{ code: number; stderr: string; stdout: string }>((resolve, reject) => {
     const child = spawn(process.execPath, fullArgs, {
       cwd: daemonRoot,
-      env: { ...process.env, OD_HOSTED_IDENTITY_TOKEN_FILE: '', ...env },
+      env: { ...process.env, READABLE_HOSTED_IDENTITY_TOKEN_FILE: '', ...env },
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     let stdout = '';

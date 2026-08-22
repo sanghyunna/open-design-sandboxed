@@ -44,7 +44,7 @@ describe('PreviewModal sandbox isolation', () => {
 
     expect(markup).toContain('sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"');
     expect(markup).not.toContain('allow-same-origin');
-    expect(markup).toContain('od:slide');
+    expect(markup).toContain('readable-studio:slide');
   });
 
   it('includes popup flags in the sandbox attribute', () => {

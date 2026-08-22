@@ -4,7 +4,7 @@
 
 - `assets/template.html` exists and opens directly from disk.
 - `example.html` exists and contains realistic fintech numbers and labels.
-- Frontmatter uses `od.mode: template` and `od.scenario: live-artifacts`.
+- Frontmatter uses `readable.mode: template` and `readable.scenario: live-artifacts`.
 - Exactly three slides are present.
 - Prev/Next buttons, dot navigation, and keyboard arrows all work.
 - No sandbox-hostile APIs are used (`localStorage`, `sessionStorage`, `alert`, `confirm`, `prompt`, `window.open`).

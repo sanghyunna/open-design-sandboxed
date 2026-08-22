@@ -7,7 +7,7 @@ triggers:
   - "animated gif"
   - "reaction gif"
   - "tiny gif"
-od:
+readable:
   mode: image
   category: image-generation
   upstream: "https://github.com/anthropics/skills/tree/main/skills/slack-gif-creator"
@@ -28,7 +28,7 @@ Create animated GIFs optimized for Slack with validators for size constraints an
 
 ## How to use
 
-This catalogue entry advertises the skill in Open Design so the agent
+This catalogue entry advertises the skill in Readable Studio so the agent
 discovers it during planning. To run the full upstream workflow with
 its original assets, scripts, and references, install the upstream
 bundle into your active agent's skills directory:

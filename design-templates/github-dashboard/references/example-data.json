@@ -1,8 +1,8 @@
 {
   "repository": {
-    "name": "open-design",
-    "fullName": "nexu-io/open-design",
-    "url": "https://github.com/nexu-io/open-design",
+    "name": "readable-studio",
+    "fullName": "sanghyunna/readable-studio",
+    "url": "https://github.com/sanghyunna/readable-studio",
     "description": "Local-first, open-source alternative to Anthropic's Claude Design. 19 Skills · 71 brand-grade Design Systems · Generate web/desktop/mobile prototypes · slides · images · videos",
     "language": "TypeScript",
     "license": "Apache-2.0",
@@ -124,7 +124,7 @@
     {
       "typeText": "ISSUE",
       "typeClass": "issue",
-      "title": "Fix Open Design not reading the latest model list from Codex CLI",
+      "title": "Fix Readable Studio not reading the latest model list from Codex CLI",
       "label": "bug",
       "labelClass": "danger-pill",
       "author": "shangxinyu1",

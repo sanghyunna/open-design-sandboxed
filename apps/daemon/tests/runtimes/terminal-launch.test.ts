@@ -9,7 +9,7 @@ describe('launchAgentInSystemTerminal', () => {
   // shape the web side asserts on (`{ ok: false, reason: string }`).
   it('rejects unsupported platforms with a structured failure', async () => {
     // `aix` is one of Node's `process.platform` values but not one any
-    // OD user would actually run on. A typo'd / future platform should
+    // Readable Studio user would actually run on. A typo'd / future platform should
     // surface the same shape.
     const result = await launchAgentInSystemTerminal('agy', 'aix');
     expect(result.ok).toBe(false);

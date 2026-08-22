@@ -29,7 +29,7 @@ export function buildReactComponentSrcdoc(
         color: #111827;
       }
       #root { min-height: 100vh; }
-      .od-react-error {
+      .readable-react-error {
         margin: 16px;
         padding: 14px 16px;
         border: 1px solid #fecaca;
@@ -52,7 +52,7 @@ export function buildReactComponentSrcdoc(
         function showError(err) {
           root.innerHTML = '';
           var el = document.createElement('pre');
-          el.className = 'od-react-error';
+          el.className = 'readable-react-error';
           el.textContent = err && (err.stack || err.message) ? (err.stack || err.message) : String(err);
           root.appendChild(el);
         }
@@ -74,7 +74,7 @@ export function buildReactComponentSrcdoc(
           // User-authored JSX runs only inside this sandboxed iframe. The parent omits
           // allow-same-origin, so runtime effects are confined to the preview document.
           (0, eval)(compiled);
-          var Component = window.__OpenDesignComponent ||
+          var Component = window.__ReadableStudioComponent ||
             (typeof App !== 'undefined' ? App : null) ||
             (typeof Component !== 'undefined' ? Component : null) ||
             (typeof Preview !== 'undefined' ? Preview : null);
@@ -95,7 +95,7 @@ export function prepareReactComponentSource(source: string): string {
   const withoutImports = transformImportDeclarations(source);
   const transformed = transformExports(withoutImports);
   return `${transformed.code}
-window.__OpenDesignComponent = window.__OpenDesignComponent || (${componentFallbackExpression(transformed.defaultName)});`;
+window.__ReadableStudioComponent = window.__ReadableStudioComponent || (${componentFallbackExpression(transformed.defaultName)});`;
 }
 
 function transformImportDeclarations(source: string): string {
@@ -149,14 +149,14 @@ function transformExports(source: string): { code: string; defaultName: string |
   code = code.replace(
     /export\s+default\s+function\s+([A-Za-z_$][\w$]*)?\s*\(/g,
     (_match, name: string | undefined) => {
-      defaultName = name || 'OpenDesignComponent';
+      defaultName = name || 'ReadableStudioComponent';
       return `function ${defaultName}(`;
     },
   );
   code = code.replace(
     /export\s+default\s+class\s+([A-Za-z_$][\w$]*)?\s*/g,
     (_match, name: string | undefined) => {
-      defaultName = name || 'OpenDesignComponent';
+      defaultName = name || 'ReadableStudioComponent';
       return `class ${defaultName} `;
     },
   );
@@ -168,8 +168,8 @@ function transformExports(source: string): { code: string; defaultName: string |
     },
   );
   code = code.replace(/export\s+default\s+/g, () => {
-    defaultName = 'OpenDesignComponent';
-    return 'const OpenDesignComponent = ';
+    defaultName = 'ReadableStudioComponent';
+    return 'const ReadableStudioComponent = ';
   });
   code = code.replace(
     /export\s+(const|let|var)\s+([A-Za-z_$][\w$]*)/g,

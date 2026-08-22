@@ -32,7 +32,7 @@ export function createBrowserOpenInvocation(
     const comspec = env.ComSpec || env.COMSPEC || 'cmd.exe';
     // `start` is a cmd.exe builtin on Windows, not a real executable. The empty
     // title argument keeps cmd from treating the URL itself as the window title.
-    // Match @open-design/platform's cmd.exe shim shape: Node's default Windows
+    // Match @readable-studio/platform's cmd.exe shim shape: Node's default Windows
     // argv quoting uses backslash escapes that cmd.exe does not understand, so
     // the inner command must be wrapped for `/s /c` and passed verbatim.
     const inner = [
@@ -66,13 +66,13 @@ export function openBrowser(url: string, deps: OpenBrowserDeps = {}): ChildProce
     // after the server has already started and printed its URL.
     child.on('error', (error) => {
       const detail = error instanceof Error ? error.message : String(error);
-      warn(`[od] failed to open browser: ${detail}`);
+      warn(`[readable] failed to open browser: ${detail}`);
     });
     child.unref();
     return child;
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    warn(`[od] failed to open browser: ${detail}`);
+    warn(`[readable] failed to open browser: ${detail}`);
     return null;
   }
 }

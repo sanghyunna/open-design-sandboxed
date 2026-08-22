@@ -1,7 +1,7 @@
 // Contract test for the prompts the plugin-folder card buttons send to the
 // agent. `install` uses the simple shared template; `contribute` drives the
 // `gh repo fork → branch → commit → gh pr create --web` flow against
-// `nexu-io/open-design`; `publish` drives `gh repo create / push` against the
+// `sanghyunna/readable-studio`; `publish` drives `gh repo create / push` against the
 // author's own `plugin.repo` URL. The tests below lock the *shape* of each
 // prompt (keywords + folder interpolation) without coupling to exact wording,
 // so prose tweaks don't break the suite but accidental removal of a critical
@@ -17,7 +17,7 @@ describe('buildPluginFolderAgentActionPrompt', () => {
     it('mentions the folder path and the supported install CLI', () => {
       const prompt = buildPluginFolderAgentActionPrompt(FOLDER, 'install');
       expect(prompt).toContain(`Plugin folder: \`${FOLDER}\``);
-      expect(prompt).toContain('od plugin install --source');
+      expect(prompt).toContain('readable plugin install --source');
     });
   });
 
@@ -26,7 +26,7 @@ describe('buildPluginFolderAgentActionPrompt', () => {
 
     it('delegates repo publishing to the deterministic plugin CLI helper', () => {
       expect(prompt).toContain(`Plugin folder: \`${FOLDER}\``);
-      expect(prompt).toContain(`"$OD_NODE_BIN" "$OD_BIN" plugin publish-repo ${FOLDER}`);
+      expect(prompt).toContain(`"$READABLE_NODE_BIN" "$READABLE_BIN" plugin publish-repo ${FOLDER}`);
       expect(prompt).toMatch(/current gh login|target is not hard-coded/i);
     });
 
@@ -46,10 +46,10 @@ describe('buildPluginFolderAgentActionPrompt', () => {
       // the agent had been routing back to it. The mention must be in a
       // negative imperative ("Do NOT call …"), not a recommendation.
       expect(prompt).toMatch(
-        /Do NOT (call|route through) `?od plugin publish --to open-design`?/i,
+        /Do NOT (call|route through) `?readable plugin publish --to readable-studio`?/i,
       );
       expect(prompt).toMatch(
-        /registry[- ]submission|registry-submission flow|Open Design PR/i,
+        /registry[- ]submission|registry-submission flow|Readable Studio PR/i,
       );
     });
 
@@ -76,9 +76,9 @@ describe('buildPluginFolderAgentActionPrompt', () => {
   describe('contribute (PR-based flow)', () => {
     const prompt = buildPluginFolderAgentActionPrompt(FOLDER, 'contribute');
 
-    it('delegates Open Design PR creation to the deterministic plugin CLI helper', () => {
-      expect(prompt).toContain('nexu-io/open-design');
-      expect(prompt).toContain(`"$OD_NODE_BIN" "$OD_BIN" plugin open-design-pr ${FOLDER}`);
+    it('delegates Readable Studio PR creation to the deterministic plugin CLI helper', () => {
+      expect(prompt).toContain('sanghyunna/readable-studio');
+      expect(prompt).toContain(`"$READABLE_NODE_BIN" "$READABLE_BIN" plugin readable-studio-pr ${FOLDER}`);
     });
 
     it('states the CLI-owned PR workflow instead of re-listing shell steps', () => {
@@ -88,9 +88,9 @@ describe('buildPluginFolderAgentActionPrompt', () => {
       expect(prompt).toMatch(/fork\/clone\/copy\/branch\/push/i);
       expect(prompt).toContain('gh pr create --web');
       // The legacy CLI is named in the prompt only as part of an explicit
-      // ban ("Do NOT call the legacy `od plugin publish --to open-design`")
+      // ban ("Do NOT call the legacy `readable plugin publish --to readable-studio`")
       // — verify the ban is in place, not the bare command.
-      expect(prompt).toMatch(/do not call the legacy `od plugin publish --to open-design`/i);
+      expect(prompt).toMatch(/do not call the legacy `readable plugin publish --to readable-studio`/i);
     });
 
     it('uses --web so the author confirms the PR in browser', () => {
@@ -116,7 +116,7 @@ describe('buildPluginFolderAgentActionPrompt', () => {
     it('interpolates the actual folder path into manifest and copy steps', () => {
       // Sanity check that template-string interpolation didn't regress into
       // literal `${folderPath}` substrings (we already shipped that bug once).
-      expect(prompt).toContain(`plugin open-design-pr ${FOLDER}`);
+      expect(prompt).toContain(`plugin readable-studio-pr ${FOLDER}`);
       expect(prompt).not.toContain('${folderPath}');
     });
 

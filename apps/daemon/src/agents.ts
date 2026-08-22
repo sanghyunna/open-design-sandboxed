@@ -12,7 +12,7 @@ export {
 } from './runtimes/executables.js';
 export { applyAgentLaunchEnv, resolveAgentLaunch } from './runtimes/launch.js';
 export { resolveAgentBin } from './runtimes/resolution.js';
-export { openDesignAmrTraceEnv, spawnEnvForAgent } from './runtimes/env.js';
+export { readableStudioAmrTraceEnv, spawnEnvForAgent } from './runtimes/env.js';
 export {
   checkPromptArgvBudget,
   checkWindowsCmdShimCommandLineBudget,

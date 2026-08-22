@@ -8,7 +8,7 @@ triggers:
   - "branded report"
   - "proposal doc"
   - "template authoring"
-od:
+readable:
   mode: prototype
   category: documents
   upstream: "https://github.com/MiniMax-AI/skills"
@@ -29,7 +29,7 @@ Professional DOCX document creation and editing using OpenXML SDK. Useful for br
 
 ## How to use
 
-This catalogue entry advertises the skill in Open Design so the agent
+This catalogue entry advertises the skill in Readable Studio so the agent
 discovers it during planning. To run the full upstream workflow with
 its original assets, scripts, and references, install the upstream
 bundle into your active agent's skills directory:

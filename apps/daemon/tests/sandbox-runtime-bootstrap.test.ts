@@ -40,16 +40,16 @@ function withEnvSnapshot<T>(
 }
 
 test('sandbox runtime registry ignores host-local agent profiles at module load', async () => {
-  const root = mkdtempSync(path.join(tmpdir(), 'od-sandbox-registry-'));
+  const root = mkdtempSync(path.join(tmpdir(), 'readable-sandbox-registry-'));
   const dataDir = path.join(root, 'data');
   const hostHome = path.join(root, 'host-home');
-  const hostConfigDir = path.join(hostHome, '.open-design');
+  const hostConfigDir = path.join(hostHome, '.readable-studio');
   const hostConfig = path.join(hostConfigDir, 'agents.local.json');
   const sandboxConfigDir = path.join(
     dataDir,
     'sandbox',
     'agent-home',
-    '.open-design',
+    '.readable-studio',
   );
   const sandboxConfig = path.join(sandboxConfigDir, 'agents.local.json');
 
@@ -76,11 +76,11 @@ test('sandbox runtime registry ignores host-local agent profiles at module load'
     );
 
     await withEnvSnapshot(
-      ['OD_SANDBOX_MODE', 'OD_DATA_DIR', 'OD_AGENT_PROFILES_CONFIG'],
+      ['READABLE_SANDBOX_MODE', 'READABLE_DATA_DIR', 'READABLE_AGENT_PROFILES_CONFIG'],
       async () => {
-        process.env.OD_SANDBOX_MODE = '1';
-        process.env.OD_DATA_DIR = dataDir;
-        process.env.OD_AGENT_PROFILES_CONFIG = hostConfig;
+        process.env.READABLE_SANDBOX_MODE = '1';
+        process.env.READABLE_DATA_DIR = dataDir;
+        process.env.READABLE_AGENT_PROFILES_CONFIG = hostConfig;
 
         vi.resetModules();
         vi.doMock('node:os', async () => ({
@@ -101,10 +101,10 @@ test('sandbox runtime registry ignores host-local agent profiles at module load'
   }
 });
 
-test('sandbox runtime registry ignores implicit profiles without OD_DATA_DIR', async () => {
-  const root = mkdtempSync(path.join(tmpdir(), 'od-sandbox-registry-missing-data-'));
+test('sandbox runtime registry ignores implicit profiles without READABLE_DATA_DIR', async () => {
+  const root = mkdtempSync(path.join(tmpdir(), 'readable-sandbox-registry-missing-data-'));
   const hostHome = path.join(root, 'host-home');
-  const hostConfigDir = path.join(hostHome, '.open-design');
+  const hostConfigDir = path.join(hostHome, '.readable-studio');
   const hostConfig = path.join(hostConfigDir, 'agents.local.json');
 
   try {
@@ -117,11 +117,11 @@ test('sandbox runtime registry ignores implicit profiles without OD_DATA_DIR', a
     );
 
     await withEnvSnapshot(
-      ['OD_SANDBOX_MODE', 'OD_DATA_DIR', 'OD_AGENT_PROFILES_CONFIG'],
+      ['READABLE_SANDBOX_MODE', 'READABLE_DATA_DIR', 'READABLE_AGENT_PROFILES_CONFIG'],
       async () => {
-        process.env.OD_SANDBOX_MODE = '1';
-        delete process.env.OD_DATA_DIR;
-        delete process.env.OD_AGENT_PROFILES_CONFIG;
+        process.env.READABLE_SANDBOX_MODE = '1';
+        delete process.env.READABLE_DATA_DIR;
+        delete process.env.READABLE_AGENT_PROFILES_CONFIG;
 
         vi.resetModules();
         vi.doMock('node:os', async () => ({

@@ -1,5 +1,5 @@
 // Sandboxed HTML preview surface — used for `examples/*` plugins
-// and any scenario plugin that ships a runnable `od.preview.entry`.
+// and any scenario plugin that ships a runnable `readable.preview.entry`.
 //
 // The iframe is mounted only after the card scrolls into view. We
 // further guard the iframe behind a one-shot pointer hover (`armed`)
@@ -13,7 +13,7 @@
 //
 // Reachability probe
 // ------------------
-// Some bundled plugins declare an `od.preview.entry` that doesn't
+// Some bundled plugins declare an `readable.preview.entry` that doesn't
 // resolve on disk (the daemon falls back to assets/*.html, but if
 // nothing in the curated list exists the route 404s and the iframe
 // renders the JSON error envelope as a blank white tile). To avoid

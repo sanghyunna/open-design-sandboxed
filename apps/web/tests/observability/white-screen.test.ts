@@ -134,7 +134,7 @@ import {
  * (don't fire when the app actually rendered something) but must fire
  * when the user is really stuck on a non-app screen. The critical case —
  * called out by codex review on PR #2527 — is the dynamic-import loading
- * shell: `<div class="od-loading-shell">Loading Open Design…</div>`. That
+ * shell: `<div class="readable-loading-shell">A long loading label</div>`. That
  * string is well above the visible-text floor, so an earlier
  * implementation that only checked `body.innerText.length` would silently
  * treat the loading sentinel as a successful mount and cancel the timer.
@@ -167,7 +167,7 @@ beforeEach(() => {
   reportSafetyEvent.mockReset();
   vi.useFakeTimers({ shouldAdvanceTime: false });
   document.body.innerHTML = '';
-  document.documentElement.removeAttribute('data-od-app-mounted');
+  document.documentElement.removeAttribute('data-readable-app-mounted');
   vi.mocked(daemonIsLive).mockResolvedValue(true);
   vi.mocked(fetchAgentsStream).mockReturnValue(new Promise(() => undefined));
   vi.mocked(fetchSkills).mockResolvedValue([]);
@@ -185,7 +185,7 @@ afterEach(() => {
   globalThis.fetch = ORIGINAL_FETCH;
   cleanup();
   document.body.innerHTML = '';
-  document.documentElement.removeAttribute('data-od-app-mounted');
+  document.documentElement.removeAttribute('data-readable-app-mounted');
   vi.clearAllMocks();
 });
 
@@ -204,7 +204,7 @@ describe('observability/white-screen', () => {
 
     expect(screen.getByTestId('home-ready')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'New project' })).toBeTruthy();
-    expect(document.documentElement.getAttribute('data-od-app-mounted')).toBe('1');
+    expect(document.documentElement.getAttribute('data-readable-app-mounted')).toBe('1');
     expect(screen.getByTestId('selected-agent').textContent).toBe('codex');
     expect(fetchAgentsStream).not.toHaveBeenCalled();
     expect(fetchDesignTemplates).not.toHaveBeenCalled();
@@ -224,11 +224,11 @@ describe('observability/white-screen', () => {
   });
 
   it('runs the detector and reports client_white_screen (no network) when only the dynamic-import loading shell is in the DOM after the timeout', () => {
-    // Reproduces the codex-review reported bug: the loading shell text
-    // "Loading Open Design…" is longer than the legacy 10-char floor.
+    // Reproduces the codex-review reported bug: the branded loading shell
+    // is longer than the legacy 10-char floor.
     const shell = document.createElement('div');
-    shell.className = 'od-loading-shell';
-    shell.textContent = 'Loading Open Design…';
+    shell.className = 'readable-loading-shell';
+    shell.textContent = 'A deliberately long loading label';
     document.body.appendChild(shell);
 
     installWhiteScreenDetector();
@@ -248,9 +248,9 @@ describe('observability/white-screen', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('does NOT report when the app sets the data-od-app-mounted marker before the timeout', () => {
+  it('does NOT report when the app sets the data-readable-app-mounted marker before the timeout', () => {
     // Simulate App.tsx's first useEffect setting the attribute.
-    document.documentElement.setAttribute('data-od-app-mounted', '1');
+    document.documentElement.setAttribute('data-readable-app-mounted', '1');
 
     installWhiteScreenDetector();
     vi.advanceTimersByTime(6000);
@@ -262,8 +262,8 @@ describe('observability/white-screen', () => {
   it('cancels the timer the moment a non-loading-shell child appears with real content', () => {
     // Start with only the loading shell.
     const shell = document.createElement('div');
-    shell.className = 'od-loading-shell';
-    shell.textContent = 'Loading Open Design…';
+    shell.className = 'readable-loading-shell';
+    shell.textContent = 'A deliberately long loading label';
     document.body.appendChild(shell);
 
     installWhiteScreenDetector();

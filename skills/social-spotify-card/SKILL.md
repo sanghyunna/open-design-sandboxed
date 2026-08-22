@@ -18,7 +18,7 @@ example_tagline: "Classic Spotify dark card"
 example_desc: "Lo-Fi Beats · Chillhop progress at 1:24 / 3:42 with controls"
 example_source_url: "https://hyperframes.heygen.com/catalog"
 example_source_label: "hyperframes · spotify-card"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

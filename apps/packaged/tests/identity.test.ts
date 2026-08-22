@@ -4,11 +4,12 @@ import { join } from "node:path";
 
 import {
   APP_KEYS,
-  OPEN_DESIGN_SIDECAR_CONTRACT,
+  createRuntimeDescriptor,
+  SIDECAR_CONTRACT,
   SIDECAR_MODES,
   SIDECAR_SOURCES,
-} from "@open-design/sidecar-proto";
-import { resolveAppIpcPath } from "@open-design/sidecar";
+} from "@readable-studio/sidecar-proto";
+import { resolveAppIpcPath } from "@readable-studio/sidecar";
 import { describe, expect, it } from "vitest";
 
 import { writePackagedDesktopIdentity } from "../src/identity.js";
@@ -34,25 +35,23 @@ function fakePaths(root: string): PackagedNamespacePaths {
     electronUserDataRoot: join(root, "user-data"),
     headlessIdentityPath: join(root, "runtime", "headless-root.json"),
     installationRoot: join(root, ".."),
-    installerObservationRoot: join(root, "data", "observations", "installer"),
     logsRoot: join(root, "logs"),
     namespaceRoot: root,
     resourceRoot: join(root, "resources"),
     runtimeRoot: join(root, "runtime"),
-    updateRoot: join(root, "updates"),
     webIdentityPath: join(root, "runtime", "web-root.json"),
   };
 }
 
 describe("packaged identity markers", () => {
   it("can write and close the desktop identity shape at the headless marker path", async () => {
-    const root = join(tmpdir(), `od-packaged-identity-${process.pid}-${Date.now()}`);
+    const root = join(tmpdir(), `readable-packaged-identity-${process.pid}-${Date.now()}`);
     const paths = fakePaths(root);
     const stamp = {
       app: APP_KEYS.DESKTOP,
       ipc: resolveAppIpcPath({
         app: APP_KEYS.DESKTOP,
-        contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+        contract: SIDECAR_CONTRACT,
         namespace: "default",
       }),
       mode: SIDECAR_MODES.RUNTIME,
@@ -61,7 +60,9 @@ describe("packaged identity markers", () => {
     };
 
     try {
+      const descriptor = createRuntimeDescriptor("1.2.3");
       const handle = await writePackagedDesktopIdentity({
+        descriptor,
         identityPath: paths.headlessIdentityPath,
         paths,
         stamp,
@@ -69,6 +70,7 @@ describe("packaged identity markers", () => {
 
       expect(await pathExists(paths.headlessIdentityPath)).toBe(true);
       expect(await pathExists(paths.desktopIdentityPath)).toBe(false);
+      expect(JSON.parse(await readFile(paths.headlessIdentityPath, "utf8"))).toMatchObject({ descriptor });
 
       await handle.close();
       expect(await pathExists(paths.headlessIdentityPath)).toBe(false);

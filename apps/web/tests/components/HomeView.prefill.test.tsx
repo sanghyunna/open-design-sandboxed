@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act } from 'react';
+import { act, type ComponentProps } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HomeView } from '../../src/components/HomeView';
@@ -20,7 +20,7 @@ import {
 } from '../helpers/home-hero-lexical';
 
 const AUTHORING_PLUGIN = {
-  id: 'od-plugin-authoring',
+  id: 'readable-plugin-authoring',
   title: 'Plugin authoring',
   version: '0.1.0',
   trust: 'bundled' as const,
@@ -31,14 +31,14 @@ const AUTHORING_PLUGIN = {
   installedAt: 0,
   updatedAt: 0,
   manifest: {
-    name: 'od-plugin-authoring',
+    name: 'readable-plugin-authoring',
     title: 'Plugin authoring',
     version: '0.1.0',
     description: 'Create plugins',
-    od: {
+    readable: {
       kind: 'scenario',
       taskKind: 'new-generation',
-      useCase: { query: 'Create an Open Design plugin for {{pluginGoal}}.' },
+      useCase: { query: 'Create an Readable Studio plugin for {{pluginGoal}}.' },
       inputs: [
         {
           name: 'pluginGoal',
@@ -54,16 +54,16 @@ const AUTHORING_PLUGIN = {
 
 const DEFAULT_PLUGIN = {
   ...AUTHORING_PLUGIN,
-  id: 'od-new-generation',
+  id: 'readable-new-generation',
   title: 'New generation',
   source: '/tmp/new-generation',
   fsPath: '/tmp/new-generation',
   manifest: {
     ...AUTHORING_PLUGIN.manifest,
-    name: 'od-new-generation',
+    name: 'readable-new-generation',
     title: 'New generation',
     description: 'Create new design artifacts',
-    od: {
+    readable: {
       kind: 'scenario',
       taskKind: 'new-generation',
       useCase: { query: 'Create a plugin.' },
@@ -73,16 +73,16 @@ const DEFAULT_PLUGIN = {
 
 const HIDDEN_DEFAULT_PLUGIN = {
   ...DEFAULT_PLUGIN,
-  id: 'od-default',
+  id: 'readable-default',
   title: 'Default design router',
   source: '/tmp/default-router',
   fsPath: '/tmp/default-router',
   manifest: {
     ...DEFAULT_PLUGIN.manifest,
-    name: 'od-default',
+    name: 'readable-default',
     title: 'Default design router',
-    od: {
-      ...DEFAULT_PLUGIN.manifest.od,
+    readable: {
+      ...DEFAULT_PLUGIN.manifest.readable,
       hidden: true,
     },
   },
@@ -90,7 +90,7 @@ const HIDDEN_DEFAULT_PLUGIN = {
 
 // The Prototype chip binds to the bundled `example-web-prototype`
 // plugin (which ships its own seed + layouts + checklist) instead of
-// the generic od-new-generation router. Mirror that here so the
+// the generic readable-new-generation router. Mirror that here so the
 // chip-applies test can find a matching plugin record and the apply
 // call resolves to the new id.
 const WEB_PROTOTYPE_PLUGIN = {
@@ -104,7 +104,7 @@ const WEB_PROTOTYPE_PLUGIN = {
     name: 'example-web-prototype',
     title: 'Web Prototype',
     description: 'General-purpose desktop web prototype.',
-    od: {
+    readable: {
       kind: 'scenario',
       taskKind: 'new-generation',
       useCase: {
@@ -161,7 +161,7 @@ const SIMPLE_DECK_PLUGIN = {
     name: 'example-simple-deck',
     title: 'Simple Deck',
     description: 'Single-file horizontal-swipe HTML deck.',
-    od: {
+    readable: {
       kind: 'scenario',
       taskKind: 'new-generation',
       useCase: {
@@ -217,9 +217,9 @@ const SIMPLE_DECK_PLUGIN = {
 };
 
 const AUTHORING_DEFAULT_SCENARIO_INPUTS = {
-  artifactKind: 'Open Design plugin',
-  audience: 'Open Design plugin authors',
-  topic: 'packaging a reusable workflow as an Open Design plugin',
+  artifactKind: 'Readable Studio plugin',
+  audience: 'Readable Studio plugin authors',
+  topic: 'packaging a reusable workflow as an Readable Studio plugin',
 };
 
 const REFLY_DESIGN_SYSTEM = {
@@ -235,7 +235,7 @@ const REFLY_DESIGN_SYSTEM = {
 const AUTHORING_APPLY_RESULT = {
   query: 'Create a plugin.',
   contextItems: [],
-  inputs: AUTHORING_PLUGIN.manifest.od.inputs,
+  inputs: AUTHORING_PLUGIN.manifest.readable.inputs,
   assets: [],
   mcpServers: [],
   trust: 'trusted',
@@ -243,7 +243,7 @@ const AUTHORING_APPLY_RESULT = {
   capabilitiesRequired: ['prompt:inject'],
   appliedPlugin: {
     snapshotId: 'snap-authoring',
-    pluginId: 'od-plugin-authoring',
+    pluginId: 'readable-plugin-authoring',
     pluginVersion: '0.1.0',
     manifestSourceDigest: 'a'.repeat(64),
     inputs: { pluginGoal: PLUGIN_AUTHORING_DEFAULT_GOAL },
@@ -265,15 +265,15 @@ const DEFAULT_APPLY_RESULT = {
   appliedPlugin: {
     ...AUTHORING_APPLY_RESULT.appliedPlugin,
     snapshotId: 'snap-default',
-    pluginId: 'od-new-generation',
+    pluginId: 'readable-new-generation',
     inputs: AUTHORING_DEFAULT_SCENARIO_INPUTS,
   },
 };
 
 const WEB_PROTOTYPE_APPLY_RESULT = {
   ...AUTHORING_APPLY_RESULT,
-  query: WEB_PROTOTYPE_PLUGIN.manifest.od.useCase.query,
-  inputs: WEB_PROTOTYPE_PLUGIN.manifest.od.inputs,
+  query: WEB_PROTOTYPE_PLUGIN.manifest.readable.useCase.query,
+  inputs: WEB_PROTOTYPE_PLUGIN.manifest.readable.inputs,
   appliedPlugin: {
     ...AUTHORING_APPLY_RESULT.appliedPlugin,
     snapshotId: 'snap-web-prototype',
@@ -302,7 +302,7 @@ const META_INSTRUCTION_PLUGIN = {
     name: 'example-meta-landing',
     title: 'Meta Landing',
     description: 'Cinematic parallax landing page.',
-    od: {
+    readable: {
       kind: 'scenario',
       taskKind: 'new-generation',
       useCase: {
@@ -314,7 +314,7 @@ const META_INSTRUCTION_PLUGIN = {
 
 const META_INSTRUCTION_APPLY_RESULT = {
   ...WEB_PROTOTYPE_APPLY_RESULT,
-  query: META_INSTRUCTION_PLUGIN.manifest.od.useCase.query,
+  query: META_INSTRUCTION_PLUGIN.manifest.readable.useCase.query,
   inputs: [],
   appliedPlugin: {
     ...WEB_PROTOTYPE_APPLY_RESULT.appliedPlugin,
@@ -326,8 +326,8 @@ const META_INSTRUCTION_APPLY_RESULT = {
 
 const SIMPLE_DECK_APPLY_RESULT = {
   ...AUTHORING_APPLY_RESULT,
-  query: SIMPLE_DECK_PLUGIN.manifest.od.useCase.query,
-  inputs: SIMPLE_DECK_PLUGIN.manifest.od.inputs,
+  query: SIMPLE_DECK_PLUGIN.manifest.readable.useCase.query,
+  inputs: SIMPLE_DECK_PLUGIN.manifest.readable.inputs,
   appliedPlugin: {
     ...AUTHORING_APPLY_RESULT.appliedPlugin,
     snapshotId: 'snap-simple-deck',
@@ -371,7 +371,7 @@ describe('HomeView prompt handoff', () => {
           headers: { 'content-type': 'application/json' },
         });
       }
-      if (typeof url === 'string' && url.includes('/api/plugins/od-plugin-authoring/apply')) {
+      if (typeof url === 'string' && url.includes('/api/plugins/readable-plugin-authoring/apply')) {
         return applyResponse;
       }
       throw new Error(`unexpected fetch ${url}`);
@@ -399,7 +399,7 @@ describe('HomeView prompt handoff', () => {
     expect(inputCard?.style.getPropertyValue('--home-hero-prompt-max-height')).toBe('132px');
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
-      '/api/plugins/od-plugin-authoring/apply',
+      '/api/plugins/readable-plugin-authoring/apply',
       expect.anything(),
     ));
     resolveApply(new Response(JSON.stringify(AUTHORING_APPLY_RESULT), {
@@ -433,7 +433,7 @@ describe('HomeView prompt handoff', () => {
           headers: { 'content-type': 'application/json' },
         });
       }
-      if (typeof url === 'string' && url.includes('/api/plugins/od-plugin-authoring/apply')) {
+      if (typeof url === 'string' && url.includes('/api/plugins/readable-plugin-authoring/apply')) {
         return new Response(JSON.stringify(AUTHORING_APPLY_RESULT), {
           status: 200,
           headers: { 'content-type': 'application/json' },
@@ -508,7 +508,7 @@ describe('HomeView prompt handoff', () => {
     expect(homeHeroPromptValue()).toBe('');
 
     // The user types their own brief over the empty draft, then submits — the
-    // routed plugin (not od-default) must drive the created run. Mirrors the
+    // routed plugin (not readable-default) must drive the created run. Mirrors the
     // P0 e2e "direct Use ... keeps the prompt freeform" flow.
     await setPromptAndSettle('Use the selected starter as the driver');
     await waitFor(() => {
@@ -552,14 +552,14 @@ describe('HomeView prompt handoff', () => {
     expect(screen.queryByTestId('home-hero-active-plugin')).toBeNull();
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       prompt: 'Make a launch page for a robotics studio',
-      pluginId: 'od-default',
+      pluginId: 'readable-default',
       appliedPluginSnapshotId: null,
       pluginInputs: { prompt: 'Make a launch page for a robotics studio' },
       projectKind: 'other',
     }));
   });
 
-  it('falls back to od-new-generation when od-plugin-authoring is not registered yet', async () => {
+  it('falls back to readable-new-generation when readable-plugin-authoring is not registered yet', async () => {
     const fetchMock = vi.fn<typeof fetch>(async (url) => {
       if (typeof url === 'string' && url === '/api/plugins') {
         return new Response(JSON.stringify({ plugins: [DEFAULT_PLUGIN] }), {
@@ -577,7 +577,12 @@ describe('HomeView prompt handoff', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
     stubAnimationFrame();
-    const onSubmit = vi.fn();
+    type Submission = Parameters<NonNullable<ComponentProps<typeof HomeView>['onSubmit']>>[0];
+    let resolveSubmission!: (submission: Submission) => void;
+    const submission = new Promise<Submission>((resolve) => {
+      resolveSubmission = resolve;
+    });
+    const onSubmit = vi.fn((value: Submission) => resolveSubmission(value));
 
     render(
       <HomeView
@@ -590,19 +595,17 @@ describe('HomeView prompt handoff', () => {
 
     await clickHomeShortcut('create-plugin');
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
-      '/api/plugins/od-new-generation/apply',
+      '/api/plugins/readable-new-generation/apply',
       expect.anything(),
     ));
     const applyCall = fetchMock.mock.calls.find(([url]) => (
-      typeof url === 'string' && url.includes('/api/plugins/od-new-generation/apply')
+      typeof url === 'string' && url.includes('/api/plugins/readable-new-generation/apply')
     ));
-    expect(JSON.parse(String((applyCall?.[1] as RequestInit).body))).toMatchObject({
-      inputs: {
-        artifactKind: 'Open Design plugin',
-        audience: 'Open Design plugin authors',
-        topic: 'packaging a reusable workflow as an Open Design plugin',
-      },
-    });
+    const applyBody = JSON.parse(String((applyCall?.[1] as RequestInit).body)) as {
+      inputs: Record<string, unknown>;
+    };
+    expect(Object.keys(applyBody.inputs).sort()).toEqual(['artifactKind', 'audience', 'topic']);
+    expect(Object.values(applyBody.inputs).every((value) => typeof value === 'string' && value.length > 0)).toBe(true);
     await waitFor(() => {
       expect(homeHeroPromptText()).toBe(PLUGIN_AUTHORING_PROMPT);
       expect((screen.getByTestId('home-hero-submit') as HTMLButtonElement).disabled).toBe(false);
@@ -610,15 +613,11 @@ describe('HomeView prompt handoff', () => {
     fireEvent.click(screen.getByTestId('home-hero-submit'));
 
     expect(screen.queryByRole('alert')).toBeNull();
-    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+    await expect(submission).resolves.toEqual(expect.objectContaining({
       prompt: PLUGIN_AUTHORING_PROMPT,
-      pluginId: 'od-new-generation',
+      pluginId: 'readable-new-generation',
       appliedPluginSnapshotId: 'snap-default',
-      pluginInputs: {
-        artifactKind: 'Open Design plugin',
-        audience: 'Open Design plugin authors',
-        topic: 'packaging a reusable workflow as an Open Design plugin',
-      },
+      pluginInputs: applyBody.inputs,
       projectKind: 'other',
     }));
   });
@@ -1443,7 +1442,7 @@ describe('HomeView prompt handoff', () => {
     ));
   });
 
-  it('binds od-plugin-authoring before submitting the rail create-plugin prompt', async () => {
+  it('binds readable-plugin-authoring before submitting the rail create-plugin prompt', async () => {
     const fetchMock = vi.fn<typeof fetch>(async (url) => {
       if (typeof url === 'string' && url === '/api/plugins') {
         return new Response(JSON.stringify({ plugins: [AUTHORING_PLUGIN, WEB_PROTOTYPE_PLUGIN] }), {
@@ -1475,7 +1474,7 @@ describe('HomeView prompt handoff', () => {
     await clearActiveTypeChip();
     await clickHomeShortcut('create-plugin');
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
-      '/api/plugins/od-plugin-authoring/apply',
+      '/api/plugins/readable-plugin-authoring/apply',
       expect.anything(),
     ));
     await waitFor(() => {
@@ -1492,7 +1491,7 @@ describe('HomeView prompt handoff', () => {
 
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       prompt: PLUGIN_AUTHORING_PROMPT,
-      pluginId: 'od-plugin-authoring',
+      pluginId: 'readable-plugin-authoring',
       appliedPluginSnapshotId: 'snap-authoring',
       pluginInputs: { pluginGoal: PLUGIN_AUTHORING_DEFAULT_GOAL },
       projectKind: 'other',
@@ -1531,7 +1530,7 @@ describe('HomeView prompt handoff', () => {
     await clearActiveTypeChip();
     await clickHomeShortcut('create-plugin');
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
-      '/api/plugins/od-plugin-authoring/apply',
+      '/api/plugins/readable-plugin-authoring/apply',
       expect.anything(),
     ));
 
@@ -1547,7 +1546,7 @@ describe('HomeView prompt handoff', () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       prompt: expect.stringContaining(rewrittenGoal),
-      pluginId: 'od-plugin-authoring',
+      pluginId: 'readable-plugin-authoring',
       pluginInputs: {
         pluginGoal: rewrittenGoal,
       },
@@ -1604,7 +1603,7 @@ describe('HomeView prompt handoff', () => {
     fireEvent.click(screen.getByTestId('home-hero-submit'));
 
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
-      pluginId: 'od-plugin-authoring',
+      pluginId: 'readable-plugin-authoring',
       appliedPluginSnapshotId: 'snap-authoring',
     }));
   });

@@ -17,7 +17,7 @@ import { buildMemoryTree, readMemoryEntry } from '../src/memory.js';
 let dataDir = '';
 
 beforeEach(async () => {
-  dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-automation-ingestions-'));
+  dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-automation-ingestions-'));
 });
 
 afterEach(async () => {

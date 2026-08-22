@@ -592,7 +592,7 @@ describe('FileWorkspace launcher tab creation', () => {
       <FileWorkspace
         projectId="project-1"
         projectKind="prototype"
-        resolvedDir="/tmp/open-design/project-1"
+        resolvedDir="/tmp/readable-studio/project-1"
         files={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
@@ -614,7 +614,7 @@ describe('FileWorkspace launcher tab creation', () => {
       <FileWorkspace
         projectId="project-1"
         projectKind="prototype"
-        resolvedDir="/tmp/open-design/project-1"
+        resolvedDir="/tmp/readable-studio/project-1"
         files={[workspaceFile('cover.html')]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
@@ -630,7 +630,7 @@ describe('FileWorkspace launcher tab creation', () => {
         kind: 'design-files',
         label: 'Design Files',
         tabId: '__design_files__',
-        absolutePath: '/tmp/open-design/project-1',
+        absolutePath: '/tmp/readable-studio/project-1',
       });
     });
   });
@@ -1039,7 +1039,7 @@ describe('DesignFilesPanel plugin folders', () => {
       <DesignFilesPanel
         projectId="project-1"
         files={[
-          workspaceFile('generated-plugin/open-design.json'),
+          workspaceFile('generated-plugin/readable-studio.json'),
           workspaceFile('generated-plugin/SKILL.md'),
           workspaceFile('generated-plugin/examples/demo.md'),
         ]}

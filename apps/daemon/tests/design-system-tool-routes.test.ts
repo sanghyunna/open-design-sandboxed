@@ -21,7 +21,7 @@ afterEach(async () => {
 });
 
 function fresh(): string {
-  return mkdtempSync(path.join(tmpdir(), 'od-design-system-tool-routes-'));
+  return mkdtempSync(path.join(tmpdir(), 'readable-design-system-tool-routes-'));
 }
 
 function writeHybridDesignSystem(root: string, id: string): string {
@@ -29,13 +29,13 @@ function writeHybridDesignSystem(root: string, id: string): string {
   mkdirSync(path.join(dir, 'preview'), { recursive: true });
   writeFileSync(path.join(dir, 'DESIGN.md'), '# Test\n');
   writeFileSync(path.join(dir, 'tokens.css'), ':root { --bg: #fff; }');
-  writeFileSync(path.join(dir, 'design-tokens.json'), '{"format":"od-design-tokens/v1","tokens":[]}\n');
+  writeFileSync(path.join(dir, 'design-tokens.json'), '{"format":"readable.design-tokens/v1","tokens":[]}\n');
   writeFileSync(path.join(dir, 'tailwind-v4.css'), '@import "tailwindcss";\n');
   writeFileSync(path.join(dir, 'components.html'), '<button>ok</button>');
   writeFileSync(path.join(dir, 'preview', 'colors.html'), '<h1>Colors</h1>');
   writeFileSync(path.join(dir, 'preview', 'spacing.html'), '<h1>Spacing</h1>');
   writeFileSync(path.join(dir, 'manifest.json'), `${JSON.stringify({
-    schemaVersion: 'od-design-system-project/v1',
+    schemaVersion: 'readable.design-system-project/v1',
     id,
     name: 'Test',
     category: 'Imported',
@@ -143,7 +143,7 @@ describe('design-system pull tool route', () => {
     expect(derived.body.file).toMatchObject({
       path: 'design-tokens.json',
       encoding: 'utf8',
-      content: expect.stringContaining('od-design-tokens/v1'),
+      content: expect.stringContaining('readable.design-tokens/v1'),
     });
   });
 

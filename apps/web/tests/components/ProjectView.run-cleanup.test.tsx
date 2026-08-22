@@ -56,7 +56,7 @@ function artifactProjectFile(name: string, mtime: number): ProjectFile {
       },
       renderer: 'html',
       title: 'Real Daemon Smoke',
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
     },
     kind: 'html',
     mime: 'text/html',
@@ -201,7 +201,7 @@ describe('selectPrimaryProjectFile', () => {
       primary: true,
       renderer: 'html',
       title: 'Index',
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
     });
 
     expect(selectPrimaryProjectFile([newer, primary])).toBe(primary);
@@ -623,7 +623,7 @@ describe('ProjectView daemon cleanup', () => {
     streamViaDaemon.mockResolvedValue(undefined);
 
     chatPaneSpy.mockClear();
-    window.sessionStorage.setItem('od:auto-send-first:project-2', '1');
+    window.sessionStorage.setItem('readable:auto-send-first:project-2', '1');
 
     try {
       render(
@@ -661,7 +661,7 @@ describe('ProjectView daemon cleanup', () => {
       );
       expect(seededCall).toBeUndefined();
     } finally {
-      window.sessionStorage.removeItem('od:auto-send-first:project-2');
+      window.sessionStorage.removeItem('readable:auto-send-first:project-2');
     }
   });
 
@@ -679,9 +679,9 @@ describe('ProjectView daemon cleanup', () => {
     streamViaDaemon.mockResolvedValue(undefined);
 
     chatPaneSpy.mockClear();
-    window.sessionStorage.setItem('od:auto-send-first:project-files', '1');
+    window.sessionStorage.setItem('readable:auto-send-first:project-files', '1');
     window.sessionStorage.setItem(
-      'od:auto-send-attachments:project-files',
+      'readable:auto-send-attachments:project-files',
       JSON.stringify([
         { path: 'brief.pdf', name: 'brief.pdf', kind: 'file', size: 5 },
         { path: 'logo.png', name: 'logo.png', kind: 'image', size: 7 },
@@ -731,11 +731,11 @@ describe('ProjectView daemon cleanup', () => {
           }),
         ],
       });
-      expect(window.sessionStorage.getItem('od:auto-send-first:project-files')).toBeNull();
-      expect(window.sessionStorage.getItem('od:auto-send-attachments:project-files')).toBeNull();
+      expect(window.sessionStorage.getItem('readable:auto-send-first:project-files')).toBeNull();
+      expect(window.sessionStorage.getItem('readable:auto-send-attachments:project-files')).toBeNull();
     } finally {
-      window.sessionStorage.removeItem('od:auto-send-first:project-files');
-      window.sessionStorage.removeItem('od:auto-send-attachments:project-files');
+      window.sessionStorage.removeItem('readable:auto-send-first:project-files');
+      window.sessionStorage.removeItem('readable:auto-send-attachments:project-files');
     }
   });
 
@@ -798,12 +798,12 @@ describe('ProjectView daemon cleanup', () => {
         order: 1,
         filePath: 'preview.html',
         elementId: 'hero',
-        selector: '[data-od-id="hero"]',
+        selector: '[data-readable-id="hero"]',
         label: 'Hero',
         comment: 'Use a warmer accent',
         currentText: 'Hero',
         pagePosition: { x: 10, y: 20, width: 100, height: 40 },
-        htmlHint: '<main data-od-id="hero">',
+        htmlHint: '<main data-readable-id="hero">',
         source: 'board-batch',
       },
     ]);
@@ -867,7 +867,7 @@ describe('ProjectView daemon cleanup', () => {
     });
 
     chatPaneSpy.mockClear();
-    window.sessionStorage.setItem('od:auto-send-first:project-ds', '1');
+    window.sessionStorage.setItem('readable:auto-send-first:project-ds', '1');
 
     render(
       <ProjectView
@@ -905,7 +905,7 @@ describe('ProjectView daemon cleanup', () => {
 
     await waitFor(() => expect(fetchProjectDesignSystemPackageAudit).toHaveBeenCalledWith('project-ds'));
     await waitFor(() => expect(streamViaDaemon).toHaveBeenCalled());
-    expect(window.sessionStorage.getItem('od:design-system-audit-auto-repair:project-ds')).toBe('1');
+    expect(window.sessionStorage.getItem('readable:design-system-audit-auto-repair:project-ds')).toBe('1');
     await waitFor(() => {
       const repairSeed = chatPaneSpy.mock.calls.find(
         (call) => typeof call[0]?.initialDraft === 'string'
@@ -951,7 +951,7 @@ describe('ProjectView daemon cleanup', () => {
     });
 
     chatPaneSpy.mockClear();
-    window.sessionStorage.setItem('od:auto-send-first:project-ds-pass', '1');
+    window.sessionStorage.setItem('readable:auto-send-first:project-ds-pass', '1');
 
     render(
       <ProjectView
@@ -989,7 +989,7 @@ describe('ProjectView daemon cleanup', () => {
 
     await waitFor(() => expect(fetchProjectDesignSystemPackageAudit).toHaveBeenCalledWith('project-ds-pass'));
     expect(streamViaDaemon).toHaveBeenCalledTimes(1);
-    expect(window.sessionStorage.getItem('od:design-system-audit-auto-repair:project-ds-pass')).toBeNull();
+    expect(window.sessionStorage.getItem('readable:design-system-audit-auto-repair:project-ds-pass')).toBeNull();
   });
 
   // Sister check: without the auto-send flag, the composer should still
@@ -1007,7 +1007,7 @@ describe('ProjectView daemon cleanup', () => {
     listActiveChatRuns.mockResolvedValue([]);
 
     chatPaneSpy.mockClear();
-    window.sessionStorage.removeItem('od:auto-send-first:project-3');
+    window.sessionStorage.removeItem('readable:auto-send-first:project-3');
 
     render(
       <ProjectView
@@ -1362,7 +1362,7 @@ describe('ProjectView daemon cleanup', () => {
         },
         renderer: 'html',
         title: 'Real Daemon Smoke',
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
       },
       kind: 'html',
       mime: 'text/html',

@@ -5,7 +5,7 @@
 Capture the integration-boundary decisions the product/pipeline team needs to
 make before any creative-memory implementation can land in the live generation
 loop. What this doc covers is **not** the memory engine itself. It is the
-contract between memory and the rest of Open Design: where signals come from,
+contract between memory and the rest of Readable Studio: where signals come from,
 where the prompt block goes (and how it relates to the existing `## Personal
 memory` slot the daemon composer already populates), how users control it,
 and how the raw-events / content-addressed-derivations contract (background
@@ -16,16 +16,16 @@ option space, names a working lean, and flags the decision that needs an
 explicit product/pipeline call. The intent is to react against this doc rather
 than against committed code, so reversing a decision costs a doc edit instead
 of a refactor. The doc is written to apply to either implementation that
-might land — PR [#1746](https://github.com/nexu-io/open-design/pull/1746)'s
+might land — PR [#1746](https://github.com/nexu-io/readable-studio/pull/1746)'s
 RFC/prototype package or a team-internal implementation — per the resolved
 foundation-vs-reference question on the parent issue.
 
 Anchor threads:
 
-- Issue [#1637](https://github.com/nexu-io/open-design/issues/1637) — the
+- Issue [#1637](https://github.com/nexu-io/readable-studio/issues/1637) — the
   product-direction thread; carries the Section 11 raw-events contract
   discussion in line.
-- PR [#1746](https://github.com/nexu-io/open-design/pull/1746) — the
+- PR [#1746](https://github.com/nexu-io/readable-studio/pull/1746) — the
   RFC/prototype engine package, parked while this doc is reviewed.
 
 ## Background
@@ -33,7 +33,7 @@ Anchor threads:
 This section inlines just enough of the engine's external shape that the
 later sections do not depend on any file outside `main`. Anyone who wants
 the full simulation suite, lifecycle rationale, or open-questions ledger
-can read PR [#1746](https://github.com/nexu-io/open-design/pull/1746); the
+can read PR [#1746](https://github.com/nexu-io/readable-studio/pull/1746); the
 material below is what this doc itself relies on.
 
 ### Engine external API (current shape, subject to integration)
@@ -75,14 +75,14 @@ The prototype stores plain JSON per user at
 
 `<storage_root>` defaults to a package-local directory and is overridable
 via `MEMORY_STORAGE_ROOT`. §3 of this doc proposes aligning that with
-`OD_DATA_DIR` precedence per [`AGENTS.md`](../../AGENTS.md) FAQ "Where is
+`READABLE_DATA_DIR` precedence per [`AGENTS.md`](../../AGENTS.md) FAQ "Where is
 data written?".
 
 ### Raw-events / content-addressed-derivations contract
 
 The current engine is **write-time-derivation**: `ingestSignal` mutates
 preference records directly. Two failure modes were identified during PR
-[#1746](https://github.com/nexu-io/open-design/pull/1746) review:
+[#1746](https://github.com/nexu-io/readable-studio/pull/1746) review:
 
 1. **Attribution.** A unary accept/reject is one bit; without contrastive
    context, an extractor will attribute rejections to whatever it finds
@@ -153,8 +153,8 @@ space.
   memory subsystem.
 - **Headless / CLI parity.** Per the dual-track rule, every signal capture
   surface in the UI must have a CLI equivalent that emits the same event
-  shape. `od memory ingest` (or similar) is the contract; without it,
-  external agents driving Open Design through `od` cannot contribute to the
+  shape. `readable memory ingest` (or similar) is the contract; without it,
+  external agents driving Readable Studio through `readable` cannot contribute to the
   user's preference memory and the memory becomes UI-only.
 
 ## 2. Retrieval insertion into generation / critique
@@ -197,7 +197,7 @@ between. Each block below is gated on its input being non-empty.
 11. `## Pull-layer files available on demand` — paths the agent can read on
     request.
 12. `## Active craft references` — universal brand-agnostic rules opted into
-    via `od.craft.requires`.
+    via `readable.craft.requires`.
 13. `## Active skill` — the skill body the agent must follow.
 
 #### Tail blocks (mode-specific, after `## Active skill`)
@@ -337,12 +337,12 @@ no other user surface. Everything else needs to be designed.
 
 | Surface | UI | CLI | Why required |
 |---|---|---|---|
-| Master enable/disable | Settings → Memory toggle | `od memory disable` / `od memory enable` | Trust posture; users must be able to turn it off. |
-| Per-project override | Project settings → "this project ignores global memory" | `od memory project-disable <project>` | Sensitive projects (client work, NDAs) should not leak general preference memory. |
-| "What's in my memory right now" inspector | Settings → Memory → Inspect | `od memory inspect --json` | Trust requires legibility. The engine emits diagnostics; this surface reads them. |
-| Forget a specific pattern | Inspector row → Forget | `od memory forget <type> <pattern>` | GDPR-shaped escape hatch and recovery from ingestion errors. |
-| Wipe all memory | Settings → Memory → Reset | `od memory reset --confirm` | Recovery from corruption, account handover, fresh start. |
-| Pause without forgetting | Settings → Memory → Pause | `od memory pause [--until <date>]` | Useful when the user knows they're working in an atypical mode (client work, exploration) without wanting to lose the existing model. |
+| Master enable/disable | Settings → Memory toggle | `readable memory disable` / `readable memory enable` | Trust posture; users must be able to turn it off. |
+| Per-project override | Project settings → "this project ignores global memory" | `readable memory project-disable <project>` | Sensitive projects (client work, NDAs) should not leak general preference memory. |
+| "What's in my memory right now" inspector | Settings → Memory → Inspect | `readable memory inspect --json` | Trust requires legibility. The engine emits diagnostics; this surface reads them. |
+| Forget a specific pattern | Inspector row → Forget | `readable memory forget <type> <pattern>` | GDPR-shaped escape hatch and recovery from ingestion errors. |
+| Wipe all memory | Settings → Memory → Reset | `readable memory reset --confirm` | Recovery from corruption, account handover, fresh start. |
+| Pause without forgetting | Settings → Memory → Pause | `readable memory pause [--until <date>]` | Useful when the user knows they're working in an atypical mode (client work, exploration) without wanting to lose the existing model. |
 
 ### Surfaces to consider
 
@@ -359,15 +359,15 @@ no other user surface. Everything else needs to be designed.
 ### Storage location and portability
 
 The engine defaults to `<package install dir>/memory/<userId>/preferences.json`
-overridable via `MEMORY_STORAGE_ROOT`. For Open Design integration, two
+overridable via `MEMORY_STORAGE_ROOT`. For Readable Studio integration, two
 decisions:
 
-- **Default location.** Lean: `<OD_DATA_DIR>/memory/<userId>/preferences.json`
-  so memory follows the same `OD_DATA_DIR` precedence as other daemon state
+- **Default location.** Lean: `<READABLE_DATA_DIR>/memory/<userId>/preferences.json`
+  so memory follows the same `READABLE_DATA_DIR` precedence as other daemon state
   (`AGENTS.md` FAQ "Where is data written?"). Packaged installs and Home
-  Manager / NixOS modules already point `OD_DATA_DIR` at a writable directory;
+  Manager / NixOS modules already point `READABLE_DATA_DIR` at a writable directory;
   memory should ride that contract.
-- **Portability.** `od memory export --to <path>` and `od memory import <path>`
+- **Portability.** `readable memory export --to <path>` and `readable memory import <path>`
   for moving memory across machines without a cloud sync layer. The engine's
   storage is already plain JSON; this is just CLI plumbing.
 
@@ -391,22 +391,22 @@ integration boundaries.
 | Option | Where raw events live | Implication |
 |---|---|---|
 | A. Engine package owns raw events | `<storage_root>/<userId>/raw_events.jsonl` alongside `preferences.json` | Engine boundary expands to include event log. Re-derivation runs inside the package. |
-| B. Daemon owns raw events | `<OD_DATA_DIR>/memory/<userId>/raw_events.jsonl`, or a `raw_events` table inside `<OD_DATA_DIR>/app.sqlite` | Engine becomes a pure derivation function over an event slice handed in by the daemon. |
-| C. Hybrid — daemon writes, engine reads | Daemon appends under the `OD_DATA_DIR` precedence; engine reads through a typed accessor | Decouples write path (event capture is a host concern) from derivation (engine concern). |
+| B. Daemon owns raw events | `<READABLE_DATA_DIR>/memory/<userId>/raw_events.jsonl`, or a `raw_events` table inside `<READABLE_DATA_DIR>/app.sqlite` | Engine becomes a pure derivation function over an event slice handed in by the daemon. |
+| C. Hybrid — daemon writes, engine reads | Daemon appends under the `READABLE_DATA_DIR` precedence; engine reads through a typed accessor | Decouples write path (event capture is a host concern) from derivation (engine concern). |
 
-`<OD_DATA_DIR>` here means the resolved daemon data root: `OD_DATA_DIR` if
-set, otherwise `<projectRoot>/.od`. The path is resolved with `~/` expansion
+`<READABLE_DATA_DIR>` here means the resolved daemon data root: `READABLE_DATA_DIR` if
+set, otherwise `<projectRoot>/.readable-studio`. The path is resolved with `~/` expansion
 and relative paths anchored to `<projectRoot>`. Packaged installs and Home
-Manager / NixOS modules already point `OD_DATA_DIR` at a writable directory
+Manager / NixOS modules already point `READABLE_DATA_DIR` at a writable directory
 because the install root may be read-only; raw events must ride that
-contract rather than hard-code a repo-rooted `.od/` path.
+contract rather than hard-code a repo-rooted `.readable-studio/` path.
 
-`OD_MEDIA_CONFIG_DIR` is **not** part of this precedence. Per
+`READABLE_MEDIA_CONFIG_DIR` is **not** part of this precedence. Per
 [`AGENTS.md`](../../AGENTS.md) FAQ "Where is data written?",
-`OD_MEDIA_CONFIG_DIR` is a narrower override that relocates *only*
+`READABLE_MEDIA_CONFIG_DIR` is a narrower override that relocates *only*
 `media-config.json` (API credentials). Raw events are general daemon
 runtime data and follow the daemon data-root contract above; an
-implementation that respected `OD_MEDIA_CONFIG_DIR` for raw events would
+implementation that respected `READABLE_MEDIA_CONFIG_DIR` for raw events would
 route preference event data into the credentials directory, which is the
 wrong contract.
 
@@ -422,7 +422,7 @@ that axis matches the existing daemon ↔ package boundary in the repo.
 The content-addressed key is `hash(raw_event_set, derivation_fn_version)`. The
 version tag has to live somewhere both the writer and reader agree on.
 
-Lean: as an exported constant in `@open-design/creative-memory-system`,
+Lean: as an exported constant in `@readable-studio/creative-memory-system`,
 imported by the daemon when computing the cache key. Bumping the version is a
 package release. This matches how the package already exports
 `schema_version: "1.0"` in `preferences.json`.
@@ -501,7 +501,7 @@ For maintainer review, the explicit calls this doc surfaces:
 5. **Memory block insertion point** in the live composer order. (§2; lean B1, after `## Personal memory`)
 6. **Precedence wording** for the new block. (§2; lean: mirror the existing `brand wins / skill wins` clause)
 7. **Critique-side memory format.** (§2)
-8. **Default storage path** under `OD_DATA_DIR`. (§3; lean yes)
+8. **Default storage path** under `READABLE_DATA_DIR`. (§3; lean yes)
 9. **Diagnostic feed surface** in chat. (§3; lean off by default)
 10. **Raw-events ownership** between daemon and engine package. (§4; lean C)
 11. **Derivation-version exporter.** (§4)
@@ -517,21 +517,21 @@ than starting from a blank page.
 - A specific pairwise event shape. The lean is `{ chose, over, dimensions? }`,
   but UX details (does the user pick one, or pick + dimension annotation?)
   belong to the surface that actually ships pairwise first (critique theater).
-- A specific CLI subcommand layout for `od memory`. The dual-track rule says
+- A specific CLI subcommand layout for `readable memory`. The dual-track rule says
   every UI control needs a CLI peer; the names in §3 are illustrative, the
   actual subcommand grammar follows whatever pattern the existing
-  `od automation`, `od plugin`, `od ui` family establishes.
+  `readable automation`, `readable plugin`, `readable ui` family establishes.
 - A rollout schedule. The decisions above are independent and can land in
   any order behind a `memory_enabled: false` default.
 
 ## Open follow-ups
 
-- Confirm that `OD_DATA_DIR` precedence applies to the memory storage root
+- Confirm that `READABLE_DATA_DIR` precedence applies to the memory storage root
   (it should, per AGENTS.md FAQ, but the integration code has not been
   written yet).
-- Decide whether memory state is part of `od project export` /
+- Decide whether memory state is part of `readable project export` /
   per-project portability flows, or strictly user-scoped.
-- Sketch the `od memory inspect --json` output shape — likely just a passthrough
+- Sketch the `readable memory inspect --json` output shape — likely just a passthrough
   of the engine's diagnostic events plus the current preference list.
 
 These are tractable doc edits once the §5 decisions land; flagged here so

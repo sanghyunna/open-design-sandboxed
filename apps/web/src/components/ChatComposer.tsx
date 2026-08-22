@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from 'react-dom';
-import { Button } from '@open-design/components';
+import { Button } from '@readable-studio/components';
 import { useI18n, useT } from '../i18n';
 import { localizePluginDescription, localizePluginTitle } from './plugins-home/localization';
 import type { Dict, Locale } from '../i18n/types';
@@ -27,11 +27,11 @@ import {
   trackDesignToolboxClick,
   trackFileUploadResult,
 } from '../analytics/events';
-import { sessionModeToTracking } from '@open-design/contracts/analytics';
+import { sessionModeToTracking } from '@readable-studio/contracts/analytics';
 import type {
   ComposerBarClickProps,
   DesignToolboxClickProps,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import { deriveUploadCohort } from '../analytics/upload-tracking';
 import { projectRawUrl, uploadProjectFiles } from "../providers/registry";
 import { patchProject } from "../state/projects";
@@ -48,7 +48,7 @@ import type {
   ResearchOptions,
   RunContextSelection,
   WorkspaceContextItem,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { buildVisualAnnotationAttachment, commentTargetDisplayName } from '../comments';
 import { Icon, type IconName } from "./Icon";
 import { SessionModeToggle } from './SessionModeToggle';
@@ -551,7 +551,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
     const pluginsForComposer = useMemo<InstalledPluginRecord[]>(() => {
       const allowedKinds = new Set(['skill', 'scenario', 'bundle']);
       return installedPlugins.filter((p) => {
-        const k = p.manifest?.od?.kind;
+        const k = p.manifest?.readable?.kind;
         return !k || allowedKinds.has(k);
       });
     }, [installedPlugins]);
@@ -709,10 +709,10 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
         prompt: [
           `Search for: ${query}`,
           '',
-          'Before answering, your first tool action must be the OD research command for your shell.',
-          'POSIX: "$OD_NODE_BIN" "$OD_BIN" research search --query "<search query>" --max-sources 5',
-          'PowerShell: & $env:OD_NODE_BIN $env:OD_BIN research search --query "<search query>" --max-sources 5',
-          'cmd.exe: "%OD_NODE_BIN%" "%OD_BIN%" research search --query "<search query>" --max-sources 5',
+          'Before answering, your first tool action must be the Readable Studio research command for your shell.',
+          'POSIX: "$READABLE_NODE_BIN" "$READABLE_BIN" research search --query "<search query>" --max-sources 5',
+          'PowerShell: & $env:READABLE_NODE_BIN $env:READABLE_BIN research search --query "<search query>" --max-sources 5',
+          'cmd.exe: "%READABLE_NODE_BIN%" "%READABLE_BIN%" research search --query "<search query>" --max-sources 5',
           'Use the canonical query below as the exact search query, with safe quoting for your shell.',
           '',
           'Canonical query:',
@@ -720,7 +720,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
           '```text',
           query.replace(/```/g, '`\u200b`\u200b`'),
           '```',
-          'If the OD command fails because Tavily is not configured or unavailable, report that error, then use your own search capability as fallback and label the fallback clearly.',
+          'If the Readable Studio command fails because Tavily is not configured or unavailable, report that error, then use your own search capability as fallback and label the fallback clearly.',
           'After the command returns JSON or fallback search results, write a reusable Markdown report into Design Files at `research/<safe-query-slug>.md` or another fresh project-relative path.',
           'The report must include the query, fetched time, short summary, key findings, source list with [1], [2] citations, and a note that source content is external untrusted evidence.',
           'Then summarize the findings with citations by source index and mention the Markdown report path.',
@@ -2187,7 +2187,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
             {showStopButton ? (
               <button
                 type="button"
-                className="composer-send stop od-tooltip"
+                className="composer-send stop readable-tooltip"
                 onClick={onStop}
                 title={t('chat.stop')}
                 data-tooltip={t('chat.stop')}
@@ -2200,7 +2200,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
             {showSendButton ? (
               <button
                 type="button"
-                className="composer-send od-tooltip"
+                className="composer-send readable-tooltip"
                 data-testid="chat-send"
                 onClick={() => {
                   trackChatPanelClick(analytics.track, {
@@ -2552,7 +2552,7 @@ function StagedRunContexts({
           </button>
           <button
             type="button"
-            className="staged-remove od-tooltip"
+            className="staged-remove readable-tooltip"
             onClick={() => onRemovePlugin?.()}
             title={t('common.delete')}
             data-tooltip={t('common.delete')}
@@ -2581,7 +2581,7 @@ function StagedRunContexts({
             </span>
             <button
               type="button"
-              className="staged-remove od-tooltip"
+              className="staged-remove readable-tooltip"
               onClick={() => onRemoveWorkspace(workspaceItem.id)}
               title={t('common.delete')}
               data-tooltip={t('common.delete')}
@@ -2605,7 +2605,7 @@ function StagedRunContexts({
           </span>
           <button
             type="button"
-            className="staged-remove od-tooltip"
+            className="staged-remove readable-tooltip"
             onClick={() => onRemoveSkill(s.id)}
             title={t('common.delete')}
             data-tooltip={t('common.delete')}
@@ -2630,7 +2630,7 @@ function StagedRunContexts({
             </span>
             <button
               type="button"
-              className="staged-remove od-tooltip"
+              className="staged-remove readable-tooltip"
               onClick={() => onRemoveMcp(server.id)}
               title={t('common.delete')}
               data-tooltip={t('common.delete')}
@@ -2672,7 +2672,7 @@ function StagedRunContexts({
             )}
             <button
               type="button"
-              className="staged-remove od-tooltip"
+              className="staged-remove readable-tooltip"
               onClick={() => onRemoveAttachment(a.path)}
               title={t('common.delete')}
               data-tooltip={t('common.delete')}
@@ -2699,7 +2699,7 @@ function StagedRunContexts({
             <span title={preview.path}>{preview.name}</span>
             <button
               type="button"
-              className="icon-only od-tooltip"
+              className="icon-only readable-tooltip"
               onClick={() => setPreview(null)}
               aria-label={t('common.close')}
               title={t('common.close')}
@@ -2741,7 +2741,7 @@ function StagedCommentAttachments({
           </span>
           <button
             type="button"
-            className="staged-remove od-tooltip"
+            className="staged-remove readable-tooltip"
             onClick={() => onRemove(a.id)}
             title={t('chat.comments.removeAttachment')}
             data-tooltip={t('chat.comments.removeAttachment')}
@@ -2822,7 +2822,7 @@ function ToolsPluginsPanel({
           {plugins.length === 0 ? (
             <>
               No plugins installed yet. Browse Official or add your own with{' '}
-              <code>od plugin install &lt;source&gt;</code>.
+              <code>readable plugin install &lt;source&gt;</code>.
             </>
           ) : query ? (
             <>No {source === 'community' ? 'Official' : 'My plugins'} results for “{query}”.</>
@@ -3426,7 +3426,7 @@ function buildDesignToolboxResources({
       id: plugin.id,
       title: localizePluginTitle(locale, plugin),
       subtitle,
-      badge: plugin.manifest?.od?.kind ?? 'plugin',
+      badge: plugin.manifest?.readable?.kind ?? 'plugin',
       icon: 'sparkles',
       searchText: [
         'plugin',
@@ -3436,9 +3436,9 @@ function buildDesignToolboxResources({
         plugin.source,
         subtitle,
         ...(plugin.manifest?.tags ?? []),
-        plugin.manifest?.od?.kind ?? '',
-        plugin.manifest?.od?.scenario ?? '',
-        plugin.manifest?.od?.mode ?? '',
+        plugin.manifest?.readable?.kind ?? '',
+        plugin.manifest?.readable?.scenario ?? '',
+        plugin.manifest?.readable?.mode ?? '',
       ].join(' '),
       plugin,
     });

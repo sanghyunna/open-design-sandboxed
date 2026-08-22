@@ -16,7 +16,7 @@ triggers:
   - "xp app"
   - "streak app"
   - "life management app"
-od:
+readable:
   mode: prototype
   platform: mobile
   scenario: personal
@@ -84,7 +84,7 @@ Three phone frames side-by-side, each one its own moment in the journey.
    - `<!doctype html>` through `</html>`, CSS inline.
    - All in CSS — no images. Use `linear-gradient` and inline SVG glyphs
      for tile chips and tab icons.
-   - `data-od-id` on stage, each phone, each frame's regions.
+   - `data-readable-id` on stage, each phone, each frame's regions.
 9. **Self-check**:
    - Three frames, each with a distinct purpose. Not three copies of the
      same screen.

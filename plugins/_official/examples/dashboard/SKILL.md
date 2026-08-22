@@ -10,7 +10,7 @@ triggers:
   - "admin panel"
   - "analytics"
   - "control panel"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: operations
@@ -49,7 +49,7 @@ Produce a single-screen admin / analytics dashboard.
    - `<!doctype html>` through `</html>`, CSS in one inline `<style>` block.
    - CSS Grid for the overall layout; Flexbox inside cards.
    - Semantic HTML: `<aside>`, `<header>`, `<main>`, `<section>`.
-   - Tag each logical region with `data-od-id="slug"` for comment mode.
+   - Tag each logical region with `data-readable-id="slug"` for comment mode.
 5. **Charts**: inline SVG only, no JS libraries. A line chart is ~10 lines of
    `<polyline>` with a subtle area fill. A bar chart is N `<rect>`s with
    DS-accent fill. Label axes lightly (muted text, smaller scale).

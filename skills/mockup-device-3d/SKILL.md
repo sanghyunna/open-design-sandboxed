@@ -18,7 +18,7 @@ example_tagline: "HTML-in-Canvas device showcase"
 example_desc: "Real UI embedded on both an iPhone and MacBook screen with glass refraction"
 example_source_url: "https://hyperframes.heygen.com/catalog"
 example_source_label: "hyperframes · vfx-iphone-device"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

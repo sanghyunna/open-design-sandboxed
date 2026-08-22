@@ -1,7 +1,7 @@
 ---
 name: build-test
 description: Run the project's build / typecheck / lint / test commands and emit the build.passing + tests.passing signals devloop convergence reads.
-od:
+readable:
   scenario: code-migration
   mode: critique
 ---
@@ -18,7 +18,7 @@ devloop's `until` evaluator reads.
 
 - The active target stack (recorded in `code/index.json` +
   `plan.md`'s targetStack block).
-- The user's optional override (`od plugin run --input
+- The user's optional override (`readable plugin run --input
   testCommand='pnpm test'`).
 
 ## Default commands by framework
@@ -36,7 +36,7 @@ devloop's `until` evaluator reads.
 project-cwd/
 └── critique/
     ├── build-test.json   # { build: 'passing' | 'failing', tests: 'passing' | 'failing' | 'skipped', durationMs, commandsRun: [...], failures: [...] }
-    └── build-test.log    # raw stdout / stderr (truncated to OD_BUILD_TEST_LOG_BUDGET_BYTES, default 1 MiB)
+    └── build-test.log    # raw stdout / stderr (truncated to READABLE_BUILD_TEST_LOG_BUDGET_BYTES, default 1 MiB)
 ```
 
 The atom emits **two** signals the devloop reads:

@@ -128,9 +128,9 @@ describe('composeSystemPrompt', () => {
   });
 
   it('advertises only files_only agent rollback', () => {
-    expect(composeSystemPrompt({})).not.toContain('<od-rollback-request');
+    expect(composeSystemPrompt({})).not.toContain('<readable-rollback-request');
     const prompt = composeSystemPrompt({ agentRollbackEnabled: true });
-    expect(prompt).toContain('<od-rollback-request mode="files_only"');
+    expect(prompt).toContain('<readable-rollback-request mode="files_only"');
     expect(prompt).toContain('agent-requested chat restoration is not supported');
     expect(prompt).not.toContain('`chat_only`, `files_and_chat`');
   });
@@ -330,7 +330,7 @@ describe('composeSystemPrompt', () => {
   // optional inputs (`designSystemTokensCss`, `designSystemFixtureHtml`)
   // that the daemon populates by default for every brand that ships
   // those files (PR-D flipped the env gate to default-on, with
-  // `OD_DESIGN_TOKEN_CHANNEL=0` as the kill switch). These tests pin
+  // `READABLE_DESIGN_TOKEN_CHANNEL=0` as the kill switch). These tests pin
   // the injection shape so the prompt structure cannot drift silently.
   describe('design-system token + fixture injection (#PR-C)', () => {
     const sampleTokensCss = ':root {\n  --bg: #ffffff;\n  --fg: #111111;\n  --accent: #0050d8;\n}';

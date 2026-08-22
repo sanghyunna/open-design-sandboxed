@@ -5,7 +5,7 @@ triggers:
   - "xhs editorial"
   - "white editorial"
   - "editorial deck"
-od:
+readable:
   mode: deck
   scenario: marketing
   upstream: "https://github.com/lewislulu/html-ppt-skill"

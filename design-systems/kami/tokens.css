@@ -6,7 +6,7 @@
  * serif at one weight (500), no italic, no cool grays.
  *
  * This file pre-compiles the values described in `DESIGN.md` into
- * the schema shared with all OD design systems. Two paste paths:
+ * the schema shared with all Readable Studio design systems. Two paste paths:
  *
  *   1. Agents generating an artifact for kami should paste the
  *      :root block verbatim into the first <style> of the artifact,

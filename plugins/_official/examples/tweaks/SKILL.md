@@ -18,7 +18,7 @@ triggers:
   - "adjustable controls panel"
   - "side panel"
   - "knobs"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: design

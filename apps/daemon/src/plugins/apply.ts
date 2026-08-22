@@ -3,7 +3,7 @@
 //   - Pure: no SQLite writes, no FS mutation, no network. Side effects
 //     belong to the caller (snapshots.ts persists, server.ts wires the
 //     SSE response, project create stages assets).
-//   - Inputs are validated against `manifest.od.inputs`; missing required
+//   - Inputs are validated against `manifest.readable.inputs`; missing required
 //     fields raise `MissingInput` which the CLI/HTTP layer surfaces as 422.
 //   - The output `ApplyResult` is the contract between apply and:
 //       (a) `POST /api/projects` (project metadata + assets to stage)
@@ -18,7 +18,7 @@ import {
   resolveAppliedPipeline,
   resolveContext,
   type RegistryView,
-} from '@open-design/plugin-runtime';
+} from '@readable-studio/plugin-runtime';
 import {
   renderPluginBlock,
   resolveLocalizedText,
@@ -30,7 +30,7 @@ import {
   type PluginManifest,
   type PluginProjectMetadataPatch,
   type TrustTier,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { resolveCapabilitiesGranted, requiredCapabilities } from './trust.js';
 import { deriveAutoAtomSurfaces } from './atoms/auto-surfaces.js';
 import { getManifestContextCraft } from './context-craft.js';
@@ -55,7 +55,7 @@ export interface ApplyInput {
   registry: RegistryView;
   trust?: TrustTier | undefined;
   // The active project's design system, if any. Plugins that declared
-  // `od.context.designSystem.primary: true` without a concrete ref get
+  // `readable.context.designSystem.primary: true` without a concrete ref get
   // bound to this id at apply time.
   activeProjectDesignSystem?: { id: string; title?: string } | undefined;
   // UI locale used to resolve localized manifest strings. Snapshots store
@@ -97,16 +97,16 @@ export function applyPlugin(input: ApplyInput): ApplyComputed {
   });
 
   const assets = buildAssetRefs(manifest);
-  const mcpServers = manifest.od?.context?.mcp?.slice() ?? [];
+  const mcpServers = manifest.readable?.context?.mcp?.slice() ?? [];
   const required = requiredCapabilities(manifest);
   const granted = resolveCapabilitiesGranted({ manifest, trust });
-  const taskKind = (manifest.od?.taskKind ?? 'new-generation') as AppliedPluginSnapshot['taskKind'];
+  const taskKind = (manifest.readable?.taskKind ?? 'new-generation') as AppliedPluginSnapshot['taskKind'];
 
-  // Spec §23.3.3: when the plugin omits `od.pipeline`, fall back to
+  // Spec §23.3.3: when the plugin omits `readable.pipeline`, fall back to
   // the bundled scenario whose taskKind matches. The registry view
   // carries the lookup; daemon callers populate it from the
   // `installed_plugins` table filtered to source_kind='bundled' AND
-  // od.kind='scenario'. Tests + non-daemon callers can pass an empty
+  // readable.kind='scenario'. Tests + non-daemon callers can pass an empty
   // list, in which case the pipeline stays undefined.
   const pipelineResolution = resolveAppliedPipeline({
     manifest,
@@ -114,7 +114,7 @@ export function applyPlugin(input: ApplyInput): ApplyComputed {
   });
   const appliedPipeline = pipelineResolution.pipeline;
 
-  const declaredSurfaces = manifest.od?.genui?.surfaces ?? [];
+  const declaredSurfaces = manifest.readable?.genui?.surfaces ?? [];
   // Spec §10.3.1 / §21.5: auto-derive surfaces for first-party atom
   // stages (diff-review → choice surface). Plugin-author surfaces
   // with the same id win; explicit ids take precedence over auto-derived
@@ -143,7 +143,7 @@ export function applyPlugin(input: ApplyInput): ApplyComputed {
   const craftRequires = getManifestContextCraft(manifest);
   if (craftRequires.length > 0) projectMetadata.craftRequires = craftRequires;
 
-  const queryText = resolveLocalizedText(manifest.od?.useCase?.query, input.locale);
+  const queryText = resolveLocalizedText(manifest.readable?.useCase?.query, input.locale);
 
   const appliedAt = Date.now();
   const snapshot: AppliedPluginSnapshot = {
@@ -180,7 +180,7 @@ export function applyPlugin(input: ApplyInput): ApplyComputed {
   const result: ApplyResult = {
     query:               queryText,
     contextItems:        resolved.context.items,
-    inputs:              manifest.od?.inputs ?? [],
+    inputs:              manifest.readable?.inputs ?? [],
     assets,
     mcpServers,
     pipeline:            appliedPipeline,
@@ -201,7 +201,7 @@ interface ValidationResult {
 }
 
 function validateInputs(manifest: PluginManifest, raw: Record<string, unknown>): ValidationResult {
-  const fields = manifest.od?.inputs ?? [];
+  const fields = manifest.readable?.inputs ?? [];
   const coerced: Record<string, string | number | boolean> = {};
   const missing: string[] = [];
 
@@ -222,7 +222,7 @@ function validateInputs(manifest: PluginManifest, raw: Record<string, unknown>):
   }
 
   // Forward-compat: pass through any extra keys the plugin author may have
-  // defined elsewhere (e.g. via `od.useCase` later). This keeps inputs lossy
+  // defined elsewhere (e.g. via `readable.useCase` later). This keeps inputs lossy
   // but predictable; the digest captures whatever survives coercion.
   for (const [key, value] of Object.entries(raw)) {
     if (key in coerced) continue;
@@ -243,7 +243,7 @@ function coerceScalar(value: unknown): string | number | boolean {
 
 function buildAssetRefs(manifest: PluginManifest): PluginAssetRef[] {
   const out: PluginAssetRef[] = [];
-  for (const raw of manifest.od?.context?.assets ?? []) {
+  for (const raw of manifest.readable?.context?.assets ?? []) {
     if (typeof raw !== 'string' || raw.length === 0) continue;
     const path = raw;
     out.push({ path, src: path, stageAt: 'run-start' });
@@ -251,7 +251,7 @@ function buildAssetRefs(manifest: PluginManifest): PluginAssetRef[] {
   return out;
 }
 
-// Pick a global skill id from od.context.skills[]. Two ref shapes are
+// Pick a global skill id from readable.context.skills[]. Two ref shapes are
 // accepted:
 //
 //   - `{ ref: 'skill-id' }` — registry id; returned as-is.
@@ -262,7 +262,7 @@ function buildAssetRefs(manifest: PluginManifest): PluginAssetRef[] {
 //     plugin's fsPath (see server.ts) — they do NOT roam into the
 //     global skills registry.
 function pickFirstSkillId(manifest: PluginManifest): string | undefined {
-  for (const ref of manifest.od?.context?.skills ?? []) {
+  for (const ref of manifest.readable?.context?.skills ?? []) {
     if (typeof ref?.ref === 'string' && ref.ref.trim().length > 0) {
       return ref.ref.trim();
     }
@@ -287,7 +287,7 @@ function isPluginLocalPath(value: string): boolean {
 // plugin's SKILL.md body without re-walking the manifest. Mirrors the
 // detection inside `pickFirstSkillId` so the two stay in lockstep.
 export function pickFirstLocalSkillPath(manifest: PluginManifest): string | undefined {
-  for (const ref of manifest.od?.context?.skills ?? []) {
+  for (const ref of manifest.readable?.context?.skills ?? []) {
     if (typeof ref?.ref === 'string' && ref.ref.trim().length > 0) continue;
     const rawPath = typeof ref?.path === 'string' ? ref.path.trim() : '';
     if (!rawPath) continue;
@@ -301,7 +301,7 @@ function pickDesignSystemId(
   manifest: PluginManifest,
   active?: { id: string; title?: string },
 ): string | undefined {
-  const ds = manifest.od?.context?.designSystem;
+  const ds = manifest.readable?.context?.designSystem;
   if (ds && typeof ds.ref === 'string' && ds.ref.trim()) return ds.ref.trim();
   if (ds && active?.id) return active.id;
   return undefined;

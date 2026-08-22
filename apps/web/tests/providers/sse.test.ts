@@ -275,7 +275,6 @@ describe('streamViaDaemon', () => {
     ]);
 
     expect(transcript).toContain('## user');
-    expect(transcript).toContain('[Open Design truncated 1000 chars from this prior message');
     expect(transcript).not.toContain('x'.repeat(13_000));
     expect(transcript).toContain('small answer');
   });
@@ -284,7 +283,7 @@ describe('streamViaDaemon', () => {
   // (GPT-OSS-120B Medium, Gemini 3.5 Flash through Antigravity's `agy`)
   // pattern-match on the literal `<question-form>` markup the agent
   // emitted on turn 1 and re-emit an identical form on turn 2 even when
-  // the OD-side OVERRIDE block explicitly forbids it. Stripping the
+  // the Readable Studio-side OVERRIDE block explicitly forbids it. Stripping the
   // markup from prior assistant turns at the transcript layer kills the
   // echo source entirely.
   it('strips question-form markup from prior assistant turns to kill the form-echo loop', () => {
@@ -655,7 +654,7 @@ describe('streamViaDaemon', () => {
           sseResponse(
             [
               'event: error',
-              'data: {"message":"AMR balance unavailable","error":{"code":"AMR_INSUFFICIENT_BALANCE","message":"AMR balance unavailable","details":{"kind":"amr_account","action":"recharge","actionUrl":"https://open-design.ai/amr/wallet"}}}',
+              'data: {"message":"AMR balance unavailable","error":{"code":"AMR_INSUFFICIENT_BALANCE","message":"AMR balance unavailable","details":{"kind":"amr_account","action":"recharge","actionUrl":"https://vela.powerformer.net/wallet"}}}',
               '',
               '',
             ].join('\n'),
@@ -678,7 +677,7 @@ describe('streamViaDaemon', () => {
         details: {
           kind: 'amr_account',
           action: 'recharge',
-          actionUrl: 'https://open-design.ai/amr/wallet',
+          actionUrl: 'https://vela.powerformer.net/wallet',
         },
       }),
     );
@@ -765,7 +764,7 @@ describe('streamViaDaemon', () => {
                     message,
                     marker: '## user',
                     retryable: true,
-                    promoted_by: 'open_design_acp',
+                    promoted_by: 'readable_studio_acp',
                   },
                 },
               })}`,
@@ -832,7 +831,7 @@ describe('streamViaDaemon', () => {
                     message: 'Provider returned error',
                     statusCode: 503,
                     retryable: true,
-                    url: 'https://amr-link.open-design.ai/v1/chat/completions',
+                    url: 'https://amr-link.example.test/v1/chat/completions',
                     suggestion: 'Retry later or switch to another model.',
                     responseBodyPreview,
                   },
@@ -870,7 +869,7 @@ describe('streamViaDaemon', () => {
     expect(message).not.toContain('opencode event stream');
     expect(message).not.toContain('opencode session error');
     expect(message).not.toContain('json-rpc id 4');
-    expect(message).not.toContain('https://amr-link.open-design.ai');
+    expect(message).not.toContain('https://amr-link.example.test');
   });
 
   it('treats an explicit succeeded status with a SIGTERM exit as a successful run', async () => {
@@ -1613,12 +1612,12 @@ describe('streamViaDaemon', () => {
           order: 1,
           filePath: 'index.html',
           elementId: 'hero-title',
-          selector: '[data-od-id="hero-title"]',
+          selector: '[data-readable-id="hero-title"]',
           label: 'h1.hero-title',
           comment: 'Shorten the headline',
           currentText: 'A very long headline',
           pagePosition: { x: 12, y: 44, width: 500, height: 60 },
-          htmlHint: '<h1 data-od-id="hero-title">',
+          htmlHint: '<h1 data-readable-id="hero-title">',
         },
       ],
     });

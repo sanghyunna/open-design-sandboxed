@@ -1,14 +1,14 @@
 import {
-  OPEN_DESIGN_PLUGIN_SPEC_VERSION,
+  READABLE_STUDIO_PLUGIN_SPEC_VERSION,
   type PluginManifest,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 // Adapter from a `.claude-plugin/plugin.json` file to a synthesized
 // PluginManifest. Phase 1 keeps the mapping minimal — name / version /
 // description / commands count — and lets Phase 2A enrich the result with
 // command/agent/hook context once the plugin runtime supports the full
 // claude-plugin schema. The point of this adapter today is to make a
-// claude-plugin folder installable through OD without crashing.
+// claude-plugin folder installable through Readable Studio without crashing.
 
 export interface ClaudePluginAdapterOptions {
   folderId: string;
@@ -49,22 +49,22 @@ export function adaptClaudePlugin(
     : opts.folderId;
   const safeName = name.toLowerCase().replace(/[^a-z0-9._-]/g, '-').replace(/^[._-]+/, '') || opts.folderId;
   if (safeName !== name) {
-    warnings.push(`claude-plugin name '${name}' was sanitized to '${safeName}' to fit the OD plugin id pattern`);
+    warnings.push(`claude-plugin name '${name}' was sanitized to '${safeName}' to fit the Readable Studio plugin id pattern`);
   }
   const version = typeof obj['version'] === 'string' ? obj['version'] : '0.0.0';
   const description = typeof obj['description'] === 'string' ? obj['description'] : undefined;
   const commands = Array.isArray(obj['commands']) ? obj['commands'].length : 0;
   if (commands > 0) {
-    warnings.push(`claude-plugin declares ${commands} command(s); v1 OD apply does not auto-register hooks. Add them via od.context.claudePlugins[].`);
+    warnings.push(`claude-plugin declares ${commands} command(s); v1 Readable Studio apply does not auto-register hooks. Add them via readable.context.claudePlugins[].`);
   }
   const manifest: PluginManifest = {
-    specVersion: OPEN_DESIGN_PLUGIN_SPEC_VERSION,
+    specVersion: READABLE_STUDIO_PLUGIN_SPEC_VERSION,
     name: safeName,
     title: typeof obj['title'] === 'string' ? obj['title'] : safeName,
     version,
     description: description ?? undefined,
     compat: { claudePlugins: [{ path: compatPath }] },
-    od: {
+    readable: {
       kind: 'skill',
       taskKind: 'new-generation',
     },
@@ -74,11 +74,11 @@ export function adaptClaudePlugin(
 
 function synthesizeFallback(folderId: string, compatPath: string): PluginManifest {
   return {
-    specVersion: OPEN_DESIGN_PLUGIN_SPEC_VERSION,
+    specVersion: READABLE_STUDIO_PLUGIN_SPEC_VERSION,
     name: folderId,
     title: folderId,
     version: '0.0.0',
     compat: { claudePlugins: [{ path: compatPath }] },
-    od: { kind: 'skill', taskKind: 'new-generation' },
+    readable: { kind: 'skill', taskKind: 'new-generation' },
   };
 }

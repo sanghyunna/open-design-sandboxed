@@ -1,7 +1,7 @@
 // Plan §3.DD1 — pluginInventoryStats + snapshotInventoryStats.
 
 import { describe, expect, it } from 'vitest';
-import type { InstalledPluginRecord, PluginManifest } from '@open-design/contracts';
+import type { InstalledPluginRecord, PluginManifest } from '@readable-studio/contracts';
 import {
   pluginInventoryStats,
   pluginSourceBuckets,
@@ -31,11 +31,11 @@ const make = (
   installedAt: over.installedAt ?? 1000,
   updatedAt:   over.updatedAt   ?? 1000,
   manifest: {
-    $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+    $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
     name: id,
     version: '0.1.0',
     title: `Title ${id}`,
-    od: {
+    readable: {
       ...(over.taskKind ? { taskKind: over.taskKind } : {}),
       ...(over.capabilities ? { capabilities: over.capabilities } : {}),
     },
@@ -93,7 +93,7 @@ describe('pluginInventoryStats', () => {
       make('e', { capabilities: ['subprocess', 'bash'] }),
     ];
     const stats = pluginInventoryStats(plugins);
-    expect(stats.withElevatedCapabilities).toBe(4); // b/c/d/e
+    expect(stats.withElevatedCapabilities).toBe(3); // b/c/e
   });
 
   it('splits bundled vs. third-party correctly', () => {

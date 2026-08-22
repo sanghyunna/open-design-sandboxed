@@ -23,7 +23,7 @@ afterEach(async () => {
 });
 
 async function makeFixture() {
-  const root = await mkdtemp(path.join(tmpdir(), 'od-project-checkpoints-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'readable-project-checkpoints-'));
   tempRoots.push(root);
   const dataDir = path.join(root, 'data');
   const projectsRoot = path.join(root, 'projects');
@@ -85,7 +85,7 @@ describe('project checkpoint capture', () => {
     await writeFixtureFile(projectDir, '.live-artifacts/la-1/artifact.json', '{"title":"Live"}\n');
     await writeFixtureFile(projectDir, 'node_modules/pkg/index.js', 'ignored');
     await writeFixtureFile(projectDir, '.git/config', '[core]\n');
-    await writeFixtureFile(projectDir, '.od/app.sqlite', 'ignored daemon data');
+    await writeFixtureFile(projectDir, '.readable-studio/app.sqlite', 'ignored daemon data');
     await writeFixtureFile(projectDir, 'dist/bundle.js', 'ignored build output');
 
     const checkpoint = await service.captureCheckpoint({
@@ -117,7 +117,7 @@ describe('project checkpoint capture', () => {
     ]);
     expect(manifest.files.map((file) => file.path).join('\n')).not.toContain('node_modules');
     expect(manifest.files.map((file) => file.path).join('\n')).not.toContain('.git');
-    expect(manifest.files.map((file) => file.path).join('\n')).not.toContain('.od');
+    expect(manifest.files.map((file) => file.path).join('\n')).not.toContain('.readable-studio');
     expect(manifest.files.map((file) => file.path).join('\n')).not.toContain('dist');
 
     const duplicateHashes = manifest.files
@@ -131,7 +131,7 @@ describe('project checkpoint capture', () => {
 
   it('does not follow a symlinked directory outside the project root', async () => {
     const { db, service, projectId, projectDir } = await makeFixture();
-    const outside = await mkdtemp(path.join(tmpdir(), 'od-checkpoint-outside-'));
+    const outside = await mkdtemp(path.join(tmpdir(), 'readable-checkpoint-outside-'));
     tempRoots.push(outside);
     await writeFixtureFile(outside, 'secret.txt', 'outside');
     await fsSymlinkDir(outside, path.join(projectDir, 'linked-outside'));
@@ -902,7 +902,7 @@ describe('project checkpoint restore', () => {
       kind: 'after_message',
     });
     await writeFixtureFile(projectDir, 'index.html', '<h1>old root current</h1>');
-    const otherRoot = await mkdtemp(path.join(tmpdir(), 'od-checkpoint-other-root-'));
+    const otherRoot = await mkdtemp(path.join(tmpdir(), 'readable-checkpoint-other-root-'));
     tempRoots.push(otherRoot);
     await writeFixtureFile(otherRoot, 'index.html', '<h1>other root current</h1>');
     updateProject(db, projectId, { metadata: { baseDir: otherRoot } });

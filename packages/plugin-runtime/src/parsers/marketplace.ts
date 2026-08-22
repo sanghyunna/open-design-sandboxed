@@ -1,4 +1,9 @@
-import { MarketplaceManifestSchema, type MarketplaceManifest } from '@open-design/contracts';
+import {
+  MarketplaceManifestSchema,
+  UNSUPPORTED_LEGACY_PRODUCT_V1,
+  type MarketplaceManifest,
+} from '@readable-studio/contracts';
+import { isUnsupportedLegacyProductV1 } from './manifest.js';
 
 export interface MarketplaceParseSuccess {
   ok: true;
@@ -6,8 +11,9 @@ export interface MarketplaceParseSuccess {
 }
 
 export interface MarketplaceParseFailure {
-  ok: false;
-  errors: string[];
+  readonly ok: false;
+  readonly code?: typeof UNSUPPORTED_LEGACY_PRODUCT_V1;
+  readonly errors: string[];
 }
 
 export type MarketplaceParseResult = MarketplaceParseSuccess | MarketplaceParseFailure;
@@ -18,7 +24,10 @@ export function parseMarketplace(raw: string): MarketplaceParseResult {
   try {
     json = JSON.parse(raw);
   } catch (err) {
-    return { ok: false, errors: [`open-design-marketplace.json is not valid JSON: ${(err as Error).message}`] };
+    return { ok: false, errors: [`readable-studio-marketplace.json is not valid JSON: ${(err as Error).message}`] };
+  }
+  if (isUnsupportedLegacyProductV1(json)) {
+    return { ok: false, code: UNSUPPORTED_LEGACY_PRODUCT_V1, errors: [UNSUPPORTED_LEGACY_PRODUCT_V1] };
   }
   const result = MarketplaceManifestSchema.safeParse(json);
   if (!result.success) {

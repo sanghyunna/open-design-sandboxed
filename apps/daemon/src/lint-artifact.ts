@@ -244,7 +244,7 @@ export function lintArtifact(rawHtml: unknown): LintFinding[] {
       severity: 'P0',
       id: 'left-accent-card',
       message: 'Rounded card with a coloured left border — the canonical AI-slop card pattern.',
-      fix: 'Drop either the border-radius (set 0px) or the border-left. Cards in the OD seed use hairline borders all-round, no left accent.',
+      fix: 'Drop either the border-radius (set 0px) or the border-left. Cards in the Readable Studio seed use hairline borders all-round, no left accent.',
       snippet: clip(lam[0]),
     });
   }
@@ -446,19 +446,19 @@ export function lintArtifact(rawHtml: unknown): LintFinding[] {
   }
 
   // ── P2-1: missing comment-mode anchor on <section> ────────────────
-  // Either `data-od-id` (web/mobile prototypes) or `data-screen-label`
+  // Either `data-readable-id` (web/mobile prototypes) or `data-screen-label`
   // (decks) counts. Whichever the artifact uses, every <section> should
   // carry one so the chat layer can target it.
   const sections = html.match(/<section\b[^>]*>/gi) ?? [];
   const tagged = sections.filter(
-    (s) => /data-od-id\s*=/.test(s) || /data-screen-label\s*=/.test(s),
+    (s) => /data-readable-id\s*=/.test(s) || /data-screen-label\s*=/.test(s),
   ).length;
   if (sections.length > 0 && tagged < sections.length) {
     out.push({
       severity: 'P2',
       id: 'missing-section-anchor',
-      message: `${sections.length - tagged} of ${sections.length} <section>s lack data-od-id (or data-screen-label).`,
-      fix: 'Add data-od-id="kebab-slug" (or data-screen-label="01 Cover" for slides) to every top-level <section> so comment mode can target it.',
+      message: `${sections.length - tagged} of ${sections.length} <section>s lack data-readable-id (or data-screen-label).`,
+      fix: 'Add data-readable-id="kebab-slug" (or data-screen-label="01 Cover" for slides) to every top-level <section> so comment mode can target it.',
     });
   }
 
@@ -580,7 +580,7 @@ function detectBlueCyanTrustGradient(html: string): string | null {
 //
 // `rem` and `px` are absolute relative to the element: `rem` resolves
 // against the root font-size (assumed 16px — the browser default and
-// the value all OD seed templates use), so `0.06rem` on a 48px heading
+// the value all Readable Studio seed templates use), so `0.06rem` on a 48px heading
 // is `0.96px`, only `0.02em` of the element. Treating `rem` like `em`
 // (the previous behaviour) accepts that as compliant when the rule
 // it enforces is the per-element em floor; convert `rem` to absolute

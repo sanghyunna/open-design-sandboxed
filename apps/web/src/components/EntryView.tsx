@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react';
-import type { OpenDesignHostProjectImportSuccess } from '@open-design/host';
+import type { ReadableStudioHostProjectImportSuccess } from '@readable-studio/host';
 import type {
   AgentInfo,
   ApiProtocol,
@@ -94,7 +94,7 @@ interface Props {
     file: File,
   ) => Promise<ImportClaudeDesignOutcome | void> | ImportClaudeDesignOutcome | void;
   onImportFolder?: (baseDir: string) => Promise<void> | void;
-  onImportFolderResponse?: (response: OpenDesignHostProjectImportSuccess) => Promise<void> | void;
+  onImportFolderResponse?: (response: ReadableStudioHostProjectImportSuccess) => Promise<void> | void;
   onOpenProject: (id: string) => void;
   onDeleteProject: (id: string) => void;
   onRenameProject: (id: string, name: string) => void;
@@ -202,8 +202,8 @@ export function EntryView({
 // defaults the new-project form would apply (high-fidelity prototype, no
 // speaker notes on decks, no template animations) so 'Use this prompt'
 // produces a project indistinguishable from one created via the form. Per-
-// skill hints in SKILL.md frontmatter (od.fidelity, od.speaker_notes,
-// od.animations) override the defaults so each example reproduces the
+// skill hints in SKILL.md frontmatter (readable.fidelity, readable.speaker_notes,
+// readable.animations) override the defaults so each example reproduces the
 // shipped example.html — e.g. wireframe-sketch declares fidelity:wireframe.
 //
 // Kept exported (and the kindForSkill helper too) so the New project modal

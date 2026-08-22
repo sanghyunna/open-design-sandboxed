@@ -1,4 +1,4 @@
-// Plan §3.Z2 — `od plugin upgrade` re-installs from recorded source.
+// Plan §3.Z2 — `readable plugin upgrade` re-installs from recorded source.
 //
 // Since the upgrade route is a thin wrapper around installPlugin()
 // + a guard for source_kind='bundled', we exercise the wrapper
@@ -22,13 +22,13 @@ let db: Database.Database;
 
 async function writeSource(version: string, opts?: { description?: string }) {
   await writeFile(
-    path.join(sourceFolder, 'open-design.json'),
+    path.join(sourceFolder, 'readable-studio.json'),
     JSON.stringify({
       name: 'upgrade-fixture',
       version,
       title: 'Upgrade fixture',
       ...(opts?.description ? { description: opts.description } : {}),
-      od: { taskKind: 'new-generation' },
+      readable: { taskKind: 'new-generation' },
     }, null, 2),
   );
 }
@@ -40,7 +40,7 @@ async function drain(events: AsyncGenerator<unknown>) {
 }
 
 beforeEach(async () => {
-  tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'od-upgrade-'));
+  tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'readable-upgrade-'));
   pluginsRoot = path.join(tmpRoot, 'plugins');
   sourceFolder = path.join(tmpRoot, 'source-plugin');
   await mkdir(sourceFolder, { recursive: true });
@@ -58,7 +58,7 @@ afterEach(async () => {
   await rm(tmpRoot, { recursive: true, force: true });
 });
 
-describe('od plugin upgrade — installer round-trip', () => {
+describe('readable plugin upgrade — installer round-trip', () => {
   it('re-installs from the recorded source and bumps the registry version', async () => {
     await drain(installFromLocalFolder(db, { source: sourceFolder, roots: { userPluginsRoot: pluginsRoot } }) as AsyncGenerator<unknown>);
     const before = getInstalledPlugin(db, 'upgrade-fixture');
@@ -92,7 +92,7 @@ describe('od plugin upgrade — installer round-trip', () => {
     // The on-disk manifest the installer just wrote should match the
     // one in the SQLite row.
     const recorded = getInstalledPlugin(db, 'upgrade-fixture');
-    const onDisk = JSON.parse(await readFile(path.join(recorded!.fsPath, 'open-design.json'), 'utf8'));
+    const onDisk = JSON.parse(await readFile(path.join(recorded!.fsPath, 'readable-studio.json'), 'utf8'));
     expect(onDisk.version).toBe('1.0.2');
     expect(recorded?.version).toBe('1.0.2');
   });

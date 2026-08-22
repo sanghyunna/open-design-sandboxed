@@ -2,7 +2,7 @@
 name: orbis-nft
 description: "Use this plugin when the user wants a dark, space-themed NFT collection landing page (\"Orbis.Nft\") with full-bleed CloudFront video backgrounds, a liquid-glass UI, Anton + Condiment fonts, and a neon-green accent. Invoke for 'NFT landing page', 'space NFT site', 'crypto collection page', or when the user references the Orbis NFT template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design
@@ -90,7 +90,7 @@ A full-screen FIXED texture overlay sits on top of everything (`z-index: 50`, `p
 ## Section 1 — Hero (full viewport)
 
 - Full-bleed looping muted autoplaying video, `object-fit: cover`, covering the section. Section has `border-bottom-left-radius: 32px` + `border-bottom-right-radius: 32px` clipping the video.
-- Video: `https://plugin-assets.open-design.ai/plugins/orbis-nft/hf_20260331_045634_e1c98c76-1265-4f5c-882a-4276f2080894-f71ad1.mp4`
+- Video: `https://plugin-assets.readable-studio.ai/plugins/orbis-nft/hf_20260331_045634_e1c98c76-1265-4f5c-882a-4276f2080894-f71ad1.mp4`
 - **Header:** left = "Orbis.Nft" logo (Anton, 16px, uppercase). Center = nav bar with `.liquid-glass`, `border-radius: 28px`, padding `24px 52px`, 5 links (Homepage, Gallery, Buy NFT, FAQ, Contact), each Anton 13px uppercase with `hover` → neon. Nav is `display:none` below `lg` (1024px).
 - **Hero heading** (Anton, uppercase): `Beyond earth` / `and ( its ) familiar boundaries`. Responsive font-size 40px / sm:60px / md:75px / lg:90px; line-height 1.05 mobile, 1 tablet+. `max-width: 780px`, offset `margin-left: 8rem` at lg.
 - **Cursive accent** "Nft collection" in Condiment (24px→48px responsive), absolutely positioned to the right of the heading, `rotate(-1deg)`, neon, `mix-blend-mode: exclusion`, `opacity: 0.9`.
@@ -100,7 +100,7 @@ A full-screen FIXED texture overlay sits on top of everything (`z-index: 50`, `p
 ## Section 2 — About / Intro (full viewport)
 
 - Full-bleed looping muted autoplaying video, `object-fit: cover`.
-- Video: `https://plugin-assets.open-design.ai/plugins/orbis-nft/hf_20260331_151551_992053d1-3d3e-4b8c-abac-45f22158f411-2620ce.mp4`
+- Video: `https://plugin-assets.readable-studio.ai/plugins/orbis-nft/hf_20260331_151551_992053d1-3d3e-4b8c-abac-45f22158f411-2620ce.mp4`
 - Container has generous vertical padding (64px → 96px responsive).
 - **Top row** (flex column on mobile, row at lg):
   - Left: heading (Anton, uppercase, 32px→60px): `Hello!` / `I'm orbis`. Overlaid Condiment "Orbis" (neon, `mix-blend exclusion`, 36px→68px), absolutely at bottom-right of heading, slightly rotated.
@@ -125,7 +125,7 @@ A full-screen FIXED texture overlay sits on top of everything (`z-index: 50`, `p
 ## Section 4 — CTA / Final
 
 - Background: full-WIDTH video, NOT `object-cover` — use `display:block; width:100%; height:auto` so it renders at native aspect ratio.
-- Video: `https://plugin-assets.open-design.ai/plugins/orbis-nft/hf_20260331_055729_72d66327-b59e-4ae9-bb70-de6ccb5ecdb0-afc7a8.mp4`
+- Video: `https://plugin-assets.readable-studio.ai/plugins/orbis-nft/hf_20260331_055729_72d66327-b59e-4ae9-bb70-de6ccb5ecdb0-afc7a8.mp4`
 - **Text content** positioned absolute over the video, right-aligned block offset `lg:pr-[20%] lg:pl-[15%]`:
   - Small "Go beyond" in Condiment cursive (neon, `mix-blend exclusion`, 17px→68px responsive), absolutely at top-left of the heading block, slightly rotated.
   - Heading (Anton, 16px→60px, uppercase): `JOIN US.` / `REVEAL WHAT'S HIDDEN.` / `DEFINE WHAT'S NEXT.` / `FOLLOW THE SIGNAL.` "JOIN US." has extra bottom margin (16px→48px) before the remaining lines.

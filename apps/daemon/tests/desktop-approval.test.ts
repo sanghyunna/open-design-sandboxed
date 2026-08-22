@@ -33,7 +33,7 @@ describe('DesktopApprovalBroker', () => {
   it('consumes its launch token instead of leaving it in process or child env', () => {
     const env = {
       Path: 'bin',
-      Od_Desktop_Approval_Token: TOKEN,
+      ReAdAbLe_Desktop_Approval_Token: TOKEN,
     } as NodeJS.ProcessEnv;
     expect(consumeDesktopApprovalToken(env)).toBe(TOKEN);
     expect(Object.keys(env)).toEqual(['Path']);
@@ -302,7 +302,7 @@ function seedBroker(options: {
   onRollback?: () => void;
   rollbackErrors?: Error[];
 } = {}) {
-  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'od-desktop-approval-'));
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'readable-desktop-approval-'));
   tempDirs.push(tempDir);
   const db = openDatabase(tempDir, { dataDir: tempDir });
   const createdAt = 100;

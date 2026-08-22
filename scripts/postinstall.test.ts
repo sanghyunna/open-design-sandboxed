@@ -73,9 +73,25 @@ function postinstallBuildTargets(): Set<string> {
   const source = readFileSync(join(repoRoot, "scripts/postinstall.mjs"), "utf8");
   const targets = [...source.matchAll(/"([^"]+)"/g)]
     .map((match) => match[1])
-    .filter((value): value is string => value != null && /^(?:apps|packages|tools)\//.test(value));
+    .filter(
+      (value): value is string =>
+        value != null && /^(?:apps|packages|tools)\/[a-z0-9-]+$/.test(value),
+    );
   return new Set(targets);
 }
+
+test("postinstall references only existing workspace packages", () => {
+  // Given every package directory built by postinstall
+  const targets = postinstallBuildTargets();
+
+  // When missing package manifests are selected
+  const missingTargets = [...targets].filter(
+    (target) => !existsSync(join(repoRoot, target, "package.json")),
+  );
+
+  // Then a clean install cannot target a deleted workspace package
+  assert.deepEqual(missingTargets, []);
+});
 
 function workspacePackageDirectories(): string[] {
   const scopedPackageDirectories = ["apps", "packages", "tools"].flatMap((scope) =>
@@ -117,18 +133,20 @@ test("workspace bin entries use checked-in targets so pnpm can link them before 
   assert.deepEqual(unlinkableBins, []);
 });
 
-test("root workspace depends on the daemon package so pnpm exec resolves the od bin", () => {
+test("root workspace depends on the daemon package so pnpm exec resolves the readable bin", () => {
   const rootManifest = readPackageJson("package.json");
   const daemonManifest = readPackageJson("apps/daemon/package.json");
 
-  assert.equal(dependencySpecifier(rootManifest, "@open-design/daemon"), "workspace:*");
+  assert.equal(dependencySpecifier(rootManifest, "@readable-studio/daemon"), "workspace:*");
   assert.deepEqual((rootManifest as { bin?: unknown }).bin, {
-    od: "./apps/daemon/bin/od.mjs",
+    readable: "./apps/daemon/bin/readable.mjs",
   });
   assert.deepEqual((daemonManifest as { bin?: unknown }).bin, {
-    od: "./bin/od.mjs",
+    readable: "./bin/readable.mjs",
   });
-  assert.equal(existsSync(join(repoRoot, "apps/daemon/bin/od.mjs")), true);
+  assert.equal(existsSync(join(repoRoot, "apps/daemon/bin/readable.mjs")), true);
+  const retiredBinName = ["o", "d"].join("");
+  assert.equal(existsSync(join(repoRoot, `apps/daemon/bin/${retiredBinName}.mjs`)), false);
 });
 
 test("postinstall builds workspace packages whose linkable bins delegate to dist", () => {

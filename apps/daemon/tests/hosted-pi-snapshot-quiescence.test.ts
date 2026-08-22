@@ -73,7 +73,7 @@ function versionNames(runtimeRoot: string): string[] {
 }
 
 function createRuntime() {
-  const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'od-hosted-pi-quiescence-'));
+  const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'readable-hosted-pi-quiescence-'));
   roots.push(runtimeRoot);
   const storage = createHostedRuntimeStorage({ identity, runtimeRoot });
   storages.push(storage);

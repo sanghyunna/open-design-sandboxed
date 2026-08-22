@@ -22,8 +22,8 @@ import { skillCwdAliasSegment, SKILLS_CWD_ALIAS } from "./cwd-aliases.js";
 // here for at least one stable release after a rename so on-disk projects
 // keep composing with the intended skill prompt.
 export const SKILL_ID_ALIASES = Object.freeze({
-  "editorial-collage": "open-design-landing",
-  "editorial-collage-deck": "open-design-landing-deck",
+  "editorial-collage": "readable-landing",
+  "editorial-collage-deck": "readable-landing-deck",
   "taste-skill": "design-taste-frontend",
 });
 
@@ -49,7 +49,7 @@ interface SkillFrontmatter extends JsonRecord {
   zh_description?: unknown;
   en_description?: unknown;
   triggers?: unknown;
-  od?: JsonRecord & {
+  readable?: JsonRecord & {
     example_prompt?: unknown;
     example_prompt_i18n?: unknown;
     craft?: JsonRecord;
@@ -97,7 +97,7 @@ export interface SkillInfo {
   examplePromptI18n?: Record<string, string>;
   aggregatesExamples: boolean;
   /**
-   * Per-skill Critique Theater override declared via `od.critique.policy`
+   * Per-skill Critique Theater override declared via `readable.critique.policy`
    * in the skill's SKILL.md frontmatter. The daemon's rollout resolver
    * uses this as the highest-priority signal when deciding whether to
    * wire the critique pipeline for a generation: `required` forces the
@@ -210,29 +210,29 @@ export async function listSkills(
         if (seenIds.has(parentId)) continue;
         seenIds.add(parentId);
         const hasAttachments = await dirHasAttachments(dir);
-        const mode = normalizeMode(data.od?.mode, body, data.description);
-        const surface = normalizeSurface(data.od?.surface, mode);
+        const mode = normalizeMode(data.readable?.mode, body, data.description);
+        const surface = normalizeSurface(data.readable?.surface, mode);
         const platform = normalizePlatform(
-          data.od?.platform,
+          data.readable?.platform,
           mode,
           body,
           data.description,
         );
         const scenario = normalizeScenario(
-          data.od?.scenario,
+          data.readable?.scenario,
           body,
           data.description,
         );
-        const category = normalizeCategory(data.od?.category);
+        const category = normalizeCategory(data.readable?.category);
         const designSystemRequired =
-          typeof data.od?.design_system?.requires === "boolean"
-            ? data.od.design_system.requires
+          typeof data.readable?.design_system?.requires === "boolean"
+            ? data.readable.design_system.requires
             : true;
         const upstream =
-          typeof data.od?.upstream === "string" ? data.od.upstream : null;
+          typeof data.readable?.upstream === "string" ? data.readable.upstream : null;
         const previewType =
-          typeof data.od?.preview?.type === "string"
-            ? data.od.preview.type
+          typeof data.readable?.preview?.type === "string"
+            ? data.readable.preview.type
             : "html";
         const description =
           typeof data.description === "string" ? data.description : "";
@@ -241,7 +241,7 @@ export async function listSkills(
           data.en_description,
           data.zh_description,
         );
-        const examplePromptI18n = localizedMapFromRecord(data.od?.example_prompt_i18n);
+        const examplePromptI18n = localizedMapFromRecord(data.readable?.example_prompt_i18n);
         const parentBody = hasAttachments
           ? withSkillRootPreamble(body, dir)
           : body;
@@ -263,26 +263,26 @@ export async function listSkills(
           mode,
           surface,
           source,
-          craftRequires: normalizeCraftRequires(data.od?.craft?.requires),
+          craftRequires: normalizeCraftRequires(data.readable?.craft?.requires),
           platform,
           scenario,
           category,
           previewType,
           designSystemRequired,
-          defaultFor: normalizeDefaultFor(data.od?.default_for),
+          defaultFor: normalizeDefaultFor(data.readable?.default_for),
           upstream,
-          featured: normalizeFeatured(data.od?.featured),
+          featured: normalizeFeatured(data.readable?.featured),
           // Optional metadata hints used by 'Use this prompt' fast-create
           // so the resulting project mirrors the shipped example.html.
           // Each hint is only consumed when its kind matches the skill
           // mode; missing hints fall back to the new-project defaults.
-          fidelity: normalizeFidelity(data.od?.fidelity),
-          speakerNotes: normalizeBoolHint(data.od?.speaker_notes),
-          animations: normalizeBoolHint(data.od?.animations),
+          fidelity: normalizeFidelity(data.readable?.fidelity),
+          speakerNotes: normalizeBoolHint(data.readable?.speaker_notes),
+          animations: normalizeBoolHint(data.readable?.animations),
           examplePrompt: derivePrompt(data),
           ...(examplePromptI18n ? { examplePromptI18n } : {}),
           aggregatesExamples,
-          critiquePolicy: normalizeCritiquePolicy(data.od?.critique?.policy),
+          critiquePolicy: normalizeCritiquePolicy(data.readable?.critique?.policy),
           body: parentBody,
           dir,
         });
@@ -318,16 +318,16 @@ export async function listSkills(
             defaultFor: [],
             upstream,
             featured: null,
-            fidelity: normalizeFidelity(data.od?.fidelity),
-            speakerNotes: normalizeBoolHint(data.od?.speaker_notes),
-            animations: normalizeBoolHint(data.od?.animations),
+            fidelity: normalizeFidelity(data.readable?.fidelity),
+            speakerNotes: normalizeBoolHint(data.readable?.speaker_notes),
+            animations: normalizeBoolHint(data.readable?.animations),
             examplePrompt: derivePrompt(data),
             ...(examplePromptI18n ? { examplePromptI18n } : {}),
             aggregatesExamples: false,
             // Derived cards inherit the parent's critique policy so a
             // single SKILL.md that opts in (or out) applies the same
             // gate to every example in its gallery.
-            critiquePolicy: normalizeCritiquePolicy(data.od?.critique?.policy),
+            critiquePolicy: normalizeCritiquePolicy(data.readable?.critique?.policy),
             // Inherit the parent's full SKILL.md body so 'Use this prompt'
             // on a derived card seeds the agent with the same workflow
             // the parent describes. Without this, picking a derived card
@@ -447,13 +447,13 @@ export function splitDerivedSkillId(id: unknown): DerivedSkillIdParts | null {
 // Skills that ship side files (e.g. `assets/template.html`, `references/*.md`)
 // need the agent to know where the skill lives on disk — relative paths in the
 // SKILL.md body would otherwise resolve against the agent's CWD, which is the
-// project folder (`.od/projects/<id>/`), not the skill folder.
+// project folder (`.readable-studio/projects/<id>/`), not the skill folder.
 //
 // We prepend a short preamble that advertises two paths:
 //
-//   1. A CWD-relative alias path (`.od-skills/<folder>/`) — the primary one.
+//   1. A CWD-relative alias path (`.readable-studio-skills/<folder>/`) — the primary one.
 //      Before spawning the agent the chat handler copies the active skill
-//      into `<cwd>/.od-skills/<folder>/` (see `cwd-aliases.ts`), so this
+//      into `<cwd>/.readable-studio-skills/<folder>/` (see `cwd-aliases.ts`), so this
 //      path is inside the agent's working directory on every CLI and is
 //      not blocked by directory-access policies (issue #430).
 //   2. The absolute repo path — a fallback for the cases the staged copy
@@ -551,7 +551,7 @@ function normalizeDefaultFor(value: unknown): string[] {
   return [String(value)];
 }
 
-// Optional `od.fidelity` hint for prototype skills. Only 'wireframe' and
+// Optional `readable.fidelity` hint for prototype skills. Only 'wireframe' and
 // 'high-fidelity' are meaningful — anything else collapses to null so the
 // caller falls back to the form default ('high-fidelity').
 function normalizeFidelity(value: unknown): "wireframe" | "high-fidelity" | null {
@@ -593,13 +593,13 @@ function localizedMapFromRecord(value: unknown): Record<string, string> | undefi
 }
 
 /**
- * Coerce `od.critique.policy` from SKILL.md frontmatter into the
+ * Coerce `readable.critique.policy` from SKILL.md frontmatter into the
  * three-value union the rollout resolver expects. Anything unrecognised
  * resolves to `null` (no opinion), which falls through to the
  * project / env / phase default tiers. The frontmatter value is
  * authored as a YAML scalar:
  *
- *   od:
+ *   readable:
  *     critique:
  *       policy: required   # or 'opt-in', 'opt-out'
  */
@@ -613,7 +613,7 @@ export function normalizeCritiquePolicy(value: unknown): SkillCritiquePolicy {
   return null;
 }
 
-// Coerce `od.featured` into a numeric priority. Lower numbers float to the
+// Coerce `readable.featured` into a numeric priority. Lower numbers float to the
 // top of the Examples gallery; `true` is treated as priority 1; anything
 // missing/unrecognised becomes null so non-featured skills keep their
 // natural alphabetical order.
@@ -627,12 +627,12 @@ function normalizeFeatured(value: unknown): number | null {
   return null;
 }
 
-// Prefer an explicitly authored `od.example_prompt`. Fall back to the
+// Prefer an explicitly authored `readable.example_prompt`. Fall back to the
 // skill description's first sentence — it's already written in actionable
 // language ("Admin / analytics dashboard in a single HTML file…") so it
 // serves as a passable starter prompt.
 function derivePrompt(data: SkillFrontmatter): string {
-  const explicit = data.od?.example_prompt;
+  const explicit = data.readable?.example_prompt;
   if (typeof explicit === "string" && explicit.trim()) return explicit.trim();
   const desc =
     typeof data.description === "string" ? data.description.trim() : "";

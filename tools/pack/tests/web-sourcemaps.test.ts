@@ -10,7 +10,7 @@ import { processWebSourcemaps } from "../src/web-sourcemaps.js";
 let tempRoot: string;
 
 beforeEach(async () => {
-  tempRoot = await mkdtemp(join(tmpdir(), "od-web-sourcemaps-"));
+  tempRoot = await mkdtemp(join(tmpdir(), "readable-web-sourcemaps-"));
 });
 
 afterEach(async () => {
@@ -22,24 +22,20 @@ afterEach(async () => {
 function fakeConfig(workspaceRoot: string): ToolPackConfig {
   return {
     appVersion: "0.0.0-test",
-    containerized: false,
     electronBuilderCliPath: "/dev/null",
     electronDistPath: "/dev/null",
     electronVersion: "0.0.0",
-    macCompression: "normal",
     namespace: "test",
-    platform: "mac",
-    portable: false,
+    platform: "win",
     removeData: false,
     removeLogs: false,
     removeProductUserData: false,
     removeSidecars: false,
-    requireVelaCli: false,
     roots: {
       output: {
         appBuilderRoot: join(workspaceRoot, "out", "builder"),
         namespaceRoot: join(workspaceRoot, "out", "ns"),
-        platformRoot: join(workspaceRoot, "out", "mac"),
+        platformRoot: join(workspaceRoot, "out", "win"),
         root: join(workspaceRoot, "out"),
       },
       runtime: {
@@ -51,7 +47,6 @@ function fakeConfig(workspaceRoot: string): ToolPackConfig {
     },
     signed: false,
     silent: true,
-    to: "all",
     webOutputMode: "standalone",
     workspaceRoot,
   };

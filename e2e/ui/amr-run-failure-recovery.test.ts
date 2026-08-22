@@ -83,7 +83,7 @@ test('[P0] AMR insufficient-balance failures surface Top up AMR and keep Retry a
         () => (window as Window & { __openedUrls?: string[] }).__openedUrls ?? [],
       ),
     )
-    .toContainEqual(expect.stringMatching(/^https:\/\/open-design\.ai\/amr\/wallet(?:\?|$)/));
+    .toContainEqual(expect.stringMatching(/^https:\/\/readable-studio\.ai\/amr\/wallet(?:\?|$)/));
 });
 
 test('[P0] AMR auth failures offer Authorize & retry and open AMR authorization controls', async ({ page }) => {
@@ -173,7 +173,7 @@ test('[P0] after an AMR failure the user can switch to Codex and complete a fres
 });
 
 test('[P0] upstream outages keep Retry available without promoting AMR', async ({ page }) => {
-  const root = join(tmpdir(), `open-design-upstream-ui-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  const root = join(tmpdir(), `readable-studio-upstream-ui-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
   const runtimes = await createFakeAgentRuntimes({ root: join(root, 'agents'), runtimeIds: ['claude'] });
   const config = {
     mode: 'daemon',
@@ -341,7 +341,7 @@ async function setupAmrWorkspace(
     assistantText?: string;
   },
 ) {
-  const root = join(tmpdir(), `open-design-amr-ui-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  const root = join(tmpdir(), `readable-studio-amr-ui-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
   const homeDir = join(root, 'home');
   const velaBin = await writeFakeVelaBin(join(root, 'bin'), {
     ...(options.assistantText !== undefined ? { assistantText: options.assistantText } : {}),
@@ -374,7 +374,7 @@ async function setupAmrWorkspace(
         HOME: homeDir,
         VELA_LINK_URL: 'http://localhost:18081',
         VELA_RUNTIME_KEY: 'fake-runtime-key',
-        ...(options.profile ? { OPEN_DESIGN_AMR_PROFILE: options.profile } : {}),
+        ...(options.profile ? { READABLE_AMR_PROFILE: options.profile } : {}),
       },
       codex: codexRuntime.env,
     },

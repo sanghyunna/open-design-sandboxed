@@ -37,7 +37,7 @@ function clickAgentTool(testId: string) {
 }
 
 // Pins the docked toolbar to a target. Hover no longer auto-selects, so selection
-// rides the explicit click path (od-edit-select), matching the bridge sending
+// rides the explicit click path (readable-edit-select), matching the bridge sending
 // it when the user clicks the hover affordance or a container/image body.
 async function selectManualEditTarget(target = heroTarget()) {
   const frame = await waitFor(() => {
@@ -47,7 +47,7 @@ async function selectManualEditTarget(target = heroTarget()) {
   });
   act(() => {
     window.dispatchEvent(new MessageEvent('message', {
-      data: { type: 'od-edit-select', target },
+      data: { type: 'readable-edit-select', target },
       source: frame.contentWindow,
     }));
   });
@@ -63,7 +63,7 @@ afterEach(() => {
 
 describe('FileViewer manual edit history regressions', () => {
   it('flushes pending style edits before activating draw mode from manual edit', async () => {
-    const initialSource = '<!doctype html><html><body><h1 data-od-id="hero" style="color: #111111">Hero</h1></body></html>';
+    const initialSource = '<!doctype html><html><body><h1 data-readable-id="hero" style="color: #111111">Hero</h1></body></html>';
     let saveResolve!: (value: Response) => void;
     const saveResponse = new Promise<Response>((resolve) => {
       saveResolve = resolve;
@@ -125,7 +125,7 @@ describe('FileViewer manual edit history regressions', () => {
   });
 
   it('keeps the srcDoc iframe mounted when closing manual edit on a srcDoc-only preview', async () => {
-    const source = '<!doctype html><html><body><script>localStorage.getItem("od");</script><main data-od-id="hero">Hero</main></body></html>';
+    const source = '<!doctype html><html><body><script>localStorage.getItem("readable");</script><main data-readable-id="hero">Hero</main></body></html>';
 
     render(
       <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
@@ -137,8 +137,8 @@ describe('FileViewer manual edit history regressions', () => {
     await selectManualEditTarget();
 
     const editFrame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
-    expect(editFrame.getAttribute('data-od-render-mode')).toBe('srcdoc');
-    expect(editFrame.srcdoc).toContain('data-od-edit-bridge');
+    expect(editFrame.getAttribute('data-readable-render-mode')).toBe('srcdoc');
+    expect(editFrame.srcdoc).toContain('data-readable-edit-bridge');
 
     // Exiting edit mode is the toolbar toggle's job — the panel's own close
     // button only collapses the inspector and stays in edit.
@@ -147,14 +147,14 @@ describe('FileViewer manual edit history regressions', () => {
     await waitFor(() => {
       const previewFrame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
       expect(previewFrame).toBe(editFrame);
-      expect(previewFrame.getAttribute('data-od-render-mode')).toBe('srcdoc');
+      expect(previewFrame.getAttribute('data-readable-render-mode')).toBe('srcdoc');
       expect(previewFrame.srcdoc).toContain('Hero');
-      expect(previewFrame.srcdoc).toContain('data-od-edit-bridge');
+      expect(previewFrame.srcdoc).toContain('data-readable-edit-bridge');
     });
   });
 
   it('uses the undone source snapshot for a follow-up edit after undo', async () => {
-    const initialSource = '<!doctype html><html><body><h1 data-od-id="hero" style="color: #111111">Hero</h1></body></html>';
+    const initialSource = '<!doctype html><html><body><h1 data-readable-id="hero" style="color: #111111">Hero</h1></body></html>';
     let persistedSource = initialSource;
     const savedSources: string[] = [];
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
@@ -225,7 +225,7 @@ describe('FileViewer manual edit history regressions', () => {
   });
 
   it('refreshes the manual edit canvas after non-style source patches', async () => {
-    const initialSource = '<!doctype html><html><body><h1 data-od-id="hero">Hero</h1></body></html>';
+    const initialSource = '<!doctype html><html><body><h1 data-readable-id="hero">Hero</h1></body></html>';
     const savedSources: string[] = [];
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
@@ -262,8 +262,8 @@ describe('FileViewer manual edit history regressions', () => {
 
     await waitFor(() => {
       const frame = getActivePreviewFrame();
-      expect(frame.getAttribute('data-od-active')).toBe('true');
-      expect(frame.getAttribute('data-od-render-mode')).toBe('srcdoc');
+      expect(frame.getAttribute('data-readable-active')).toBe('true');
+      expect(frame.getAttribute('data-readable-render-mode')).toBe('srcdoc');
     });
     act(() => {
       toolbarState.props?.onApplyPatch(
@@ -279,7 +279,7 @@ describe('FileViewer manual edit history regressions', () => {
   });
 
   it('clears the selected target after deleting an element', async () => {
-    const initialSource = '<!doctype html><html><body><h1 data-od-id="hero">Hero</h1><p data-od-id="body">Body</p></body></html>';
+    const initialSource = '<!doctype html><html><body><h1 data-readable-id="hero">Hero</h1><p data-readable-id="body">Body</p></body></html>';
     let persistedSource = initialSource;
     const savedSources: string[] = [];
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
@@ -327,18 +327,18 @@ describe('FileViewer manual edit history regressions', () => {
     });
 
     await waitFor(() => expect(savedSources).toHaveLength(1));
-    expect(savedSources[0]).not.toContain('data-od-id="hero"');
-    expect(savedSources[0]).toContain('data-od-id="body"');
+    expect(savedSources[0]).not.toContain('data-readable-id="hero"');
+    expect(savedSources[0]).toContain('data-readable-id="body"');
     // Clearing the selection closes the inspector: edit mode returns to a clean
     // canvas (no docked/pinned panel) and the iframe selection marker is reset.
     await waitFor(() => expect(screen.queryByTestId('mock-manual-edit-shape-toolbar')).toBeNull());
     expect(postMessageSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'od-edit-selected-target', id: null }),
+      expect.objectContaining({ type: 'readable-edit-selected-target', id: null }),
       '*',
     );
     await waitFor(() => {
       expect((screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement).srcdoc)
-        .not.toContain('data-od-id="hero"');
+        .not.toContain('data-readable-id="hero"');
     });
   });
 });
@@ -353,7 +353,7 @@ function htmlPreviewFile(): ProjectFile {
     mime: 'text/html',
     kind: 'html',
     artifactManifest: {
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
       kind: 'html',
       title: 'Preview',
       entry: 'preview.html',
@@ -373,9 +373,9 @@ function heroTarget(): ManualEditTarget {
     text: 'Hero',
     rect: { x: 0, y: 0, width: 120, height: 40 },
     fields: { text: 'Hero' },
-    attributes: { 'data-od-id': 'hero' },
+    attributes: { 'data-readable-id': 'hero' },
     styles: emptyManualEditStyles(),
     isLayoutContainer: false,
-    outerHtml: '<h1 data-od-id="hero">Hero</h1>',
+    outerHtml: '<h1 data-readable-id="hero">Hero</h1>',
   };
 }

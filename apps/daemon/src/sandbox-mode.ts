@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { resolveProjectRelativePath } from './home-expansion.js';
 
-export const SANDBOX_MODE_ENV = 'OD_SANDBOX_MODE';
+export const SANDBOX_MODE_ENV = 'READABLE_SANDBOX_MODE';
 
 export interface SandboxRuntimeRoots {
   agentHomeDir: string;
@@ -71,9 +71,9 @@ export function resolveSandboxRuntimeConfigFromEnv(
   projectRoot: string,
 ): SandboxRuntimeConfig | null {
   if (!isSandboxModeEnabled(env)) return null;
-  const rawDataDir = env.OD_DATA_DIR?.trim();
+  const rawDataDir = env.READABLE_DATA_DIR?.trim();
   if (!rawDataDir) {
-    throw new Error('OD_DATA_DIR is required when OD_SANDBOX_MODE is enabled');
+    throw new Error('READABLE_DATA_DIR is required when READABLE_SANDBOX_MODE is enabled');
   }
   return resolveSandboxRuntimeConfig(
     true,
@@ -86,7 +86,7 @@ export function sandboxAgentProfilesConfigPath(
 ): string {
   return path.join(
     config.roots.agentHomeDir,
-    '.open-design',
+    '.readable-studio',
     'agents.local.json',
   );
 }
@@ -112,8 +112,8 @@ export function applySandboxRuntimeEnv(
   const npmUserConfig = path.join(roots.toolConfigDir, 'npmrc');
 
   env[SANDBOX_MODE_ENV] = '1';
-  env.OD_DATA_DIR = config.dataDir;
-  env.OD_AGENT_HOME = roots.agentHomeDir;
+  env.READABLE_DATA_DIR = config.dataDir;
+  env.READABLE_AGENT_HOME = roots.agentHomeDir;
   env.HOME = roots.agentHomeDir;
   env.USERPROFILE = roots.agentHomeDir;
   env.XDG_CONFIG_HOME = roots.configDir;
@@ -126,7 +126,7 @@ export function applySandboxRuntimeEnv(
   env.CODEX_HOME = codexHome;
   env.CLAUDE_CONFIG_DIR = claudeConfigDir;
   env.OPENCODE_TEST_HOME = opencodeHome;
-  env.OD_AGENT_PROFILES_CONFIG = sandboxAgentProfilesConfigPath(config);
+  env.READABLE_AGENT_PROFILES_CONFIG = sandboxAgentProfilesConfigPath(config);
   env.NPM_CONFIG_USERCONFIG = npmUserConfig;
   env.npm_config_userconfig = npmUserConfig;
 

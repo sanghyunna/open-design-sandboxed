@@ -4,17 +4,17 @@
 // InstalledPluginRecord into a single health/inventory report.
 // Used by:
 //
-//   - `od plugin stats` — operator at-a-glance inventory check,
+//   - `readable plugin stats` — operator at-a-glance inventory check,
 //   - the desktop / web 'Plugins' settings panel (via the JSON
 //     mode of the same CLI),
-//   - the `od doctor` summary (a future patch can fold this in
+//   - the `readable doctor` summary (a future patch can fold this in
 //     without reimplementing the aggregation).
 //
 // The function is intentionally pure; the daemon route wires the
 // snapshot-side aggregation in separately because that side
 // requires a SQLite read.
 
-import type { InstalledPluginRecord, PluginSourceKind } from '@open-design/contracts';
+import type { InstalledPluginRecord, PluginSourceKind } from '@readable-studio/contracts';
 
 export interface PluginInventoryStats {
   total:       number;
@@ -61,10 +61,10 @@ export function pluginInventoryStats(plugins: ReadonlyArray<InstalledPluginRecor
     const trust = plugin.trust ?? 'unknown';
     stats.byTrust[trust] = (stats.byTrust[trust] ?? 0) + 1;
 
-    const taskKind = plugin.manifest.od?.taskKind ?? 'unknown';
+    const taskKind = plugin.manifest.readable?.taskKind ?? 'unknown';
     stats.byTaskKind[taskKind] = (stats.byTaskKind[taskKind] ?? 0) + 1;
 
-    const declared = plugin.manifest.od?.capabilities ?? [];
+    const declared = plugin.manifest.readable?.capabilities ?? [];
     if (Array.isArray(declared) && declared.some((c) => ELEVATED_CAPABILITIES.has(c))) {
       stats.withElevatedCapabilities++;
     }
@@ -113,7 +113,7 @@ export interface SnapshotStatsRow {
 
 // Plan §3.MM2 — `pluginSourceBuckets()` aggregates installed
 // plugins by (sourceKind, source) tuples. Used by the
-// `od plugin sources` CLI; lives next to the other stats
+// `readable plugin sources` CLI; lives next to the other stats
 // helpers so future audit panels can reuse it.
 
 export interface PluginSourceBucket {

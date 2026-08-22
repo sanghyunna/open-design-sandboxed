@@ -19,7 +19,7 @@
 //   mode === deck                          →  +280
 //   mode === design-system                 →  +260
 //   mode === prototype-desktop / mobile    →  +180
-//   has od.preview.entry                   →   +90
+//   has readable.preview.entry                   →   +90
 //   ships rich tags (>= 3 non-noise)       →   +30
 //   author name set                        →   +20
 //   well-curated description (>= 60 chars) →   +15
@@ -31,7 +31,7 @@
 // should be able to bubble up if their preview is great. Trust is
 // surfaced as a chip in the card chrome instead.
 
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 import { curatedPluginPriority } from './curatedPriority';
 
 interface PreviewBlock {
@@ -52,39 +52,39 @@ const NOISE_TAGS = new Set<string>([
 ]);
 
 function readPreview(record: InstalledPluginRecord): PreviewBlock | null {
-  const od = record.manifest?.od as { preview?: unknown } | undefined;
-  if (!od || typeof od.preview !== 'object' || od.preview === null) return null;
-  return od.preview as PreviewBlock;
+  const readable = record.manifest?.readable as { preview?: unknown } | undefined;
+  if (!readable || typeof readable.preview !== 'object' || readable.preview === null) return null;
+  return readable.preview as PreviewBlock;
 }
 
 function exampleOutputCount(record: InstalledPluginRecord): number {
-  const od = record.manifest?.od as
+  const readable = record.manifest?.readable as
     | { useCase?: { exampleOutputs?: unknown } }
     | undefined;
-  const list = od?.useCase?.exampleOutputs;
+  const list = readable?.useCase?.exampleOutputs;
   return Array.isArray(list) ? list.length : 0;
 }
 
 function modeOf(record: InstalledPluginRecord): string {
-  const od = record.manifest?.od as { mode?: unknown } | undefined;
-  return typeof od?.mode === 'string' ? od.mode.toLowerCase() : '';
+  const readable = record.manifest?.readable as { mode?: unknown } | undefined;
+  return typeof readable?.mode === 'string' ? readable.mode.toLowerCase() : '';
 }
 
 function surfaceOf(record: InstalledPluginRecord): string {
-  const od = record.manifest?.od as { surface?: unknown } | undefined;
-  return typeof od?.surface === 'string' ? od.surface.toLowerCase() : '';
+  const readable = record.manifest?.readable as { surface?: unknown } | undefined;
+  return typeof readable?.surface === 'string' ? readable.surface.toLowerCase() : '';
 }
 
 function kindOf(record: InstalledPluginRecord): string {
-  const od = record.manifest?.od as { kind?: unknown } | undefined;
-  return typeof od?.kind === 'string' ? od.kind.toLowerCase() : '';
+  const readable = record.manifest?.readable as { kind?: unknown } | undefined;
+  return typeof readable?.kind === 'string' ? readable.kind.toLowerCase() : '';
 }
 
 function featuredRank(record: InstalledPluginRecord): number | null {
-  const od = (record.manifest?.od ?? {}) as Record<string, unknown>;
-  if (od.featured === true) return 0;
-  if (typeof od.featured !== 'number' || !Number.isFinite(od.featured)) return null;
-  return Math.max(0, od.featured);
+  const readable = (record.manifest?.readable ?? {}) as Record<string, unknown>;
+  if (readable.featured === true) return 0;
+  if (typeof readable.featured !== 'number' || !Number.isFinite(readable.featured)) return null;
+  return Math.max(0, readable.featured);
 }
 
 function richTagCount(record: InstalledPluginRecord): number {

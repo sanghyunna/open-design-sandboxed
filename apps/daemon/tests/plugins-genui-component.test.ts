@@ -1,7 +1,7 @@
-// Plan §3.K3 / spec §10.3.5 — od.genui.surfaces[].component manifest field.
+// Plan §3.K3 / spec §10.3.5 — readable.genui.surfaces[].component manifest field.
 //
 // Two contracts:
-//   1. The Zod schema in @open-design/contracts accepts the new
+//   1. The Zod schema in @readable-studio/contracts accepts the new
 //      `component: { path, export?, sandbox? }` field on a surface.
 //   2. doctorPlugin() flags a surface that ships a component without
 //      the matching `genui:custom-component` capability, and rejects
@@ -10,12 +10,12 @@
 //      first-class top-level capability.
 
 import { describe, expect, it } from 'vitest';
-import { GenUISurfaceSpecSchema } from '@open-design/contracts';
-import { validateSafe } from '@open-design/plugin-runtime';
+import { GenUISurfaceSpecSchema } from '@readable-studio/contracts';
+import { validateSafe } from '@readable-studio/plugin-runtime';
 import { doctorPlugin } from '../src/plugins/doctor.js';
 import { validateCapabilityList } from '../src/plugins/trust.js';
 import { FIRST_PARTY_ATOMS, type AtomCatalogEntry } from '../src/plugins/atoms.js';
-import type { InstalledPluginRecord, PluginManifest } from '@open-design/contracts';
+import type { InstalledPluginRecord, PluginManifest } from '@readable-studio/contracts';
 
 const REGISTRY = {
   skills:        [],
@@ -81,7 +81,7 @@ describe('doctorPlugin — component capability gate', () => {
     title:       'Sample',
     version:     '1.0.0',
     description: 'fixture',
-    od: {
+    readable: {
       kind:    'skill',
       genui:   {
         surfaces: [
@@ -108,7 +108,7 @@ describe('doctorPlugin — component capability gate', () => {
   it('passes when the matching capability is declared', () => {
     const m: PluginManifest = {
       ...baseManifest,
-      od: { ...baseManifest.od, capabilities: ['prompt:inject', 'genui:custom-component'] },
+      readable: { ...baseManifest.readable, capabilities: ['prompt:inject', 'genui:custom-component'] },
     };
     const report = doctorPlugin(pluginRecord(m), REGISTRY);
     expect(report.issues.find((d) => d.code === 'genui.component-capability')).toBeUndefined();
@@ -117,8 +117,8 @@ describe('doctorPlugin — component capability gate', () => {
   it('errors on path-traversal segments inside the component path', () => {
     const m: PluginManifest = {
       ...baseManifest,
-      od: {
-        ...baseManifest.od,
+      readable: {
+        ...baseManifest.readable,
         capabilities: ['prompt:inject', 'genui:custom-component'],
         genui: {
           surfaces: [

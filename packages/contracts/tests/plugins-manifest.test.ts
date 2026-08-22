@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  OPEN_DESIGN_PLUGIN_SPEC_VERSION,
+  READABLE_STUDIO_PLUGIN_SPEC_VERSION,
   MarketplacePluginEntrySchema,
   PluginManifestSchema,
   resolveLocalizedText,
@@ -8,28 +8,28 @@ import {
 
 describe('plugin manifest localized text', () => {
   it('exports the current plugin spec version for manifests and registries', () => {
-    expect(OPEN_DESIGN_PLUGIN_SPEC_VERSION).toBe('1.0.0');
+    expect(READABLE_STUDIO_PLUGIN_SPEC_VERSION).toBe('1.0.0');
   });
 
   it('accepts legacy string use-case queries', () => {
     const manifest = PluginManifestSchema.parse({
       name: 'sample-plugin',
       version: '1.0.0',
-      od: {
+      readable: {
         useCase: {
           query: 'Make a {{topic}} brief.',
         },
       },
     });
 
-    expect(manifest.od?.useCase?.query).toBe('Make a {{topic}} brief.');
+    expect(manifest.readable?.useCase?.query).toBe('Make a {{topic}} brief.');
   });
 
   it('accepts locale-map use-case queries', () => {
     const manifest = PluginManifestSchema.parse({
       name: 'sample-plugin',
       version: '1.0.0',
-      od: {
+      readable: {
         useCase: {
           query: {
             en: 'Make a {{topic}} brief.',
@@ -39,7 +39,7 @@ describe('plugin manifest localized text', () => {
       },
     });
 
-    expect(resolveLocalizedText(manifest.od?.useCase?.query, 'zh-CN')).toBe(
+    expect(resolveLocalizedText(manifest.readable?.useCase?.query, 'zh-CN')).toBe(
       '围绕 {{topic}} 写一份简报。',
     );
   });
@@ -48,17 +48,17 @@ describe('plugin manifest localized text', () => {
     const manifest = PluginManifestSchema.parse({
       name: 'sample-plugin',
       version: '1.0.0',
-      od: {
+      readable: {
         preview: { type: 'html', entry: './index.html', motion: 'deck' },
       },
     });
-    expect(manifest.od?.preview?.motion).toBe('deck');
+    expect(manifest.readable?.preview?.motion).toBe('deck');
 
     expect(() =>
       PluginManifestSchema.parse({
         name: 'sample-plugin',
         version: '1.0.0',
-        od: { preview: { type: 'html', motion: 'sideways' } },
+        readable: { preview: { type: 'html', motion: 'sideways' } },
       }),
     ).toThrow();
   });
@@ -85,8 +85,8 @@ describe('plugin manifest localized text', () => {
 
   it('accepts localized marketplace entry metadata', () => {
     const entry = MarketplacePluginEntrySchema.parse({
-      name: 'open-design/example-sample',
-      source: 'github:open-design/plugins/examples/sample',
+      name: 'readable-studio/example-sample',
+      source: 'github:sanghyunna/readable-studio/plugins/examples/sample',
       version: '1.0.0',
       title: 'Sample',
       title_i18n: {

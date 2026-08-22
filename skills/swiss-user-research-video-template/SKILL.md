@@ -13,7 +13,7 @@ triggers:
   - "research synthesis template"
   - "Swiss user-research template"
   - "premium research presentation"
-od:
+readable:
   mode: template
   surface: video
   type: hyperframes

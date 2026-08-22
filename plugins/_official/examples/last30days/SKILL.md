@@ -12,7 +12,7 @@ triggers:
   - "what people are saying"
   - "trend scan"
   - "social research"
-od:
+readable:
   mode: prototype
   preview:
     type: markdown
@@ -24,7 +24,7 @@ od:
 
 # Last30Days Research Skill
 
-This skill adapts the upstream Last30Days workflow for Open Design. It includes
+This skill adapts the upstream Last30Days workflow for Readable Studio. It includes
 the runtime-minimum Python engine under `scripts/`, but it does not add slash
 commands, provider settings, daemon routes, bundled API keys, or browser/social
 connectors outside the copied engine.
@@ -40,16 +40,16 @@ research/last30days/<safe-topic-slug>.md
 Use the bundled engine when the environment can run it:
 
 ```bash
-python3.12 ".od-skills/last30days/scripts/last30days.py" "<topic>" --emit=compact --save-dir "research/last30days" --save-suffix raw
+python3.12 ".readable-studio-skills/last30days/scripts/last30days.py" "<topic>" --emit=compact --save-dir "research/last30days" --save-suffix raw
 ```
 
 If `python3.12` is unavailable, try `python3` only after confirming it is
-Python 3.12 or newer. If the staged `.od-skills/last30days/` path is
+Python 3.12 or newer. If the staged `.readable-studio-skills/last30days/` path is
 unavailable, use the absolute skill root fallback provided in the skill preamble.
 
 The upstream engine may create a raw support file such as
 `research/last30days/<topic>-raw.md`. Treat that file as evidence support. Then
-write the final OD report yourself at
+write the final Readable Studio report yourself at
 `research/last30days/<safe-topic-slug>.md`, using the Markdown Report Contract
 below.
 
@@ -60,7 +60,7 @@ requirement. Do not invent coverage for sources the engine could not access.
 
 - Prefer the bundled Last30Days engine for recent community/social research
   when runtime requirements are available.
-- Use available OD research/search capability, public web pages, user-provided
+- Use available Readable Studio research/search capability, public web pages, user-provided
   files, and accessible public sources only as fallback or supplement.
 - Do not claim access to Reddit, X/Twitter, YouTube transcripts, TikTok,
   Instagram, Hacker News, Polymarket, GitHub, Perplexity, Brave, or any other

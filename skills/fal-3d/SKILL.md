@@ -8,7 +8,7 @@ triggers:
   - "image to 3d"
   - "3d model gen"
   - "game asset 3d"
-od:
+readable:
   mode: image
   category: 3d-shaders
   upstream: "https://github.com/fal-ai-community/skills"
@@ -29,7 +29,7 @@ Generate 3D models from text or images via fal.ai. Useful for game assets, AR pr
 
 ## How to use
 
-This catalogue entry advertises the skill in Open Design so the agent
+This catalogue entry advertises the skill in Readable Studio so the agent
 discovers it during planning. To run the full upstream workflow with
 its original assets, scripts, and references, install the upstream
 bundle into your active agent's skills directory:

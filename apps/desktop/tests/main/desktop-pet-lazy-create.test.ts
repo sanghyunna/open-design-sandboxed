@@ -49,7 +49,7 @@ describe("desktop pet window lifecycle", () => {
     const enabledProbe = between(runtime, "const isDesktopPetEnabled", "ipcMain.removeAllListeners");
     const tick = between(runtime, "const tick = async", "void tick()");
 
-    expect(enabledProbe).toContain('localStorage.getItem("open-design:config")');
+    expect(enabledProbe).toContain('localStorage.getItem("readable-studio:config")');
     expect(enabledProbe).toContain("JSON.parse(raw)?.pet?.enabled === true");
     expect(tick).toContain("if (await isDesktopPetEnabled())");
     expect(tick).toContain("await ensureDesktopPetWindow(url)");
@@ -59,7 +59,7 @@ describe("desktop pet window lifecycle", () => {
 
   it("treats pre-creation pet IPC and shutdown as safe no-ops", () => {
     const runtime = runtimeSource();
-    const petIpc = between(runtime, 'ipcMain.on("desktop-pet:set-visible"', "ipcMain.removeHandler('od:print-pdf')");
+    const petIpc = between(runtime, 'ipcMain.on("desktop-pet:set-visible"', "ipcMain.removeHandler('readable-studio:print-pdf')");
     const close = between(runtime, "async close()", "console() {");
 
     expect(petIpc).toContain("petWindow != null && !petWindow.isDestroyed()");

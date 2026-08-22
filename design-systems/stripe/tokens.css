@@ -6,7 +6,7 @@
  * blue-tinted multi-layer shadow that makes elevation feel branded.
  *
  * This file pre-compiles the values described in `DESIGN.md` into
- * the schema shared with every OD design system. Agents generating a
+ * the schema shared with every Readable Studio design system. Agents generating a
  * Stripe-flavored artifact should paste the `:root { … }` block
  * verbatim into the first `<style>` of the artifact, then reference
  * every value through `var(--name)` — never re-author the hex

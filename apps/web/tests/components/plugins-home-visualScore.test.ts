@@ -7,7 +7,7 @@
 // instead of regressing back to alphabetical bundled noise.
 
 import { describe, expect, it } from 'vitest';
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 import {
   pluginVisualScore,
   sortByVisualAppeal,
@@ -18,7 +18,7 @@ function fixture(overrides: {
   title?: string;
   description?: string;
   tags?: string[];
-  od?: Record<string, unknown>;
+  readable?: Record<string, unknown>;
   author?: string;
 }): InstalledPluginRecord {
   return {
@@ -37,7 +37,7 @@ function fixture(overrides: {
       ...(overrides.author
         ? { author: { name: overrides.author } }
         : {}),
-      ...(overrides.od ? { od: overrides.od } : {}),
+      ...(overrides.readable ? { readable: overrides.readable } : {}),
     },
     fsPath: '/tmp',
     installedAt: 0,
@@ -48,15 +48,15 @@ function fixture(overrides: {
 describe('pluginVisualScore', () => {
   it('boosts featured plugins above everything else', () => {
     const plain = fixture({ id: 'plain' });
-    const featured = fixture({ id: 'featured', od: { featured: true } });
+    const featured = fixture({ id: 'featured', readable: { featured: true } });
     expect(pluginVisualScore(featured)).toBeGreaterThan(
       pluginVisualScore(plain) + 500,
     );
   });
 
   it('uses numeric featured ranks to order curated picks', () => {
-    const lead = fixture({ id: 'lead', od: { featured: 2 } });
-    const later = fixture({ id: 'later', od: { featured: 19 } });
+    const lead = fixture({ id: 'lead', readable: { featured: 2 } });
+    const later = fixture({ id: 'later', readable: { featured: 19 } });
     expect(pluginVisualScore(lead)).toBeGreaterThan(pluginVisualScore(later));
   });
 
@@ -64,15 +64,15 @@ describe('pluginVisualScore', () => {
     const text = fixture({ id: 'text' });
     const deckHtml = fixture({
       id: 'deck',
-      od: { mode: 'deck', preview: { type: 'html', entry: './index.html' } },
+      readable: { mode: 'deck', preview: { type: 'html', entry: './index.html' } },
     });
     const image = fixture({
       id: 'image',
-      od: { surface: 'image', mode: 'image', preview: { type: 'image', poster: 'a.png' } },
+      readable: { surface: 'image', mode: 'image', preview: { type: 'image', poster: 'a.png' } },
     });
     const video = fixture({
       id: 'video',
-      od: { surface: 'video', mode: 'video', preview: { type: 'video', video: 'a.mp4' } },
+      readable: { surface: 'video', mode: 'video', preview: { type: 'video', video: 'a.mp4' } },
     });
     expect(pluginVisualScore(video)).toBeGreaterThan(pluginVisualScore(image));
     expect(pluginVisualScore(image)).toBeGreaterThan(pluginVisualScore(deckHtml));
@@ -81,12 +81,12 @@ describe('pluginVisualScore', () => {
 
   it('credits design-system plugins between decks and plain text', () => {
     const text = fixture({ id: 'text' });
-    const ds = fixture({ id: 'ds', od: { mode: 'design-system' } });
+    const ds = fixture({ id: 'ds', readable: { mode: 'design-system' } });
     expect(pluginVisualScore(ds)).toBeGreaterThan(pluginVisualScore(text));
   });
 
   it('penalises atom kind so they never accidentally lead the grid', () => {
-    const atom = fixture({ id: 'a', od: { kind: 'atom' } });
+    const atom = fixture({ id: 'a', readable: { kind: 'atom' } });
     expect(pluginVisualScore(atom)).toBeLessThan(0);
   });
 });
@@ -97,11 +97,11 @@ describe('sortByVisualAppeal', () => {
       fixture({ id: 'plain' }),
       fixture({
         id: 'guizang-ppt',
-        od: { mode: 'deck', preview: { type: 'html', entry: './index.html' } },
+        readable: { mode: 'deck', preview: { type: 'html', entry: './index.html' } },
       }),
       fixture({
         id: 'photo',
-        od: {
+        readable: {
           surface: 'image',
           mode: 'image',
           preview: { type: 'image', poster: 'p.png' },
@@ -109,7 +109,7 @@ describe('sortByVisualAppeal', () => {
       }),
       fixture({
         id: 'reel',
-        od: {
+        readable: {
           surface: 'video',
           mode: 'video',
           preview: { type: 'video', video: 'r.mp4', poster: 'r.png' },
@@ -126,7 +126,7 @@ describe('sortByVisualAppeal', () => {
     const records = [
       fixture({
         id: 'featured-video',
-        od: {
+        readable: {
           surface: 'video',
           mode: 'video',
           preview: { type: 'video', video: 'r.mp4', poster: 'r.png' },
@@ -134,19 +134,19 @@ describe('sortByVisualAppeal', () => {
         },
       }),
       fixture({
-        id: 'example-open-design-landing',
-        od: { mode: 'prototype', preview: { type: 'html', entry: './index.html' } },
+        id: 'example-readable-landing',
+        readable: { mode: 'prototype', preview: { type: 'html', entry: './index.html' } },
       }),
     ];
     const sorted = sortByVisualAppeal(records).map((r) => r.id);
-    expect(sorted[0]).toBe('example-open-design-landing');
+    expect(sorted[0]).toBe('example-readable-landing');
   });
 
   it('keeps numeric featured rank ahead of media bonuses', () => {
     const records = [
       fixture({
         id: 'motion-preview',
-        od: {
+        readable: {
           surface: 'video',
           mode: 'video',
           preview: { type: 'video', video: 'r.mp4', poster: 'r.png' },
@@ -155,14 +155,14 @@ describe('sortByVisualAppeal', () => {
       }),
       fixture({
         id: 'guizang',
-        od: {
+        readable: {
           mode: 'deck',
           preview: { type: 'html', entry: './index.html' },
           featured: 0.01,
         },
       }),
-      fixture({ id: 'huashu', od: { mode: 'prototype', featured: 0.03 } }),
-      fixture({ id: 'kami', od: { mode: 'deck', featured: 0.06 } }),
+      fixture({ id: 'huashu', readable: { mode: 'prototype', featured: 0.03 } }),
+      fixture({ id: 'kami', readable: { mode: 'deck', featured: 0.06 } }),
     ];
     const sorted = sortByVisualAppeal(records).map((r) => r.id);
     expect(sorted).toEqual(['guizang', 'huashu', 'kami', 'motion-preview']);
@@ -171,7 +171,7 @@ describe('sortByVisualAppeal', () => {
   it('keeps the original list reference unchanged (returns a new array)', () => {
     const records = [
       fixture({ id: 'a' }),
-      fixture({ id: 'b', od: { mode: 'deck' } }),
+      fixture({ id: 'b', readable: { mode: 'deck' } }),
     ];
     const before = records.map((r) => r.id).join(',');
     sortByVisualAppeal(records);

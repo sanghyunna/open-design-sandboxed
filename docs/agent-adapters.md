@@ -2,7 +2,7 @@
 
 **Parent:** [`spec.md`](spec.md) · **Siblings:** [`architecture.md`](architecture.md) · [`skills-protocol.md`](skills-protocol.md) · [`new-agent-runtime-acp.md`](new-agent-runtime-acp.md) · [`modes.md`](modes.md)
 
-The adapter layer is OD's most load-bearing design decision. We delegate the **entire agent loop** — model calls, tool use, context management, permission handling, resume, cancel — to the user's existing code agent CLI. OD's job is to detect it, feed it a skill + prompt + working directory, and stream its output back to the web UI.
+The adapter layer is Readable Studio's most load-bearing design decision. We delegate the **entire agent loop** — model calls, tool use, context management, permission handling, resume, cancel — to the user's existing code agent CLI. Readable Studio's job is to detect it, feed it a skill + prompt + working directory, and stream its output back to the web UI.
 
 If you're adding a new ACP-backed runtime, start with [`new-agent-runtime-acp.md`](new-agent-runtime-acp.md) for the expected stdio transport, JSON-RPC message flow, and process lifecycle contract.
 
@@ -72,7 +72,7 @@ type AgentEvent =
 
 ## 2. Detection strategy
 
-Run all adapters' `detect()` in parallel on daemon start, then cache results in `~/.open-design/agents.json` with a 24h TTL. Re-detect on daemon `SIGHUP`.
+Run all adapters' `detect()` in parallel on daemon start, then cache results in `~/.readable-studio/agents.json` with a 24h TTL. Re-detect on daemon `SIGHUP`.
 
 Each adapter uses **two signals**:
 
@@ -109,7 +109,7 @@ If both signals agree, detection is confident. If only one signal fires, we mark
 Skills travel into each agent via one of three strategies, in order of preference:
 
 ### 4.1 Native skill loading (preferred)
-Agent scans its own `~/.<agent>/skills/` on launch. We symlink OD's skill into that dir (see [`skills-protocol.md`](skills-protocol.md) §3) and let the agent pick it up natively. Zero prompt overhead.
+Agent scans its own `~/.<agent>/skills/` on launch. We symlink Readable Studio's skill into that dir (see [`skills-protocol.md`](skills-protocol.md) §3) and let the agent pick it up natively. Zero prompt overhead.
 
 - **Works for:** Claude Code. Codex (version-dependent). OpenCode.
 
@@ -142,10 +142,10 @@ The adapter declares which strategy to use via `capabilities().nativeSkillLoadin
 
 - Invocation: direct Anthropic Messages API with `stream: true`.
 - Skill loading: prompt injection only — read the skill dir, inline everything.
-- Tool use: we register `Read/Write/Edit` as tools, implement them in the daemon against the artifact cwd, and run the loop ourselves. This is the one place OD does own the loop — because the user has no agent at all. Keep it as dumb as possible.
+- Tool use: we register `Read/Write/Edit` as tools, implement them in the daemon against the artifact cwd, and run the loop ourselves. This is the one place Readable Studio does own the loop — because the user has no agent at all. Keep it as dumb as possible.
 - Surgical edits: approximated by regenerating the whole target file with "only change X" in the prompt.
 - Model: Claude Sonnet 4.6 default; Opus 4.7 behind a flag.
-- **Why ship this at all?** Topology C requires it (no daemon available in a pure-Vercel deploy). Also, users trying OD for the first time without a CLI installed still get a working experience.
+- **Why ship this at all?** Topology C requires it (no daemon available in a pure-Vercel deploy). Also, users trying Readable Studio for the first time without a CLI installed still get a working experience.
 
 ### 5.3 Codex
 
@@ -161,7 +161,7 @@ The adapter declares which strategy to use via `capabilities().nativeSkillLoadin
 - Install/update: macOS/Linux/WSL users can install with `curl -fsSL https://cli.devin.ai/install.sh | bash`; run `devin update` for existing installs.
 - Version requirement: requires a Devin CLI build with the `devin acp` subcommand (verified with `devin 2026.5.1-1`). Check with `devin acp --help`; if the subcommand is missing, update or reinstall Devin for Terminal.
 - Streaming: Agent Client Protocol JSON-RPC over stdio, handled by the daemon's shared `acp-json-rpc` transport.
-- Skill loading: Devin supports `.devin/skills/` and `~/.config/devin/skills/`; OD's current daemon also prompt-injects the selected skill body into the composed prompt, so no per-project skill install is required for generation.
+- Skill loading: Devin supports `.devin/skills/` and `~/.config/devin/skills/`; Readable Studio's current daemon also prompt-injects the selected skill body into the composed prompt, so no per-project skill install is required for generation.
 - Surgical edits: Devin's own edit/write tools handle targeted changes.
 - Permission: `--permission-mode dangerous` avoids headless approval prompts in the web UI; `--respect-workspace-trust false` ensures Devin doesn't block on trust prompts for newly created project dirs. Org/team-level policies still apply inside Devin.
 
@@ -205,7 +205,7 @@ The adapter declares which strategy to use via `capabilities().nativeSkillLoadin
 
 ### 5.9 Qoder CLI
 
-- Invocation: `qodercli -p --output-format stream-json --permission-mode bypass_permissions --cwd <dir> [--model <id>] --add-dir <absolute-skills-dir> --add-dir <absolute-design-systems-dir>`, with the composed prompt delivered over stdin. Print mode exits after the turn, which fits the daemon's one-request chat lifecycle. Qoder is currently text-only in OD; `_imagePaths` are intentionally ignored because Qoder CLI does not expose a supported multimodal flag for this adapter path yet.
+- Invocation: `qodercli -p --output-format stream-json --permission-mode bypass_permissions --cwd <dir> [--model <id>] --add-dir <absolute-skills-dir> --add-dir <absolute-design-systems-dir>`, with the composed prompt delivered over stdin. Print mode exits after the turn, which fits the daemon's one-request chat lifecycle. Qoder is currently text-only in Readable Studio; `_imagePaths` are intentionally ignored because Qoder CLI does not expose a supported multimodal flag for this adapter path yet.
 - Streaming: `--output-format stream-json` emits JSONL records such as `system/init`, `assistant`, and `result`. `apps/daemon/src/qoder-stream.ts` maps assistant content blocks to text deltas, maps assistant errors without text to typed error events, and preserves result usage, model usage, cost, duration, stop reason, and unknown records as raw events.
 - Models: ships fallback hints for `default`, `lite`, `efficient`, `auto`, `performance`, and `ultimate`. Selecting `default` omits `--model` so Qoder's own CLI configuration remains authoritative.
 - Skills: prompt injection only in v1. `--add-dir` is repeatable so Qoder can read absolute skill and design-system roots that live outside the active project cwd; the daemon does not forward relative extra directory entries.
@@ -251,7 +251,7 @@ The web UI reads `agents.capabilities()` and disables features that the active a
 | Comment mode (click to refine) | `surgicalEdit: true` | Hidden; show tooltip explaining why |
 | Streaming tool-call feed | `streaming: true` | Show a spinner only |
 | Resume interrupted run | `resume: true` | "Cancel + restart" only |
-| Skill picker shows skill with `od.capabilities_required` | all listed caps | Skill greyed out with reason |
+| Skill picker shows skill with `readable.capabilities_required` | all listed caps | Skill greyed out with reason |
 
 This is how we avoid "works on my Claude Code, breaks on your Gemini" — we detect, degrade, and document.
 
@@ -270,7 +270,7 @@ Switching mid-run is not allowed (cancel first). The artifact is agent-agnostic;
 
 ## 8. Fallback chain
 
-If the user's preferred agent fails (crash, auth, timeout), OD offers a one-click fallback in this order:
+If the user's preferred agent fails (crash, auth, timeout), Readable Studio offers a one-click fallback in this order:
 
 1. User's preferred agent (e.g. Cursor Agent)
 2. Any other detected agent (Claude Code, if installed)
@@ -284,14 +284,14 @@ First run:
 
 ```
 $ pnpm tools-dev run web
-[od] daemon starting on :7456
-[od] detecting agents…
-[od]   ✓ claude-code v0.6.3 (auth: ok, skills dir linked)
-[od]   ✓ codex v0.8.1 (auth: ok)
-[od]   ✗ cursor-agent (not installed)
-[od]   ✗ gemini-cli (installed but not authenticated; run `gemini auth login`)
-[od]   ✓ api-fallback (ANTHROPIC_API_KEY found)
-[od] daemon ready; 3 agents available
+[readable] daemon starting on :7456
+[readable] detecting agents…
+[readable]   ✓ claude-code v0.6.3 (auth: ok, skills dir linked)
+[readable]   ✓ codex v0.8.1 (auth: ok)
+[readable]   ✗ cursor-agent (not installed)
+[readable]   ✗ gemini-cli (installed but not authenticated; run `gemini auth login`)
+[readable]   ✓ api-fallback (ANTHROPIC_API_KEY found)
+[readable] daemon ready; 3 agents available
 ```
 
 Web UI mirrors this in an agent-selector dropdown, with unauthenticated agents shown greyed out with a fix-it tooltip.
@@ -300,8 +300,8 @@ Web UI mirrors this in an agent-selector dropdown, with unauthenticated agents s
 
 We inherit the underlying agent's permission model rather than building our own. This means:
 
-- **Claude Code** respects its own `--allowed-tools` and `--permission-mode` flags. OD passes through user preferences.
-- **Codex / Cursor** sandbox by workspace; OD always sets cwd to the artifact dir so nothing outside is visible by default.
+- **Claude Code** respects its own `--allowed-tools` and `--permission-mode` flags. Readable Studio passes through user preferences.
+- **Codex / Cursor** sandbox by workspace; Readable Studio always sets cwd to the artifact dir so nothing outside is visible by default.
 - **Qoder CLI** runs with `--permission-mode bypass_permissions` for non-interactive web execution and is scoped by the daemon's cwd plus explicit absolute `--add-dir` entries.
 - **API fallback** is the one case we own. We implement a whitelist: only `Read`, `Write`, `Edit` tools, all rooted at the artifact cwd. Network access is off.
 
@@ -332,7 +332,7 @@ Each adapter is a separate module so community contributions can add new ones wi
 ## 12. Open questions
 
 - **Nested agents.** What if Claude Code's agent itself spawns a subagent? We receive events from the outer process only. v1 policy: surface only top-level events; summarize subagent activity as "sub-task" placeholder.
-- **Billing awareness.** Some agents bill per message, some per token. OD doesn't track cost in MVP; v1 adds an optional "usage" event from adapters that expose it.
+- **Billing awareness.** Some agents bill per message, some per token. Readable Studio doesn't track cost in MVP; v1 adds an optional "usage" event from adapters that expose it.
 - **Windows support.** PATH scanning and `spawn` semantics differ on Windows. v1 targets
   macOS and Linux; Windows is best-effort. Known issue fixed: `spawn ENAMETOOLONG` when
   running Gemini CLI (and other plain-text agents) on Windows — resolved by routing the

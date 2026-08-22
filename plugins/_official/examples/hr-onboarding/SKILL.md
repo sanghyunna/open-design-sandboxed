@@ -9,7 +9,7 @@ triggers:
   - "onboarding"
   - "new hire"
   - "first week"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: hr

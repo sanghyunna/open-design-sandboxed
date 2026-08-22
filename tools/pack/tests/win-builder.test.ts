@@ -1,18 +1,17 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { NtExecutable, NtExecutableResource, Resource } from "resedit";
 import { describe, expect, it } from "vitest";
 
-import { hashJson, ToolPackCache, type CacheNode } from "../src/cache.js";
+import { hashJson } from "../src/cache.js";
 import type { ToolPackConfig } from "../src/config.js";
 import {
   buildWinPortableZipCacheKeyInput,
-  materializeCachedPurePortableZip,
-  materializeCachedUnpackedForInstaller,
+  materializeCachedUnpackedForPortableZip,
 } from "../src/win/builder.js";
-import { withPortableConfigFlag } from "../src/win/zip.js";
 import type { WinPaths } from "../src/win/types.js";
 import { readWinExecutableVersionSnapshot } from "../src/win/version-resource.js";
 
@@ -25,7 +24,6 @@ function createPaths(root: string): WinPaths {
     assembledMainEntryPath: join(namespaceRoot, "assembled", "app", "main.cjs"),
     assembledPackageJsonPath: join(namespaceRoot, "assembled", "app", "package.json"),
     assembledPrebundledRoot: join(namespaceRoot, "assembled", "app", "prebundled"),
-    blockmapPath: join(namespaceRoot, "builder", "Open Design-second-setup.exe.blockmap"),
     builtManifestPath: join(namespaceRoot, "built-app.json"),
     daemonCliPrebundleEntrypointPath: join(namespaceRoot, "prebundle-entrypoints", "daemon-cli.js"),
     daemonCliPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "daemon", "daemon-cli.mjs"),
@@ -33,59 +31,55 @@ function createPaths(root: string): WinPaths {
     daemonPrebundleRoot: join(namespaceRoot, "assembled", "app", "prebundled", "daemon"),
     daemonSidecarPrebundleEntrypointPath: join(namespaceRoot, "prebundle-entrypoints", "daemon-sidecar.js"),
     daemonSidecarPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "daemon", "daemon-sidecar.mjs"),
-    exePath: join(namespaceRoot, "builder", "Open Design-second.exe"),
-    installDir: join(namespaceRoot, "runtime", "install", "Open Design"),
-    installedExePath: join(namespaceRoot, "runtime", "install", "Open Design", "Open Design.exe"),
-    installerBasePayloadPath: join(namespaceRoot, "installer", "payload-base.7z"),
-    installerOverlayPayloadPath: join(namespaceRoot, "installer", "payload-overlay.7z"),
-    installerScriptPath: join(namespaceRoot, "installer", "installer.nsi"),
-    launcherPayloadPath: join(namespaceRoot, "payload", "Open Design-second-payload.7z"),
-    publicDesktopShortcutPath: join(namespaceRoot, "desktop", "public.lnk"),
-    latestYmlPath: join(namespaceRoot, "builder", "latest.yml"),
-    installMarkerPath: join(namespaceRoot, "logs", "install.marker.json"),
-    installTimingPath: join(namespaceRoot, "logs", "install.timing.json"),
-    nsisLogPath: join(namespaceRoot, "logs", "nsis.log"),
-    nsisIncludePath: join(namespaceRoot, "nsis", "installer.nsh"),
-    packagedConfigPath: join(namespaceRoot, "open-design-config.json"),
+    packagedConfigPath: join(namespaceRoot, "readable-studio-config.json"),
     packagedMainPrebundleMetaPath: join(namespaceRoot, "prebundle-meta", "packaged-main.meta.json"),
     packagedMainPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "packaged-main.mjs"),
-    resourceRoot: join(namespaceRoot, "resources", "open-design"),
-    setupPath: join(namespaceRoot, "builder", "Open Design-second-setup.exe"),
-    setupZipPath: join(namespaceRoot, "builder", "Open Design-second-portable.zip"),
-    startMenuShortcutPath: join(namespaceRoot, "start-menu.lnk"),
+    resourceRoot: join(namespaceRoot, "resources", "readable-studio"),
+    setupZipPath: join(namespaceRoot, "builder", "Readable Studio-second-portable.zip"),
     tarballsRoot: join(namespaceRoot, "tarballs"),
-    userDesktopShortcutPath: join(namespaceRoot, "desktop", "user.lnk"),
-    uninstallMarkerPath: join(namespaceRoot, "logs", "uninstall.marker.json"),
-    uninstallTimingPath: join(namespaceRoot, "logs", "uninstall.timing.json"),
-    uninstallerPath: join(namespaceRoot, "runtime", "install", "Open Design", "Uninstall.exe"),
     webStandaloneHookAuditPath: join(namespaceRoot, "web-standalone-after-pack-audit.json"),
     webStandaloneHookConfigPath: join(namespaceRoot, "web-standalone-after-pack-config.json"),
     webSidecarPrebundleMetaPath: join(namespaceRoot, "prebundle-meta", "web-sidecar.meta.json"),
     webSidecarPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "web-sidecar.mjs"),
     winIconPath: join(namespaceRoot, "resources", "win", "icon.ico"),
-    unpackedExePath: join(namespaceRoot, "builder", "win-unpacked", "Open Design.exe"),
+    unpackedExePath: join(namespaceRoot, "builder", "win-unpacked", "Readable Studio.exe"),
     unpackedRoot: join(namespaceRoot, "builder", "win-unpacked"),
   };
 }
 
-describe("materializeCachedUnpackedForInstaller", () => {
+describe("Windows portable builder update-feed absence", () => {
+  it("does not configure publish metadata or a generic feed", () => {
+    // Given the electron-builder configuration source
+    const builderSource = readFileSync(new URL("../src/win/builder.ts", import.meta.url), "utf8");
+
+    // When publish/feed configuration tokens are selected
+    const retainedTokens = ["publish:", 'provider: "generic"', "updates.invalid"].filter((token) =>
+      builderSource.includes(token),
+    );
+
+    // Then a portable build cannot emit updater feed metadata
+    expect(retainedTokens).toEqual([]);
+  });
+});
+
+describe("materializeCachedUnpackedForPortableZip", () => {
   it("overwrites cached packaged config and app package version", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-win-builder-"));
+    const root = await mkdtemp(join(tmpdir(), "readable-studio-win-builder-"));
     const cachedUnpackedRoot = join(root, "cache", "builder", "win-unpacked");
     const paths = createPaths(root);
 
     try {
       await mkdir(join(cachedUnpackedRoot, "resources"), { recursive: true });
-      await writeFile(join(cachedUnpackedRoot, "Open Design.exe"), await createVersionedExecutable("0.5.0-beta.1"));
+      await writeFile(join(cachedUnpackedRoot, "Readable Studio.exe"), await createVersionedExecutable("0.5.0-beta.1"));
       await writeFile(
-        join(cachedUnpackedRoot, "resources", "open-design-config.json"),
+        join(cachedUnpackedRoot, "resources", "readable-studio-config.json"),
         `${JSON.stringify({ namespace: "first", version: 1 })}\n`,
         "utf8",
       );
       await mkdir(join(cachedUnpackedRoot, "resources", "app"), { recursive: true });
       await writeFile(
         join(cachedUnpackedRoot, "resources", "app", "package.json"),
-        `${JSON.stringify({ name: "open-design-packaged-app", version: "0.5.0-beta.1" })}\n`,
+        `${JSON.stringify({ name: "readable-studio-packaged-app", version: "0.5.0-beta.1" })}\n`,
         "utf8",
       );
       await mkdir(join(paths.packagedConfigPath, ".."), { recursive: true });
@@ -95,26 +89,31 @@ describe("materializeCachedUnpackedForInstaller", () => {
         "utf8",
       );
 
-      const manifest = await materializeCachedUnpackedForInstaller(cachedUnpackedRoot, paths, "0.5.0-beta.2");
+      const manifest = await materializeCachedUnpackedForPortableZip(cachedUnpackedRoot, paths, "0.5.0-beta.2");
 
       expect(manifest.source).toBe("namespace");
       expect(manifest.unpackedRoot).toBe(paths.unpackedRoot);
-      await expect(readFile(join(paths.unpackedRoot, "resources", "open-design-config.json"), "utf8")).resolves.toContain(
+      await expect(readFile(join(paths.unpackedRoot, "resources", "readable-studio-config.json"), "utf8")).resolves.toContain(
         '"namespace":"second"',
       );
       await expect(readFile(join(paths.unpackedRoot, "resources", "app", "package.json"), "utf8")).resolves.toContain(
         '"version": "0.5.0-beta.2"',
       );
-      await expect(readFile(join(paths.unpackedRoot, "resources", "open-design-config.json"), "utf8")).resolves.toContain(
+      await expect(readFile(join(paths.unpackedRoot, "resources", "readable-studio-config.json"), "utf8")).resolves.toContain(
         '"appVersion":"0.5.0-beta.2"',
       );
-      await expect(readWinExecutableVersionSnapshot(join(paths.unpackedRoot, "Open Design.exe"))).resolves.toMatchObject({
+      await expect(readWinExecutableVersionSnapshot(join(paths.unpackedRoot, "Readable Studio.exe"))).resolves.toMatchObject({
         fixedFileVersion: "0.5.0.0",
         fixedProductVersion: "0.5.0.0",
+        machine: "x64",
         stringTables: [
           {
             values: expect.objectContaining({
+              FileDescription: "Readable Studio",
               FileVersion: "0.5.0-beta.2",
+              InternalName: "Readable Studio",
+              OriginalFilename: "Readable Studio.exe",
+              ProductName: "Readable Studio",
               ProductVersion: "0.5.0.0",
             }),
           },
@@ -126,71 +125,11 @@ describe("materializeCachedUnpackedForInstaller", () => {
   });
 });
 
-describe("materializeCachedPurePortableZip", () => {
-  it("copies a cached portable zip without materializing win-unpacked", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-win-builder-zip-hit-"));
-    const paths = createPaths(root);
-    const cache = new ToolPackCache(join(root, "cache"));
-    const packagedConfig = `${JSON.stringify({ appVersion: "0.5.0-beta.2", namespace: "second" }, null, 2)}\n`;
-    const electronBuilderDirKey = "dir-key";
-    const packagedAppKey = "app-key";
-    const packagedVersion = "0.5.0-beta.2";
-    const signingCacheKey = null;
-
-    try {
-      await mkdir(join(paths.packagedConfigPath, ".."), { recursive: true });
-      await writeFile(paths.packagedConfigPath, packagedConfig, "utf8");
-    const portableZipNode: CacheNode<{ createdAt: string; portableZipPath: string }> = {
-      build: async ({ entryRoot }) => {
-        await writeFile(join(entryRoot, "portable.zip"), "cached zip bytes", "utf8");
-        return { createdAt: "2026-06-17T00:00:00.000Z", portableZipPath: "cache" };
-      },
-        id: "win.portable-zip",
-        invalidate: async () => null,
-        key: hashJson(
-          buildWinPortableZipCacheKeyInput({
-            electronBuilderDirKey,
-            injectedPackagedConfig: withPortableConfigFlag(packagedConfig),
-            namespace: "second",
-            packagedAppKey,
-            packagedVersion,
-            portableZipCompression: 5,
-            signing: signingCacheKey,
-          }),
-        ),
-        outputs: ["portable.zip"],
-      };
-      await cache.acquire({ materialize: [], node: portableZipNode });
-
-      const hit = await materializeCachedPurePortableZip({
-        cache,
-        config: { namespace: "second", portable: true, signed: false, to: "zip" } as ToolPackConfig,
-        electronBuilderDirKey,
-        packagedAppKey,
-        packagedVersion,
-        paths,
-        signingCacheKey,
-      });
-
-      expect(hit).toBe(true);
-      await expect(readFile(paths.setupZipPath, "utf8")).resolves.toBe("cached zip bytes");
-      expect(cache.report().entries.at(-1)).toMatchObject({
-        materialized: [{ from: "portable.zip", to: paths.setupZipPath }],
-        nodeId: "win.portable-zip",
-        status: "hit",
-      });
-      expect(cache.report().entries.some((entry) => entry.nodeId === "win.electron-builder-dir" && entry.materialized.length > 0)).toBe(
-        false,
-      );
-    } finally {
-      await rm(root, { force: true, recursive: true });
-    }
-  });
-
+describe("Windows portable ZIP cache", () => {
   it("changes the portable zip cache key when compression changes", () => {
     const base = {
       electronBuilderDirKey: "dir-key",
-      injectedPackagedConfig: `${JSON.stringify({ namespace: "second", portable: true }, null, 2)}\n`,
+      packagedConfig: `${JSON.stringify({ namespace: "second", portable: true }, null, 2)}\n`,
       namespace: "second",
       packagedAppKey: "app-key",
       packagedVersion: "0.5.0-beta.2",
@@ -215,9 +154,9 @@ async function createVersionedExecutable(packagedVersion: string): Promise<Buffe
   version.setStringValues(
     { codepage: 1200, lang: 1033 },
     {
-      FileDescription: "Open Design",
+      FileDescription: "Readable Studio",
       FileVersion: packagedVersion,
-      ProductName: "Open Design",
+      ProductName: "Readable Studio",
       ProductVersion: "0.5.0.0",
     },
   );

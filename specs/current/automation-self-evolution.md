@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Automations should become the product-wide loop that lets Open Design improve
+Automations should become the product-wide loop that lets Readable Studio improve
 itself over time: ingest sources, distill durable memory, crystallize reusable
 skills, extract and refine design systems, and feed compact context back into
 future agent runs.
@@ -15,14 +15,14 @@ design agent.
 
 | Reference | Pattern to borrow | Boundary |
 |---|---|---|
-| [OpenHuman](https://github.com/tinyhumansai/openhuman) | Connector auto-fetch into a memory tree, local editable knowledge, chunking, and optional token compression before LLM use. | Keep OD design-focused and local-first; do not copy its subscription/model-router product shape. |
-| [Hermes Agent](https://github.com/nousresearch/hermes-agent) | Closed learning loop: persistent memory, agent-created skills from experience, skill improvement during use, scheduled automations, and explicit compression commands. | Do not replace the user's agent loop or turn OD into a general messaging gateway. |
-| [Multica](https://github.com/multica-ai/multica) | Managed agents, agent-scoped skills, workspace/local skill imports, and skill attachment as a team-level capability. | Do not turn OD into an issue board; use the skill attachment pattern for design work. |
-| [GenericAgent](https://github.com/lsdefine/GenericAgent) | After solving a new task, crystallize the execution path into a reusable skill tree and recall it for similar tasks with a smaller context window. | Do not grant broad uncontrolled desktop authority; OD keeps daemon and connector capability gates. |
+| [OpenHuman](https://github.com/tinyhumansai/openhuman) | Connector auto-fetch into a memory tree, local editable knowledge, chunking, and optional token compression before LLM use. | Keep Readable Studio design-focused and local-first; do not copy its subscription/model-router product shape. |
+| [Hermes Agent](https://github.com/nousresearch/hermes-agent) | Closed learning loop: persistent memory, agent-created skills from experience, skill improvement during use, scheduled automations, and explicit compression commands. | Do not replace the user's agent loop or turn Readable Studio into a general messaging gateway. |
+| [Multica](https://github.com/multica-ai/multica) | Managed agents, agent-scoped skills, workspace/local skill imports, and skill attachment as a team-level capability. | Do not turn Readable Studio into an issue board; use the skill attachment pattern for design work. |
+| [GenericAgent](https://github.com/lsdefine/GenericAgent) | After solving a new task, crystallize the execution path into a reusable skill tree and recall it for similar tasks with a smaller context window. | Do not grant broad uncontrolled desktop authority; Readable Studio keeps daemon and connector capability gates. |
 
 ## Product thesis
 
-Open Design becomes a self-evolving design agent when every useful run can
+Readable Studio becomes a self-evolving design agent when every useful run can
 promote durable knowledge into one of four trees:
 
 1. **Memory tree** - user, project, source, connector, and artifact knowledge
@@ -77,7 +77,7 @@ Every ingested item becomes a packet with:
 - `tokenStats` before and after compression.
 - `candidateSinks`: memory, skill, design system, automation template.
 
-The packet should be inspectable in UI and available to `od automation`.
+The packet should be inspectable in UI and available to `readable automation`.
 
 ## Automation templates
 
@@ -175,7 +175,7 @@ Design-system evolution is the product-specific center of gravity:
 - Feed recurring critique failures back into design-system anti-patterns,
   component rules, or token choices.
 
-This keeps OD positioned as a self-evolving design agent rather than a generic
+This keeps Readable Studio positioned as a self-evolving design agent rather than a generic
 personal assistant.
 
 ## UI and CLI closure
@@ -184,14 +184,14 @@ Every user-facing capability must land in both surfaces:
 
 | Capability | Web UI | CLI |
 |---|---|---|
-| List templates | Automations template picker | `od automation template list --json` |
-| Run ingestion | Automations "Ingest source" panel | `od automation source ingest --source-kind <kind> --body-file <path|-> --json` |
-| Inspect source packets | Recent ingestions list | `od automation source list/get --json` |
-| Review proposals | Review drawer with diff and apply/reject | `od automation proposal list/apply/reject --json` |
-| Edit memory tree | Settings -> Memory tree | `od memory tree ... --json` |
-| Manage token compression | Ingestion compression selector | `od automation source ingest --compression off|balanced|aggressive --json` |
-| Promote design system | Evolution proposal apply action | `od automation proposal apply <proposal> --json` |
-| Crystallize skill | Evolution proposal apply action | `od automation proposal apply <proposal> --json` |
+| List templates | Automations template picker | `readable automation template list --json` |
+| Run ingestion | Automations "Ingest source" panel | `readable automation source ingest --source-kind <kind> --body-file <path|-> --json` |
+| Inspect source packets | Recent ingestions list | `readable automation source list/get --json` |
+| Review proposals | Review drawer with diff and apply/reject | `readable automation proposal list/apply/reject --json` |
+| Edit memory tree | Settings -> Memory tree | `readable memory tree ... --json` |
+| Manage token compression | Ingestion compression selector | `readable automation source ingest --compression off|balanced|aggressive --json` |
+| Promote design system | Evolution proposal apply action | `readable automation proposal apply <proposal> --json` |
+| Crystallize skill | Evolution proposal apply action | `readable automation proposal apply <proposal> --json` |
 
 ## Implementation phases
 
@@ -210,7 +210,7 @@ Every user-facing capability must land in both surfaces:
 - Keep the current file-backed Markdown store; add an index layer rather than a
   hidden opaque database.
 - Inject selected tree nodes into daemon and BYOK/API-mode agent prompts.
-- Add `od memory tree list/view/edit/move` and matching Settings UI.
+- Add `readable memory tree list/view/edit/move` and matching Settings UI.
 
 Initial concrete surface:
 
@@ -218,7 +218,7 @@ Initial concrete surface:
   Markdown-backed memory store.
 - `PATCH /api/memory/tree/:id` edits entry-node metadata/body/type while folder
   nodes remain derived from entry buckets.
-- `od memory tree list/view/edit/move` mirrors the Settings memory-tree view so
+- `readable memory tree list/view/edit/move` mirrors the Settings memory-tree view so
   external agents can inspect and maintain the same prompt-consumed memory.
 
 ### Phase 2 - Automation template registry
@@ -226,14 +226,14 @@ Initial concrete surface:
 - Introduce built-in templates for ingestion, connector digest, memory upkeep,
   design-system extraction, skill crystallization, and context compression.
 - Add proposal storage and review status.
-- Update the existing Automations page and `od automation` commands to present
+- Update the existing Automations page and `readable automation` commands to present
   templates, not only schedule forms.
 
 Initial concrete surface:
 
 - `/api/automation-proposals` stores reviewable evolution proposals.
 - `/api/automation-proposals/:id/apply` and `/reject` provide the review gate.
-- `od automation proposal list/get/apply/reject` mirrors the UI review path.
+- `readable automation proposal list/get/apply/reject` mirrors the UI review path.
 - Memory-node proposals can apply into the Memory tree. Design-system proposals
   can write reviewed `DESIGN.md` drafts under the user design-system root, and
   skill proposals can write reviewed `SKILL.md` drafts under the user skill
@@ -245,7 +245,7 @@ Initial concrete surface:
   Markdown into a stored source packet.
 - `GET /api/automation-source-packets` and `/:id` expose packet provenance for
   UI and headless consumers.
-- `od automation source ingest/list/get` mirrors the Automations source panel.
+- `readable automation source ingest/list/get` mirrors the Automations source panel.
 - Ingestion creates reviewable memory, design-system, and skill proposals from
   the selected template, with optional off/balanced/aggressive token compression
   and before/after token reports.

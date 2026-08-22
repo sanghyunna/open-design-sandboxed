@@ -29,9 +29,6 @@ export type AnalyticsEventName =
   | 'langfuse_report_result'
   | 'run_retry_attempted'
   | 'run_retry_finished'
-  // Packaged updater lifecycle
-  | 'update_install_result'
-  | 'update_apply_observed'
   // File manager
   | 'file_upload_result'
   // Artifact
@@ -125,7 +122,7 @@ export type TrackingAmrEntrySource =
 
 export interface AmrEntryAttribution {
   entryId: string;
-  sourceProduct: 'open_design';
+  sourceProduct: 'readable_studio';
   sourceDetail: TrackingAmrEntrySource;
   occurredAt: string;
 }
@@ -1047,7 +1044,7 @@ export interface ExecutionSettingsPopoverClickProps {
 
 // Items inside the header gear settings popover (EntrySettingsMenu): the
 // interface-language select, the appearance (system/light/dark) radio row,
-// the "Share Open Design" social grid, the Discord / follow-on-X links and
+// the "Share Readable Studio" social grid, the Discord / follow-on-X links and
 // the Settings → details entry. The same popover is mounted both on the home
 // header and the in-project artifact header, hence the two-value page_name.
 export type TrackingThemeChoice =
@@ -1168,15 +1165,6 @@ export interface HomeChatComposerClickProps {
   // For `example_prompt` cards backed by a plugin preset: which preset.
   plugin_id?: string;
   plugin_type?: string;
-}
-
-export interface UpdateIndicatorClickProps {
-  page_name: 'home';
-  area: 'update_indicator' | 'update_prompt';
-  element: 'ready_indicator' | 'later' | 'install_update';
-  action: 'open_prompt' | 'dismiss' | 'install';
-  app_version_before?: string;
-  app_version_after?: string;
 }
 
 export interface NewProjectModalTabClickProps {
@@ -1492,7 +1480,7 @@ export interface DesignSystemsTemplatesModalClickProps {
     | 'showcase'
     | 'tokens'
     | 'design_md'
-    | 'open_design_set'
+    | 'readable_studio_set'
     | 'fullscreen'
     | 'share';
   templates_id?: string;
@@ -1688,7 +1676,7 @@ export interface NextStepActionClickProps {
     | 'chip'
     | 'toolbox_action'
     | 'toolbox_more'
-    | 'share_to_open_design';
+    | 'share_to_readable_studio';
   chip_id?: string;
 }
 
@@ -1722,7 +1710,7 @@ export interface QuestionsFormClickProps {
 }
 
 // Hosted-AMR nudge shown under a non-AMR agent's model/auth/quota failure.
-// `go_amr` is the link that opens https://open-design.ai/amr.
+// `go_amr` is the link that opens https://vela.powerformer.net.
 export interface RunFailedToastClickProps {
   page_name: 'chat_panel';
   area: 'chat_panel';
@@ -1735,7 +1723,7 @@ export interface AmrEntryClickProps {
   element: TrackingAmrEntrySource;
   action: 'click_amr_entry';
   entry_id: string;
-  source_product: 'open_design';
+  source_product: 'readable_studio';
   source_detail: TrackingAmrEntrySource;
   entry_occurred_at: string;
 }
@@ -2176,7 +2164,6 @@ export type UiClickProps =
   | ExecutionSettingsPopoverClickProps
   | SettingsPopoverClickProps
   | HomeChatComposerClickProps
-  | UpdateIndicatorClickProps
   | NewProjectModalTabClickProps
   | NewProjectModalElementClickProps
   | PluginReplacementModalClickProps
@@ -2343,23 +2330,6 @@ export interface ReferenceBoardSurfaceViewProps {
   project_id?: string;
 }
 
-// Packaged updater UI surfaces. The download pipeline is intentionally
-// silent; these fire only when a verified update is installable and when the
-// user opens the final confirmation prompt.
-export interface UpdateIndicatorSurfaceViewProps {
-  page_name: 'home';
-  area: 'update_indicator';
-  app_version_before?: string;
-  app_version_after?: string;
-}
-
-export interface UpdatePromptSurfaceViewProps {
-  page_name: 'home';
-  area: 'update_prompt';
-  app_version_before?: string;
-  app_version_after?: string;
-}
-
 export type SurfaceViewProps =
   | RunFailedToastSurfaceViewProps
   | HelpPopoverSurfaceViewProps
@@ -2371,9 +2341,7 @@ export type SurfaceViewProps =
   | DesignSystemsTemplatesModalSurfaceViewProps
   | AssistantFeedbackReasonPanelSurfaceViewProps
   | QuestionsFormSurfaceViewProps
-  | UpdateIndicatorSurfaceViewProps
-  | ReferenceBoardSurfaceViewProps
-  | UpdatePromptSurfaceViewProps;
+  | ReferenceBoardSurfaceViewProps;
 
 // ---- Result events -------------------------------------------------------
 
@@ -2419,15 +2387,6 @@ export interface PluginImportResultProps {
   area: 'import_modal';
   import_source: TrackingPluginImportSource;
   result: TrackingResult;
-  error_code?: string;
-}
-
-export interface UpdateInstallResultProps {
-  page_name: 'home';
-  area: 'update_prompt';
-  result: TrackingResult;
-  app_version_before?: string;
-  app_version_after?: string;
   error_code?: string;
 }
 
@@ -2609,37 +2568,6 @@ export interface RunRetryAttemptedProps extends RunRetryBaseProps {
 export interface RunRetryFinishedProps extends RunRetryBaseProps {
   retry_result: 'success' | 'failed' | 'suppressed';
   retry_suppressed_reason?: TrackingRunRetrySuppressedReason;
-}
-
-export type TrackingUpdateApplyResult = 'success' | 'not_applied' | 'unknown';
-
-export type TrackingUpdateApplyReason =
-  | 'app_version_matches'
-  | 'app_version_unchanged'
-  | 'expired'
-  | 'identity_mismatch';
-
-export type TrackingUpdateApplyElapsedBucket =
-  | 'lt_5m'
-  | '5m_1h'
-  | '1h_6h'
-  | '6h_24h'
-  | '1d_7d'
-  | 'gt_7d'
-  | 'unknown';
-
-export interface UpdateApplyObservedProps {
-  flow_id: string;
-  channel: 'stable' | 'beta' | 'nightly' | 'preview';
-  namespace: string;
-  platform: string;
-  arch: string;
-  artifact_type: 'dmg' | 'installer';
-  from_version: string;
-  to_version: string;
-  result: TrackingUpdateApplyResult;
-  reason: TrackingUpdateApplyReason;
-  elapsed_bucket: TrackingUpdateApplyElapsedBucket;
 }
 
 // Discriminated union over the four surfaces that fire
@@ -2846,8 +2774,6 @@ export type AnalyticsEventPayload =
   | { event: 'langfuse_report_result'; props: LangfuseReportResultProps }
   | { event: 'run_retry_attempted'; props: RunRetryAttemptedProps }
   | { event: 'run_retry_finished'; props: RunRetryFinishedProps }
-  | { event: 'update_install_result'; props: UpdateInstallResultProps }
-  | { event: 'update_apply_observed'; props: UpdateApplyObservedProps }
   | { event: 'file_upload_result'; props: FileUploadResultProps }
   | { event: 'artifact_export_result'; props: ArtifactExportResultProps }
   | { event: 'feedback_submit_result'; props: FeedbackSubmitResultProps }

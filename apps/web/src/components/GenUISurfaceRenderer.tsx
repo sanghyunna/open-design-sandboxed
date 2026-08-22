@@ -9,10 +9,10 @@
 // preview + a generic "value-json" textarea.
 
 import { useEffect, useRef, useState } from 'react';
-import type { GenUISurfaceSpec } from '@open-design/contracts';
+import type { GenUISurfaceSpec } from '@readable-studio/contracts';
 
 export interface PendingSurface {
-  // The surface descriptor as declared in `od.genui.surfaces[]`.
+  // The surface descriptor as declared in `readable.genui.surfaces[]`.
   surface: GenUISurfaceSpec;
   // The runId the surface was raised on. The respond endpoint is
   // POST /api/runs/:runId/genui/:surfaceId/respond.
@@ -143,7 +143,7 @@ export function GenUISurfaceRenderer(props: Props) {
   //     { kind: 'genui:respond', value } envelope. Other messages are
   //     ignored.
   //   - The capability gate (`genui:custom-component`) was enforced at
-  //     install time by `od plugin doctor`; the renderer trusts the
+  //     install time by `readable plugin doctor`; the renderer trusts the
   //     manifest's `component` field and falls back to the default
   //     when missing.
   //
@@ -902,7 +902,7 @@ function SandboxedComponentSurface({
         data-testid="genui-component-iframe"
         data-run-id={runId}
         className="genui-surface__component-frame"
-        style={{ width: '100%', minHeight: 320, border: '1px solid var(--od-border, #ddd)' }}
+        style={{ width: '100%', minHeight: 320, border: '1px solid var(--readable-border, #ddd)' }}
       />
       {onSkip ? (
         <div className="genui-surface__actions">

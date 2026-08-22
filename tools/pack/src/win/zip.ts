@@ -1,25 +1,44 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
 import type { ToolPackConfig } from "../config.js";
 import { winResources } from "../resources.js";
-import { removeTree } from "./fs.js";
 import type { WinBuiltAppManifest, WinPackTiming, WinPaths } from "./types.js";
 
 const execFileAsync = promisify(execFile);
 const DEFAULT_PORTABLE_ZIP_COMPRESSION = 5;
-const PORTABLE_ZIP_COMPRESSION_ENV = "OD_PORTABLE_ZIP_COMPRESSION";
+const PORTABLE_ZIP_COMPRESSION_ENV = "READABLE_PORTABLE_ZIP_COMPRESSION";
 export const WIN_PORTABLE_CHROMIUM_LOCALE_PAKS = ["en-US.pak", "ko.pak"] as const;
 
-// Relative path of the packaged config inside both the unpacked tree and the
-// archive. The portable flag is injected ONLY into the zip's copy of this file.
-const PACKAGED_CONFIG_ARCHIVE_RELATIVE_PATH = "resources/open-design-config.json";
 const CHROMIUM_LOCALES_ARCHIVE_RELATIVE_DIR = "locales";
+const PORTABLE_ZIP_METADATA_ARGS = ["-mtc=off", "-mta=off", "-mtm=off"] as const;
+
+async function collectPortableArchiveFiles(
+  root: string,
+  excludedEntries: ReadonlySet<string>,
+  relativeRoot = "",
+): Promise<string[]> {
+  const entries = await readdir(join(root, relativeRoot), { withFileTypes: true });
+  const files: string[] = [];
+  for (const entry of entries) {
+    const relativePath = relativeRoot.length === 0 ? entry.name : `${relativeRoot}/${entry.name}`;
+    if (excludedEntries.has(relativePath)) continue;
+    if (entry.isDirectory()) {
+      files.push(...await collectPortableArchiveFiles(root, excludedEntries, relativePath));
+      continue;
+    }
+    if (relativePath.includes("\n") || relativePath.includes("\r")) {
+      throw new Error(`portable ZIP paths must not contain newlines: ${JSON.stringify(relativePath)}`);
+    }
+    files.push(relativePath);
+  }
+  return files.sort((left, right) => left < right ? -1 : left > right ? 1 : 0);
+}
 
 export function shouldPruneWinPortableZipLocales(config: ToolPackConfig): boolean {
-  return config.to === "zip" && config.portable === true && config.signed !== true;
+  return config.signed !== true;
 }
 
 export async function resolveWinPortableZipLocalePruneEntries(input: {
@@ -39,35 +58,6 @@ export async function resolveWinPortableZipLocalePruneEntries(input: {
     .filter((entry) => entry.endsWith(".pak") && !allowed.has(entry))
     .sort()
     .map((entry) => `${CHROMIUM_LOCALES_ARCHIVE_RELATIVE_DIR}/${entry}`);
-}
-
-// Adds the portable signal to a packaged `open-design-config.json` payload,
-// preserving every other (including unknown) field and re-serializing in the
-// exact shape tools/pack writes it everywhere else — `JSON.stringify(obj, null,
-// 2)` followed by a trailing newline (see writePackagedConfigFile in
-// tools/pack/src/win/manifest.ts and the unpacked-tree write in
-// builder.ts:430). `portable` is appended after the existing keys (insertion
-// order), so a clean round-trip is deterministic and stable across rebuilds.
-//
-// Zip-only injection (Trap 1, refactor_ideas.md §3.4): the portable zip and the
-// NSIS installer are assembled from the SAME cached win-unpacked tree. Baking
-// `portable: true` into that shared tree would flip NSIS installs to portable
-// too. So this patch is applied to a STAGING copy and added to the zip with a
-// second `7z a` pass; the shared win-unpacked tree is never written.
-//
-// The patch must also DROP any baked `namespaceBaseRoot`: a non-`--portable`
-// build bakes the build machine's tools-pack runtime root into the shared
-// tree's config (manifest.ts), and the runtime lets an explicit
-// `namespaceBaseRoot` win over the portable exe-adjacent fallback — so leaving
-// it in place would ship a build-machine path inside the portable artifact and
-// defeat exe-adjacent data entirely. Stripping it also makes the zip's config
-// identical whether or not `--portable` was passed, so the cached zip can never
-// be a flag-dependent artifact.
-export function withPortableConfigFlag(configJsonText: string): string {
-  const parsed = JSON.parse(configJsonText) as Record<string, unknown>;
-  delete parsed.namespaceBaseRoot;
-  parsed.portable = true;
-  return `${JSON.stringify(parsed, null, 2)}\n`;
 }
 
 export function resolvePortableZipCompression(value = process.env[PORTABLE_ZIP_COMPRESSION_ENV]): number {
@@ -93,24 +83,8 @@ function logWinZipProgress(message: string, fields: Record<string, unknown> = {}
   process.stderr.write(`[tools-pack win] ${message}${suffix.length === 0 ? "" : ` ${suffix}`}\n`);
 }
 
-// Produces a portable zip from the unpacked Electron build using the same 7z
-// binary that ships with tools-pack for the NSIS payload. The zip lays files
-// flat at the archive root so that users can extract it anywhere on Windows
-// and run `Open Design.exe` without going through the NSIS installer.
-//
-// We deliberately do not delegate this to electron-builder's native `zip`
-// target: the existing tools-pack flow forces electron-builder to `to: "dir"`
-// so the cached `win-unpacked` output can be shared across cache hits and
-// post-processed into the custom NSIS installer. Producing the zip from that
-// same cached unpacked tree keeps the build deterministic and avoids a
-// second electron-builder pass.
-//
-// The zip IS the portable artifact (its filename is `-portable.zip`), so it
-// always carries `portable: true`. Because the unpacked tree is shared with the
-// NSIS installer, we inject that flag zip-only: after the main archive pass we
-// add a patched `open-design-config.json` from a staging dir with a second
-// `7z a` pass (`a` replaces the matching entry already in the archive). See
-// withPortableConfigFlag and Trap 1 in refactor_ideas.md §3.4.
+// Produces a portable ZIP from the extracted Electron build. Files are flat at
+// the archive root so users can extract it anywhere and run the app.
 export async function buildWinPortableZip(
   config: ToolPackConfig,
   paths: WinPaths,
@@ -180,65 +154,37 @@ export async function buildWinPortableZip(
     }
   };
 
+  const archiveListPath = `${paths.setupZipPath}.files.txt`;
   await runSegment("portable-zip:prepare", async () => {
     await mkdir(dirname(paths.setupZipPath), { recursive: true });
     await rm(paths.setupZipPath, { force: true });
-  });
-  await runSegment("portable-zip:7z", async () => {
-    await runExecSegment(
-      "portable-zip:7z:process",
-      winResources.sevenZipExe,
-      ["a", "-tzip", `-mx=${portableZipCompression}`, paths.setupZipPath, ".\\*"],
-      {
-        cwd: builtApp.unpackedRoot,
-        outputPath: paths.setupZipPath,
-      },
-    );
-  });
-  await runSegment("portable-zip:locales", async () => {
     const pruneEntries = await resolveWinPortableZipLocalePruneEntries({ config, unpackedRoot: builtApp.unpackedRoot });
-    if (pruneEntries.length === 0) return;
-    await runExecSegment(
-      "portable-zip:locales:process",
-      winResources.sevenZipExe,
-      ["d", paths.setupZipPath, ...pruneEntries],
-      {
-        cwd: builtApp.unpackedRoot,
-        outputPath: paths.setupZipPath,
-      },
-    );
+    const files = await collectPortableArchiveFiles(builtApp.unpackedRoot, new Set(pruneEntries));
+    await writeFile(archiveListPath, `${files.join("\n")}\n`, "utf8");
   });
-  // Inject the portable flag zip-only. Patch a staging copy of the config and
-  // replace the archive entry with a second `7z a` pass; the shared
-  // win-unpacked tree (also consumed by the NSIS installer) stays untouched.
-  await runSegment("portable-zip:portable-flag", async () => {
-    const sourceConfigPath = join(
-      builtApp.unpackedRoot,
-      "resources",
-      "open-design-config.json",
-    );
-    const stagingRoot = await mkdtemp(join(dirname(paths.setupZipPath), "portable-config-"));
-    try {
-      const stagedConfigPath = join(stagingRoot, "resources", "open-design-config.json");
-      await mkdir(dirname(stagedConfigPath), { recursive: true });
-      await writeFile(
-        stagedConfigPath,
-        withPortableConfigFlag(await readFile(sourceConfigPath, "utf8")),
-        "utf8",
-      );
+  try {
+    await runSegment("portable-zip:7z", async () => {
       await runExecSegment(
-        "portable-zip:portable-flag:process",
+        "portable-zip:7z:process",
         winResources.sevenZipExe,
-        ["a", "-tzip", paths.setupZipPath, PACKAGED_CONFIG_ARCHIVE_RELATIVE_PATH],
+        [
+          "a",
+          "-tzip",
+          `-mx=${portableZipCompression}`,
+          ...PORTABLE_ZIP_METADATA_ARGS,
+          "-scsUTF-8",
+          paths.setupZipPath,
+          `@${archiveListPath}`,
+        ],
         {
-          cwd: stagingRoot,
+          cwd: builtApp.unpackedRoot,
           outputPath: paths.setupZipPath,
         },
       );
-    } finally {
-      await removeTree(stagingRoot);
-    }
-  });
+    });
+  } finally {
+    await rm(archiveListPath, { force: true });
+  }
   await runSegment("portable-zip:stat", async () => {
     await stat(paths.setupZipPath);
   });

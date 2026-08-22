@@ -1,4 +1,5 @@
-import type { AppConfigPrefs } from '@open-design/contracts';
+import { READABLE_STUDIO_PROJECT_LOCATION_ID } from '@readable-studio/contracts';
+import type { AppConfigPrefs } from '@readable-studio/contracts';
 import { isOpenAICompatible } from '../providers/openai-compatible';
 import type {
   ApiProtocol,
@@ -17,7 +18,7 @@ import {
   DEFAULT_SUCCESS_SOUND_ID,
 } from '../utils/notifications';
 
-const STORAGE_KEY = 'open-design:config';
+const STORAGE_KEY = 'readable-studio:config';
 const CONFIG_MIGRATION_VERSION = 1;
 
 // Hatched out of the box, but tucked away — the user has to go through
@@ -70,7 +71,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   pet: DEFAULT_PET,
   notifications: DEFAULT_NOTIFICATIONS,
   projectLocations: [],
-  defaultProjectLocationId: 'default',
+  defaultProjectLocationId: READABLE_STUDIO_PROJECT_LOCATION_ID,
   enabledAgentIds: ['codex', 'cursor-agent'],
   // Corporate fork policy: telemetry is off by default. Runtime sinks are
   // disabled separately so old daemon configs with opted-in prefs cannot
@@ -523,7 +524,7 @@ export function mergeDaemonConfig(
     next.projectLocations = daemonConfig.projectLocations;
   }
   if (daemonConfig.defaultProjectLocationId !== undefined) {
-    next.defaultProjectLocationId = daemonConfig.defaultProjectLocationId ?? 'default';
+    next.defaultProjectLocationId = daemonConfig.defaultProjectLocationId ?? READABLE_STUDIO_PROJECT_LOCATION_ID;
   }
   if (daemonConfig.enabledAgentIds !== undefined) {
     next.enabledAgentIds = daemonConfig.enabledAgentIds;
@@ -560,7 +561,7 @@ export async function syncConfigToDaemon(
     privacyDecisionAt: config.privacyDecisionAt,
     customInstructions: config.customInstructions ?? null,
     projectLocations: config.projectLocations ?? [],
-    defaultProjectLocationId: config.defaultProjectLocationId ?? 'default',
+    defaultProjectLocationId: config.defaultProjectLocationId ?? READABLE_STUDIO_PROJECT_LOCATION_ID,
     enabledAgentIds: config.enabledAgentIds,
   };
   try {

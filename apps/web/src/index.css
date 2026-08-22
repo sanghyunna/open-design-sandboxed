@@ -3,7 +3,7 @@
 @import './styles/tokens.css';
 @import './styles/themes/index.css';
 @import './styles/base.css';
-@import '@open-design/components/styles.css';
+@import '@readable-studio/components/styles.css';
 @import './styles/primitives.css';
 @import './styles/social-share.css';
 @import './styles/workspace/terminal.css';

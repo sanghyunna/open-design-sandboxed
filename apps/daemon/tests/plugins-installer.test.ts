@@ -12,7 +12,7 @@ import { migratePlugins } from '../src/plugins/persistence.js';
 import { installFromLocalFolder, installPlugin, uninstallPlugin } from '../src/plugins/installer.js';
 import { listInstalledPlugins } from '../src/plugins/registry.js';
 import { addMarketplace, resolvePluginInMarketplaces } from '../src/plugins/marketplaces.js';
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 
 let tmpRoot: string;
 let pluginsRoot: string;
@@ -20,17 +20,17 @@ let sourceFolder: string;
 let db: Database.Database;
 
 beforeEach(async () => {
-  tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'od-installer-'));
+  tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'readable-installer-'));
   pluginsRoot = path.join(tmpRoot, 'plugins');
   sourceFolder = path.join(tmpRoot, 'source-plugin');
   await mkdir(sourceFolder, { recursive: true });
   await writeFile(
-    path.join(sourceFolder, 'open-design.json'),
+    path.join(sourceFolder, 'readable-studio.json'),
     JSON.stringify({
       name: 'sample-plugin',
       version: '1.0.0',
       title: 'Sample Plugin',
-      od: {
+      readable: {
         kind: 'skill',
         taskKind: 'new-generation',
         useCase: { query: 'Make a {{topic}} brief.' },
@@ -109,7 +109,7 @@ describe('installFromLocalFolder', () => {
   });
 
   it('persists marketplace provenance and inherited trust for resolved installs', async () => {
-    const lockfilePath = path.join(tmpRoot, '.od', 'od-plugin-lock.json');
+    const lockfilePath = path.join(tmpRoot, '.readable-studio', 'readable-plugin-lock.json');
     const manifest = JSON.stringify({
       specVersion: '1.0.0',
       name: 'fixture-registry',
@@ -127,7 +127,7 @@ describe('installFromLocalFolder', () => {
       ],
     });
     const added = await addMarketplace(db, {
-      url: 'https://example.com/open-design-marketplace.json',
+      url: 'https://example.com/readable-studio-marketplace.json',
       trust: 'official',
       fetcher: async () => ({
         ok: true,

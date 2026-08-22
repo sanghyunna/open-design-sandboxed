@@ -25,7 +25,7 @@ import {
 } from '../src/design-systems.js';
 
 function fresh(): string {
-  return mkdtempSync(path.join(tmpdir(), 'od-design-system-assets-'));
+  return mkdtempSync(path.join(tmpdir(), 'readable-design-system-assets-'));
 }
 
 function brandDir(root: string, id: string): string {
@@ -151,7 +151,7 @@ describe('Design System Project manifest runtime consumption', () => {
     const root = fresh();
     writeDesignSystemProject(root, 'project-system', {
       manifest: {
-        schemaVersion: 'od-design-system-project/v1',
+        schemaVersion: 'readable.design-system-project/v1',
         id: 'project-system',
         name: 'Project System',
         category: 'Imported',
@@ -183,7 +183,7 @@ describe('Design System Project manifest runtime consumption', () => {
     const root = fresh();
     writeDesignSystemProject(root, 'project-system', {
       manifest: {
-        schemaVersion: 'od-design-system-project/v1',
+        schemaVersion: 'readable.design-system-project/v1',
         id: 'project-system',
         name: 'Project System',
         category: 'Imported',
@@ -219,7 +219,7 @@ describe('Design System Project manifest runtime consumption', () => {
     const root = fresh();
     writeDesignSystemProject(root, 'tokens-only-project', {
       manifest: {
-        schemaVersion: 'od-design-system-project/v1',
+        schemaVersion: 'readable.design-system-project/v1',
         id: 'tokens-only-project',
         name: 'Tokens Only Project',
         category: 'Imported',
@@ -242,7 +242,7 @@ describe('Design System Project manifest runtime consumption', () => {
     const root = fresh();
     const dir = writeDesignSystemProject(root, 'hybrid-project', {
       manifest: {
-        schemaVersion: 'od-design-system-project/v1',
+        schemaVersion: 'readable.design-system-project/v1',
         id: 'hybrid-project',
         name: 'Hybrid Project',
         category: 'Imported',
@@ -282,7 +282,7 @@ describe('Design System Project manifest runtime consumption', () => {
       components: '<button class="btn">Derived should lose to cache</button>',
     });
     writeFileSync(path.join(dir, 'USAGE.md'), '## Read Order\n\nUse cache first.');
-    writeFileSync(path.join(dir, 'design-tokens.json'), '{"format":"od-design-tokens/v1","tokens":[]}\n');
+    writeFileSync(path.join(dir, 'design-tokens.json'), '{"format":"readable.design-tokens/v1","tokens":[]}\n');
     writeFileSync(path.join(dir, 'tailwind-v4.css'), '@import "tailwindcss";\n');
     writeFileSync(
       path.join(dir, 'components.manifest.json'),
@@ -342,7 +342,7 @@ describe('Design System Project manifest runtime consumption', () => {
     const root = fresh();
     const dir = writeDesignSystemProject(root, 'pull-project', {
       manifest: {
-        schemaVersion: 'od-design-system-project/v1',
+        schemaVersion: 'readable.design-system-project/v1',
         id: 'pull-project',
         name: 'Pull Project',
         category: 'Imported',
@@ -373,7 +373,7 @@ describe('Design System Project manifest runtime consumption', () => {
       schemaVersion: 1,
       snippets: [{ path: 'source/snippets/Button.tsx', role: 'button' }],
     })}\n`);
-    writeFileSync(path.join(dir, 'design-tokens.json'), '{"format":"od-design-tokens/v1","tokens":[]}\n');
+    writeFileSync(path.join(dir, 'design-tokens.json'), '{"format":"readable.design-tokens/v1","tokens":[]}\n');
     writeFileSync(path.join(dir, 'tailwind-v4.css'), '@import "tailwindcss";\n');
     writeFileSync(path.join(dir, 'source', 'snippets', 'Button.tsx'), 'export function Button() {}');
     writeFileSync(path.join(dir, 'assets', 'icons', 'mark.svg'), '<svg />');
@@ -393,7 +393,7 @@ describe('Design System Project manifest runtime consumption', () => {
     });
     await expect(readDesignSystemPullFile(root, 'pull-project', 'design-tokens.json')).resolves.toMatchObject({
       path: 'design-tokens.json',
-      content: expect.stringContaining('od-design-tokens/v1'),
+      content: expect.stringContaining('readable.design-tokens/v1'),
     });
     await expect(readDesignSystemPullFile(root, 'pull-project', 'tailwind-v4.css')).resolves.toMatchObject({
       path: 'tailwind-v4.css',
@@ -407,7 +407,7 @@ describe('Design System Project manifest runtime consumption', () => {
     const root = fresh();
     const dir = writeDesignSystemProject(root, 'detail-project', {
       manifest: {
-        schemaVersion: 'od-design-system-project/v1',
+        schemaVersion: 'readable.design-system-project/v1',
         id: 'detail-project',
         name: 'Detail Project',
         category: 'Imported',
@@ -468,32 +468,32 @@ describe('Design System Project manifest runtime consumption', () => {
 // pin the predicate that wraps the gate so the default-on flip itself
 // is locked into the test suite.
 describe('isDesignTokenChannelEnabled (PR-D env gate)', () => {
-  it('is true when OD_DESIGN_TOKEN_CHANNEL is unset (PR-D default-on)', () => {
+  it('is true when READABLE_DESIGN_TOKEN_CHANNEL is unset (PR-D default-on)', () => {
     expect(isDesignTokenChannelEnabled({})).toBe(true);
   });
 
   it('is true for the legacy explicit opt-in `1`', () => {
-    expect(isDesignTokenChannelEnabled({ OD_DESIGN_TOKEN_CHANNEL: '1' })).toBe(true);
+    expect(isDesignTokenChannelEnabled({ READABLE_DESIGN_TOKEN_CHANNEL: '1' })).toBe(true);
   });
 
   it('is true for any non-`0` truthy-looking value (forward compatibility)', () => {
-    expect(isDesignTokenChannelEnabled({ OD_DESIGN_TOKEN_CHANNEL: 'true' })).toBe(true);
-    expect(isDesignTokenChannelEnabled({ OD_DESIGN_TOKEN_CHANNEL: 'on' })).toBe(true);
-    expect(isDesignTokenChannelEnabled({ OD_DESIGN_TOKEN_CHANNEL: '2' })).toBe(true);
-    expect(isDesignTokenChannelEnabled({ OD_DESIGN_TOKEN_CHANNEL: 'yes' })).toBe(true);
+    expect(isDesignTokenChannelEnabled({ READABLE_DESIGN_TOKEN_CHANNEL: 'true' })).toBe(true);
+    expect(isDesignTokenChannelEnabled({ READABLE_DESIGN_TOKEN_CHANNEL: 'on' })).toBe(true);
+    expect(isDesignTokenChannelEnabled({ READABLE_DESIGN_TOKEN_CHANNEL: '2' })).toBe(true);
+    expect(isDesignTokenChannelEnabled({ READABLE_DESIGN_TOKEN_CHANNEL: 'yes' })).toBe(true);
   });
 
   it('is true for an empty string (operator typed `=` and forgot the value — fail open, not closed)', () => {
-    expect(isDesignTokenChannelEnabled({ OD_DESIGN_TOKEN_CHANNEL: '' })).toBe(true);
+    expect(isDesignTokenChannelEnabled({ READABLE_DESIGN_TOKEN_CHANNEL: '' })).toBe(true);
   });
 
   it('is false ONLY for the literal kill-switch value `0`', () => {
-    expect(isDesignTokenChannelEnabled({ OD_DESIGN_TOKEN_CHANNEL: '0' })).toBe(false);
+    expect(isDesignTokenChannelEnabled({ READABLE_DESIGN_TOKEN_CHANNEL: '0' })).toBe(false);
   });
 
   it('is true for whitespace-padded `0` — strict literal match prevents accidental kill-switch tripping', () => {
-    expect(isDesignTokenChannelEnabled({ OD_DESIGN_TOKEN_CHANNEL: ' 0' })).toBe(true);
-    expect(isDesignTokenChannelEnabled({ OD_DESIGN_TOKEN_CHANNEL: '0 ' })).toBe(true);
+    expect(isDesignTokenChannelEnabled({ READABLE_DESIGN_TOKEN_CHANNEL: ' 0' })).toBe(true);
+    expect(isDesignTokenChannelEnabled({ READABLE_DESIGN_TOKEN_CHANNEL: '0 ' })).toBe(true);
   });
 });
 
@@ -524,7 +524,7 @@ describe('resolveDesignSystemAssets (PR-D server-layer asset resolution)', () =>
     expect(assets.componentsManifest).toContain('Buttons and calls to action');
   });
 
-  it('returns empty (kill switch) when OD_DESIGN_TOKEN_CHANNEL is `0`, even if files are on disk', async () => {
+  it('returns empty (kill switch) when READABLE_DESIGN_TOKEN_CHANNEL is `0`, even if files are on disk', async () => {
     const builtInRoot = fresh();
     const userRoot = fresh();
     const dir = brandDir(builtInRoot, 'sample');
@@ -532,14 +532,14 @@ describe('resolveDesignSystemAssets (PR-D server-layer asset resolution)', () =>
     writeFileSync(path.join(dir, 'components.html'), '<button>btn</button>');
 
     const assets = await resolveDesignSystemAssets('sample', builtInRoot, userRoot, {
-      OD_DESIGN_TOKEN_CHANNEL: '0',
+      READABLE_DESIGN_TOKEN_CHANNEL: '0',
     });
     expect(assets.tokensCss).toBeUndefined();
     expect(assets.fixtureHtml).toBeUndefined();
     expect(assets.componentsManifest).toBeUndefined();
   });
 
-  it('still returns the assets under the legacy explicit opt-in `OD_DESIGN_TOKEN_CHANNEL=1`', async () => {
+  it('still returns the assets under the legacy explicit opt-in `READABLE_DESIGN_TOKEN_CHANNEL=1`', async () => {
     const builtInRoot = fresh();
     const userRoot = fresh();
     const dir = brandDir(builtInRoot, 'sample');
@@ -547,7 +547,7 @@ describe('resolveDesignSystemAssets (PR-D server-layer asset resolution)', () =>
     writeFileSync(path.join(dir, 'components.html'), '<button>btn</button>');
 
     const assets = await resolveDesignSystemAssets('sample', builtInRoot, userRoot, {
-      OD_DESIGN_TOKEN_CHANNEL: '1',
+      READABLE_DESIGN_TOKEN_CHANNEL: '1',
     });
     expect(assets.tokensCss).toContain('--bg: #fff');
     expect(assets.fixtureHtml).toContain('<button>');

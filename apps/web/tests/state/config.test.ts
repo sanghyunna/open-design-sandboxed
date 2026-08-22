@@ -25,6 +25,27 @@ vi.stubGlobal('localStorage', {
   }),
 });
 
+describe('Readable Studio browser storage identity', () => {
+  afterEach(() => {
+    store.clear();
+  });
+
+  it('does not read the retired config key', () => {
+    const retiredConfigKey = `${['open', 'design'].join('-')}:config`;
+    store.set(retiredConfigKey, JSON.stringify({ theme: 'dark' }));
+
+    expect(loadConfig().theme).toBe(DEFAULT_CONFIG.theme);
+  });
+
+  it('writes only the Readable Studio config key', () => {
+    saveConfig({ ...DEFAULT_CONFIG, theme: 'dark' });
+
+    const retiredConfigKey = `${['open', 'design'].join('-')}:config`;
+    expect(store.has(retiredConfigKey)).toBe(false);
+    expect(JSON.parse(store.get('readable-studio:config') ?? '{}').theme).toBe('dark');
+  });
+});
+
 describe('syncConfigToDaemon', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -184,7 +205,7 @@ describe('loadConfig', () => {
       skillId: null,
       designSystemId: null,
     };
-    store.set('open-design:config', JSON.stringify(legacyConfig));
+    store.set('readable-studio:config', JSON.stringify(legacyConfig));
 
     const config = loadConfig();
 
@@ -210,7 +231,7 @@ describe('loadConfig', () => {
       skillId: null,
       designSystemId: null,
     };
-    store.set('open-design:config', JSON.stringify(persisted));
+    store.set('readable-studio:config', JSON.stringify(persisted));
 
     const config = loadConfig();
 
@@ -230,7 +251,7 @@ describe('loadConfig', () => {
       skillId: null,
       designSystemId: null,
     };
-    store.set('open-design:config', JSON.stringify(persisted));
+    store.set('readable-studio:config', JSON.stringify(persisted));
 
     expect(loadConfig().baseUrl).toBe('https://api.example.com/v1');
   });
@@ -245,7 +266,7 @@ describe('loadConfig', () => {
       skillId: null,
       designSystemId: null,
     };
-    store.set('open-design:config', JSON.stringify(legacyConfig));
+    store.set('readable-studio:config', JSON.stringify(legacyConfig));
 
     const config = loadConfig();
 
@@ -262,7 +283,7 @@ describe('loadConfig', () => {
       skillId: null,
       designSystemId: null,
     };
-    store.set('open-design:config', JSON.stringify(daemonConfig));
+    store.set('readable-studio:config', JSON.stringify(daemonConfig));
 
     const config = loadConfig();
 
@@ -281,7 +302,7 @@ describe('loadConfig', () => {
       skillId: null,
       designSystemId: null,
     };
-    store.set('open-design:config', JSON.stringify(legacyConfig));
+    store.set('readable-studio:config', JSON.stringify(legacyConfig));
 
     const config = loadConfig();
 
@@ -303,7 +324,7 @@ describe('loadConfig', () => {
       skillId: null,
       designSystemId: null,
     };
-    store.set('open-design:config', JSON.stringify(legacyConfig));
+    store.set('readable-studio:config', JSON.stringify(legacyConfig));
 
     const config = loadConfig();
 
@@ -322,7 +343,7 @@ describe('loadConfig', () => {
       skillId: null,
       designSystemId: null,
     };
-    store.set('open-design:config', JSON.stringify(legacyConfig));
+    store.set('readable-studio:config', JSON.stringify(legacyConfig));
 
     const config = loadConfig();
 
@@ -341,7 +362,7 @@ describe('loadConfig', () => {
       skillId: null,
       designSystemId: null,
     };
-    store.set('open-design:config', JSON.stringify(explicitConfig));
+    store.set('readable-studio:config', JSON.stringify(explicitConfig));
 
     const config = loadConfig();
 
@@ -358,7 +379,7 @@ describe('loadConfig', () => {
       skillId: null,
       designSystemId: null,
     };
-    store.set('open-design:config', JSON.stringify(legacyConfig));
+    store.set('readable-studio:config', JSON.stringify(legacyConfig));
 
     const config = loadConfig();
 
@@ -374,7 +395,7 @@ describe('loadConfig', () => {
       theme: 'dark',
       accentColor: '#4F46E5',
     };
-    store.set('open-design:config', JSON.stringify(savedConfig));
+    store.set('readable-studio:config', JSON.stringify(savedConfig));
 
     const config = loadConfig();
 
@@ -385,11 +406,11 @@ describe('loadConfig', () => {
 
   it('loads valid named themes and falls back for invalid themes', () => {
     const named = THEME_OPTIONS.find((option) => option.id === 'dracula')!;
-    store.set('open-design:config', JSON.stringify({ theme: named.id }));
+    store.set('readable-studio:config', JSON.stringify({ theme: named.id }));
 
     expect(loadConfig().theme).toBe(named.id);
 
-    store.set('open-design:config', JSON.stringify({ theme: 'neon' }));
+    store.set('readable-studio:config', JSON.stringify({ theme: 'neon' }));
 
     expect(loadConfig().theme).toBe('system');
   });
@@ -398,7 +419,7 @@ describe('loadConfig', () => {
     const savedConfig: Partial<AppConfig> = {
       accentColor: 'blue',
     };
-    store.set('open-design:config', JSON.stringify(savedConfig));
+    store.set('readable-studio:config', JSON.stringify(savedConfig));
 
     const config = loadConfig();
     expect(config.accentColorMode).toBe('theme');
@@ -407,19 +428,19 @@ describe('loadConfig', () => {
 
   it('keeps legacy default and missing accent colors in theme accent mode', () => {
     store.set(
-      'open-design:config',
+      'readable-studio:config',
       JSON.stringify({ accentColor: DEFAULT_CONFIG.accentColor }),
     );
 
     expect(loadConfig().accentColorMode).toBe('theme');
 
-    store.set('open-design:config', JSON.stringify({}));
+    store.set('readable-studio:config', JSON.stringify({}));
 
     expect(loadConfig().accentColorMode).toBe('theme');
   });
 
   it('returns defaults for malformed localStorage JSON', () => {
-    store.set('open-design:config', '{broken-json');
+    store.set('readable-studio:config', '{broken-json');
 
     expect(loadConfig()).toEqual(DEFAULT_CONFIG);
   });
@@ -440,7 +461,7 @@ describe('saveConfig', () => {
       telemetry: { metrics: true },
     });
 
-    const saved = JSON.parse(store.get('open-design:config') ?? '{}');
+    const saved = JSON.parse(store.get('readable-studio:config') ?? '{}');
     expect(saved.installationId).toBeUndefined();
     expect(saved.privacyDecisionAt).toBeUndefined();
     expect(saved.telemetry).toBeUndefined();
@@ -464,7 +485,7 @@ describe('saveConfig', () => {
       },
     });
 
-    const saved = JSON.parse(store.get('open-design:config') ?? '{}');
+    const saved = JSON.parse(store.get('readable-studio:config') ?? '{}');
     expect(saved.agentCliEnv.claude).toEqual({
       ANTHROPIC_BASE_URL: 'https://proxy.example/anthropic',
       CLAUDE_CONFIG_DIR: '~/.claude-2',

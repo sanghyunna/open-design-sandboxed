@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { createGunzip } from 'node:zlib';
 import { createReadStream } from 'node:fs';
 import { createInterface } from 'node:readline';
-import type { PanelEvent } from '@open-design/contracts/critique';
+import type { PanelEvent } from '@readable-studio/contracts/critique';
 import { writeTranscript, readTranscript } from '../src/critique/transcript.js';
 
 // ---------------------------------------------------------------------------
@@ -49,7 +49,7 @@ async function collect(iter: AsyncIterable<PanelEvent>): Promise<PanelEvent[]> {
 
 let tmpDir: string;
 beforeEach(() => {
-  tmpDir = mkdtempSync(join(tmpdir(), 'od-transcript-test-'));
+  tmpDir = mkdtempSync(join(tmpdir(), 'readable-transcript-test-'));
 });
 afterEach(async () => {
   await rm(tmpDir, { recursive: true, force: true });

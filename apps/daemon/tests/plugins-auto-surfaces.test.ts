@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type {
   InstalledPluginRecord,
   PluginManifest,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { applyPlugin } from '../src/plugins/apply.js';
 import { deriveAutoAtomSurfaces } from '../src/plugins/atoms/auto-surfaces.js';
 
@@ -16,7 +16,7 @@ const baseRegistry = (scenarios: any[] = []) => ({
   scenarios,
 });
 
-const consumer = (od: NonNullable<PluginManifest['od']>): InstalledPluginRecord => ({
+const consumer = (readable: NonNullable<PluginManifest['readable']>): InstalledPluginRecord => ({
   id: 'fixture',
   title: 'Fixture',
   version: '0.1.0',
@@ -28,11 +28,11 @@ const consumer = (od: NonNullable<PluginManifest['od']>): InstalledPluginRecord 
   installedAt: Date.now(),
   updatedAt: Date.now(),
   manifest: {
-    $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+    $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
     name: 'fixture',
     title: 'Fixture',
     version: '0.1.0',
-    od,
+    readable,
   } as PluginManifest,
 });
 
@@ -97,7 +97,7 @@ describe('applyPlugin — diff-review auto-surface integration', () => {
       inputs: {},
       registry: baseRegistry([
         {
-          id: 'od-code-migration',
+          id: 'readable-code-migration',
           taskKind: 'code-migration',
           pipeline: {
             stages: [

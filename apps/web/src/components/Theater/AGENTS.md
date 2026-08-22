@@ -23,7 +23,7 @@ without code churn.
 | `TheaterDegraded.tsx` | Single chip surface for runs the orchestrator could not score. `useId()` for the heading id so multiple chips on one page do not collide. |
 | `TheaterCollapsed.tsx` | Post-run summary: shipped, interrupted, failed. The interrupted branch uses `interruptedSummary`, not `shippedSummary`. |
 | `TheaterTranscript.tsx` | Read-only replay surface bound to `useCritiqueReplay`. |
-| `hooks/useCritiqueTheaterEnabled.ts` | Reads the Settings toggle from `open-design:config` localStorage and stays in sync with cross-tab `storage` events plus the same-tab `open-design:critique-theater-toggle` CustomEvent. Pairs with the `setCritiqueTheaterEnabled` setter so a Settings save reflects in every mounted hook without a reload. |
+| `hooks/useCritiqueTheaterEnabled.ts` | Reads the Settings toggle from `readable-studio:config` localStorage and stays in sync with cross-tab `storage` events plus the same-tab `readable-studio:critique-theater-toggle` CustomEvent. Pairs with the `setCritiqueTheaterEnabled` setter so a Settings save reflects in every mounted hook without a reload. |
 | `index.ts` | Public barrel. Exports the mount, the four surface components plus the `InterruptButton`, the three hooks (`useCritiqueStream`, `useCritiqueReplay`, `useCritiqueTheaterEnabled`), the imperative setter (`setCritiqueTheaterEnabled`), and the reducer-derived contract types. Everything else stays internal. |
 
 ## Invariants
@@ -77,10 +77,10 @@ without code churn.
    zh-CN value (the other 16 locales pick up English via `...en`
    spread). Native translations for de, ja, ko, zh-TW land in the
    same PR for the six-locale set the spec mandates.
-3. Run `pnpm --filter @open-design/web exec vitest run tests/components/Theater`
+3. Run `pnpm --filter @readable-studio/web exec vitest run tests/components/Theater`
    before pushing. The suite has 100+ cases pinning the reducer
    shape, SSE validation, host lifecycle, and component renders.
-4. Visual regression: run `pnpm --filter @open-design/e2e test:ui:extended`
+4. Visual regression: run `pnpm --filter @readable-studio/e2e test:ui:extended`
    with `--update-snapshots` after any CSS change in
    `apps/web/src/index.css`'s `.theater-*` block.
 

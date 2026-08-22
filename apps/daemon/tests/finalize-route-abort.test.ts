@@ -42,8 +42,8 @@ describe('POST /api/projects/:id/finalize/anthropic — request-lifecycle abort'
     // resolveCurrentArtifact has something to hand the synthesis
     // prompt. The test never reaches the synthesis output, but the
     // pre-Anthropic phases still need their inputs.
-    const dataDir = process.env.OD_DATA_DIR;
-    if (!dataDir) throw new Error('OD_DATA_DIR is required for daemon route tests');
+    const dataDir = process.env.READABLE_DATA_DIR;
+    if (!dataDir) throw new Error('READABLE_DATA_DIR is required for daemon route tests');
     await fetch(`${baseUrl}/api/projects`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -55,7 +55,7 @@ describe('POST /api/projects/:id/finalize/anthropic — request-lifecycle abort'
     await writeFile(
       path.join(projectDir, 'deck.html.artifact.json'),
       JSON.stringify({
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Deck',
         entry: 'deck.html',

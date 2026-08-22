@@ -1,13 +1,15 @@
 import { z } from 'zod';
 
-// `open-design.json` schema (v1). Mirrors docs/schemas/open-design.plugin.v1.json
+// `readable-studio.json` schema (v1). Mirrors docs/schemas/readable-studio.plugin.v1.json
 // with one addition: this Zod schema is permissive on the top level so adapter
 // outputs (synthesized PluginManifest from SKILL.md frontmatter or claude
 // plugin.json) parse cleanly without losing forward-compatible fields.
 
-export const OPEN_DESIGN_PLUGIN_SPEC_VERSION = '1.0.0';
+export const READABLE_STUDIO_PLUGIN_SPEC_VERSION = '1.0.0';
+export const READABLE_STUDIO_PLUGIN_SCHEMA_ID = 'urn:readable-studio:schema:plugin-manifest:v1';
+export const UNSUPPORTED_LEGACY_PRODUCT_V1 = 'UNSUPPORTED_LEGACY_PRODUCT_V1';
 
-export const OpenDesignSpecVersionSchema = z.string().min(1);
+export const ReadableStudioSpecVersionSchema = z.string().min(1);
 
 export const ReferenceSchema = z.object({
   ref:  z.string().optional(),
@@ -140,7 +142,7 @@ export type GenUISurfaceSpec = z.infer<typeof GenUISurfaceSpecSchema>;
 
 export const PluginManifestSchema = z.object({
   $schema:     z.string().optional(),
-  specVersion: OpenDesignSpecVersionSchema.optional(),
+  specVersion: ReadableStudioSpecVersionSchema.optional(),
   name:        z.string().min(1).regex(/^[a-z0-9][a-z0-9._-]*$/),
   title:       z.string().optional(),
   title_i18n:  LocalizedTextSchema.optional(),
@@ -159,14 +161,14 @@ export const PluginManifestSchema = z.object({
     agentSkills:   z.array(RefPathSchema).optional(),
     claudePlugins: z.array(RefPathSchema).optional(),
   }).passthrough().optional(),
-  od: z.object({
+  readable: z.object({
     kind:     z.enum(['skill', 'scenario', 'atom', 'bundle']).optional(),
     taskKind: z.enum(['new-generation', 'code-migration', 'figma-migration', 'tune-collab']).optional(),
     mode:     z.string().optional(),
     platform: z.string().optional(),
     scenario: z.string().optional(),
     engineRequirements: z.object({
-      od: z.string().optional(),
+      readable: z.string().optional(),
     }).passthrough().optional(),
     preview: z.object({
       type:   z.string().optional(),

@@ -159,16 +159,16 @@ export interface TraceSafeObjectManifestBase {
   extension?: string;
   redacted: boolean;
   truncated: boolean;
-  stored_in_open_design: boolean;
+  stored_in_readable_studio: boolean;
   retention_policy: ObjectManifestRetentionPolicy;
   access_scope: ObjectManifestAccessScope;
   sensitivity: ObjectManifestSensitivity;
   source: 'user_upload' | 'agent_generated' | 'user_prompt';
   expires_at: string | null;
   approved_by: string | null;
-  open_in_open_design_url?: null;
+  open_in_readable_studio_url?: null;
   preview_status?: string;
-  access_policy?: 'open_design_auth_required';
+  access_policy?: 'readable_studio_auth_required';
 }
 
 export interface AttachmentManifestEntry extends TraceSafeObjectManifestBase {
@@ -228,7 +228,7 @@ export interface RuntimeInfo {
   osRelease?: string;
   /** CPU architecture (`os.arch()`, e.g. 'arm64' | 'x64'). */
   arch?: string;
-  /** Open Design app version reported by the daemon. */
+  /** Readable Studio app version reported by the daemon. */
   appVersion?: string;
   /** Build channel (development / nightly / beta / stable). */
   appChannel?: string;
@@ -379,7 +379,7 @@ function truncate(value: string | undefined, maxBytes: number): string | undefin
 }
 
 function buildTagList(ctx: ReportContext): string[] {
-  const tags = ['open-design', `project:${ctx.projectId}`];
+  const tags = ['readable-studio', `project:${ctx.projectId}`];
   if (ctx.agentId) tags.push(`agent:${ctx.agentId}`);
   if (ctx.turn?.model) tags.push(`model:${ctx.turn.model}`);
   if (ctx.turn?.skillId) tags.push(`skill:${ctx.turn.skillId}`);
@@ -1134,7 +1134,7 @@ export function buildTracePayload(ctx: ReportContext): unknown[] {
       timestamp: nowIso,
       body: {
         id: traceId,
-        name: 'open-design-turn',
+        name: 'readable-studio-turn',
         sessionId,
         userId: ctx.installationId ?? undefined,
         tags: buildTagList(ctx),
@@ -1459,7 +1459,7 @@ async function postRelayBatch(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Open-Design-Telemetry': 'langfuse-ingestion-v1',
+          'X-Readable-Studio-Telemetry': 'langfuse-ingestion-v1',
         },
         signal: AbortSignal.timeout(config.timeoutMs),
         body,

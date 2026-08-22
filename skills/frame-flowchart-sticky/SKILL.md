@@ -18,7 +18,7 @@ example_tagline: "SVG curves and four-color sticky notes"
 example_desc: "Six-node onboarding flow with hand lettering and a paper whiteboard"
 example_source_url: "https://hyperframes.heygen.com/catalog"
 example_source_label: "hyperframes · flowchart"
-od:
+readable:
   mode: video
   surface: video
   scenario: operations

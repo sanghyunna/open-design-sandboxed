@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { projectKindToTracking } from "@open-design/contracts/analytics";
+import { projectKindToTracking } from "@readable-studio/contracts/analytics";
 import { useAnalytics } from "../analytics/provider";
 import {
   trackPageView,
@@ -27,7 +27,7 @@ type ViewMode = "grid" | "kanban";
 
 type DesignListItem = { type: "project"; project: Project; updatedAt: number; createdAt: number };
 
-const DESIGNS_VIEW_STORAGE_KEY = "od:designs:view";
+const DESIGNS_VIEW_STORAGE_KEY = "readable:designs:view";
 
 export const STATUS_ORDER = [
 	"not_started",

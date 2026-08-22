@@ -4,7 +4,7 @@
 
 > Want to read the protocol spec instead? See [`skills-protocol.md`](skills-protocol.md). This file is the **how-to** for shipping a skill upstream — what to write, how to run it locally, what we'll send back at review.
 
-A skill is the most leverage you can ship into Open Design without writing framework code. One folder, one Markdown file with frontmatter, a hand-built example, and the picker shows it. This guide walks you through the path from `git clone` to merged PR, plus the bar we hold skill PRs to and the patterns that get bounced.
+A skill is one of the highest-leverage contributions to Readable Studio without writing framework code. One folder, one Markdown file with frontmatter, a hand-built example, and the picker shows it. This guide walks you through the path from `git clone` to merged PR, plus the bar we hold skill PRs to and the patterns that get bounced.
 
 If you only have ten seconds, the picture is:
 
@@ -16,8 +16,8 @@ If you only have ten seconds, the picture is:
 
 ```bash
 # 1. Fork & clone
-git clone git@github.com:<your-username>/open-design.git
-cd open-design
+git clone git@github.com:<your-username>/readable-studio.git
+cd readable-studio
 git checkout -b skill/<your-skill-name>
 
 # 2. Bootstrap (Node 24, pnpm 10.33.x)
@@ -32,7 +32,7 @@ cp -r skills/dating-web skills/<your-skill-name>
 # 4. Run the dev loop and verify the picker
 pnpm tools-dev run web
 # Open the URL it prints (typically http://127.0.0.1:5173).
-# Switch to the mode you set in od.mode — see "Skill modes" below for the
+# Switch to the mode you set in readable.mode — see "Skill modes" below for the
 # full list (Prototype / Deck / Template / Design system / Image / Video / Audio).
 # Your skill's name should appear in the picker. Click it, send the example_prompt.
 
@@ -62,14 +62,14 @@ A skill is a **recipe for producing one kind of artifact**. Not a feature, not a
 
 **No:**
 - A wrapper around a third-party API (Stripe, Alipay, Slack API, GitHub API). That's a feature; submit it via the agent / daemon path, not as a skill.
-- A model loader, vendor SDK bundle, or "BYOK for `<provider>`". OD's bet is "your existing CLI is enough."
+- A model loader, vendor SDK bundle, or "BYOK for `<provider>`". Readable Studio's bet is "your existing CLI is enough."
 - A brand-promotion bundle for a sponsor or product launch. Skills are reusable artifact recipes, not campaigns.
 - A duplicate of an existing skill with marginal differentiation. Before opening, search `skills/` and read the descriptions of the closest 2–3 — if you can't articulate the differentiator in one sentence, fold your work into the existing skill instead.
 - A skill whose only output is a screenshot or a video. The artifact has to be something the agent generates from a prompt, not a static asset shipped in `assets/`.
 
-**Third option: ship as an external skill bundle.** If your workflow is genuinely a recipe (not a daemon feature) but is too vendor-specific or audience-narrow to land in-tree, the skills protocol supports user-global skills via `~/.claude/skills/` (see [`skills-protocol.md` §3](skills-protocol.md#3-skill-discovery--precedence)). Publishing your bundle as a standalone repo lets users `git clone` or `od skill add` it without us taking on the maintenance surface. This is the right path for payment-provider workflows, regional marketplace integrations, in-house design systems, and similar — not a rejection, just a different distribution channel.
+**Third option: ship as an external skill bundle.** If your workflow is genuinely a recipe (not a daemon feature) but is too vendor-specific or audience-narrow to land in-tree, the skills protocol supports user-global skills via `~/.claude/skills/` (see [`skills-protocol.md` §3](skills-protocol.md#3-skill-discovery--precedence)). Publishing your bundle as a standalone repo lets users `git clone` or `readable skill add` it without us taking on the maintenance surface. This is the right path for payment-provider workflows, regional marketplace integrations, in-house design systems, and similar — not a rejection, just a different distribution channel.
 
-If you're not sure your idea fits, **open a discussion first** ([github.com/sanghyunna/open-design-sandboxed/discussions](https://github.com/sanghyunna/open-design-sandboxed/discussions)) — we'd rather spend 5 minutes redirecting than have you build the wrong thing for a week.
+If you're not sure your idea fits, **open a discussion first** ([github.com/sanghyunna/readable-studio/discussions](https://github.com/sanghyunna/readable-studio/discussions)) — we'd rather spend 5 minutes redirecting than have you build the wrong thing for a week.
 
 ---
 
@@ -78,7 +78,7 @@ If you're not sure your idea fits, **open a discussion first** ([github.com/sang
 ```text
 skills/<your-skill>/
 ├── SKILL.md                    # required — frontmatter + workflow
-├── example.html                # required if od.preview.type is html or jsx — the hand-built sample
+├── example.html                # required if readable.preview.type is html or jsx — the hand-built sample
 ├── assets/                     # optional but typical — seed files the skill copies into the artifact
 │   └── template.html
 └── references/                 # optional — knowledge files the agent reads during planning
@@ -89,7 +89,7 @@ skills/<your-skill>/
 
 ### `SKILL.md` frontmatter cheat sheet
 
-The first three keys (`name`, `description`, `triggers`) are the [Claude Code base spec](https://docs.anthropic.com/en/docs/claude-code/skills) — your skill works in plain Claude Code with just these. Everything under `od:` is OD-specific and optional, but **`od.mode`** decides which group the skill shows up under.
+The first three keys (`name`, `description`, `triggers`) are the [Claude Code base spec](https://docs.anthropic.com/en/docs/claude-code/skills) — your skill works in plain Claude Code with just these. Everything under `readable:` is Readable Studio-specific and optional, but **`readable.mode`** decides which group the skill shows up under.
 
 ```yaml
 ---
@@ -103,7 +103,7 @@ triggers:
   - "another phrase"
   - "中文触发词"
 
-od:
+readable:
   mode: prototype           # prototype | deck | template | design-system | image | video | audio
   platform: desktop         # desktop | mobile
   scenario: marketing       # free-form tag for grouping in the picker
@@ -124,7 +124,7 @@ Numbered steps work well. Lift the format from skills/dating-web/SKILL.md
 or skills/guizang-ppt/SKILL.md.
 ```
 
-Full grammar — typed inputs, slider parameters (`od.parameters`), capability gating (`od.capabilities_required`), `od.craft.requires` for cross-brand craft references — lives in [`skills-protocol.md`](skills-protocol.md). You don't need any of those to ship v1.
+Full grammar — typed inputs, slider parameters (`readable.parameters`), capability gating (`readable.capabilities_required`), `readable.craft.requires` for cross-brand craft references — lives in [`skills-protocol.md`](skills-protocol.md). You don't need any of those to ship v1.
 
 ---
 
@@ -149,11 +149,11 @@ pnpm tools-dev run web
 #    and check the daemon stderr for the parse error.
 
 # 4. Verify your skill end-to-end:
-#    - Switch to the mode you set in od.mode (Prototype / Deck / Template /
+#    - Switch to the mode you set in readable.mode (Prototype / Deck / Template /
 #      Design system / Image / Video / Audio)
 #    - Find your skill in the picker
 #    - Click it, paste the example_prompt
-#    - Watch the artifact stream into .od/artifacts/<run-id>/
+#    - Watch the artifact stream into .readable-studio/artifacts/<run-id>/
 #    - Verify preview iframe renders correctly
 #    - Verify export (PPTX / PDF) works if the mode supports it
 ```
@@ -173,7 +173,7 @@ We hold skill PRs to a higher bar than feature PRs because skills are the user-f
 - [ ] **`example.html` is hand-built.** Opens straight from disk, looks like something a designer would actually deliver. No lorem ipsum, no `<svg><rect/></svg>` placeholder hero. If you can't build the example yourself, the skill probably isn't ready.
 - [ ] **No AI slop in the example.** No purple gradients, no generic emoji icons (📊 💡 🚀), no rounded card with a left-border accent, no Inter as a *display* face, no invented stats ("10× faster", "users save 4 hours/week"). Read the **Anti-AI-slop machinery** section of the README for the full list.
 - [ ] **Honest placeholders.** When the agent doesn't have a real number, the skill body should instruct it to write `—` or a labelled grey block, not fabricate one.
-- [ ] **`references/checklist.md` exists** with at least P0 gates (the rules the agent has to pass before emitting `<artifact>`). Lift the format from [`skills/guizang-ppt/references/checklist.md`](../skills/guizang-ppt/references/checklist.md) or [`skills/web-prototype/references/checklist.md`](../skills/web-prototype/references/checklist.md).
+- [ ] **`references/checklist.md` exists** with at least P0 gates (the rules the agent has to pass before emitting `<artifact>`). Lift the format from [`design-templates/guizang-ppt/references/checklist.md`](../design-templates/guizang-ppt/references/checklist.md) or [`design-templates/web-prototype/references/checklist.md`](../design-templates/web-prototype/references/checklist.md).
 - [ ] **`example_prompt` actually works.** Run it locally end-to-end before submitting. If you wouldn't paste this prompt in front of a stranger to demo the skill, rewrite it.
 - [ ] **Triggers are concrete.** "design something cool" is not a trigger. "investor pitch deck", "saas landing page", "约会应用" are.
 
@@ -192,12 +192,12 @@ The `e2e/tests/localized-content.test.ts` test enforces that every directory und
 For a non-featured skill, the cheap path is to keep the source metadata complete:
 
 - [ ] **Ensure `SKILL.md` has complete English display copy**: title/name, description, example prompt, and any picker metadata required by the skill schema. The localized runtime uses these fields as the fallback display path.
-- [ ] **Use optional localized display fields when useful**: `en_name` / `zh_name`, `en_description` / `zh_description`, and `od.example_prompt_i18n.<locale>`. Keep `description` and `od.example_prompt` in English because those are the fallback fields for every locale without localized copy.
-- [ ] **Run `pnpm --filter @open-design/web test` and `pnpm --filter @open-design/e2e test tests/localized-content.test.ts`** locally before pushing. These suites catch undisplayable discovered resources and verify localized fallback behavior.
+- [ ] **Use optional localized display fields when useful**: `en_name` / `zh_name`, `en_description` / `zh_description`, and `readable.example_prompt_i18n.<locale>`. Keep `description` and `readable.example_prompt` in English because those are the fallback fields for every locale without localized copy.
+- [ ] **Run `pnpm --filter @readable-studio/web test` and `pnpm --filter @readable-studio/e2e test tests/localized-content.test.ts`** locally before pushing. These suites catch undisplayable discovered resources and verify localized fallback behavior.
 
 ### Featured skills (optional path)
 
-If you set `od.featured: 1`, also:
+If you set `readable.featured: 1`, also:
 
 - [ ] **Add a screenshot** at `docs/screenshots/skills/<skill>.png`. PNG, ~1024×640 retina, captured from the real `example.html` at zoomed-out browser scale.
 - [ ] **Optionally add full localized display copy** in `content.ts` (DE), `content.fr.ts` (FR), `content.ru.ts` (RU) — title, summary, scenario tag. The featured row in the picker uses this copy when present; the default fallback path renders English everywhere.
@@ -236,10 +236,10 @@ they don't cover this case. If you can't, fold into the existing skill instead.
 - [ ] Verified export works (PPTX / PDF / etc.) if the mode supports it
 - [ ] Ran `pnpm typecheck`
 - [ ] Verified `SKILL.md` has complete English display copy for localized fallback — **required for every skill**
-- [ ] Ran `pnpm --filter @open-design/web test` and `pnpm --filter @open-design/e2e test tests/localized-content.test.ts`; localized-content coverage is green
+- [ ] Ran `pnpm --filter @readable-studio/web test` and `pnpm --filter @readable-studio/e2e test tests/localized-content.test.ts`; localized-content coverage is green
 
 ## Screenshot
-(Required if `od.featured` is set. Otherwise nice-to-have.)
+(Required if `readable.featured` is set. Otherwise nice-to-have.)
 
 ## Forked from
 (Only if applicable. Name the source skill and the LICENSE you preserved.)
@@ -268,11 +268,10 @@ So you don't waste a week. Each pattern below has been the close reason on a rec
 
 Pick the closest one to your idea and read its `SKILL.md` body before writing your own.
 
-- **Visual showcase, single-screen prototype:** [`skills/dating-web/`](../skills/dating-web/), [`skills/digital-eguide/`](../skills/digital-eguide/)
-- **Multi-frame mobile flow:** [`skills/mobile-onboarding/`](../skills/mobile-onboarding/), [`skills/gamified-app/`](../skills/gamified-app/)
-- **Document / template (no design system required):** [`skills/pm-spec/`](../skills/pm-spec/), [`skills/weekly-update/`](../skills/weekly-update/)
-- **Deck mode:** [`skills/guizang-ppt/`](../skills/guizang-ppt/) (bundled verbatim from [op7418/guizang-ppt-skill](https://github.com/op7418/guizang-ppt-skill)) and [`skills/simple-deck/`](../skills/simple-deck/)
-- **Media skills (image / video / audio):** [`skills/image-poster/`](../skills/image-poster/), [`skills/video-shortform/`](../skills/video-shortform/), [`skills/audio-jingle/`](../skills/audio-jingle/)
+- **Visual showcase, single-screen prototype:** [`design-templates/dating-web/`](../design-templates/dating-web/), [`design-templates/digital-eguide/`](../design-templates/digital-eguide/)
+- **Multi-frame mobile flow:** [`design-templates/mobile-onboarding/`](../design-templates/mobile-onboarding/), [`design-templates/gamified-app/`](../design-templates/gamified-app/)
+- **Document / template (no design system required):** [`design-templates/pm-spec/`](../design-templates/pm-spec/), [`design-templates/weekly-update/`](../design-templates/weekly-update/)
+- **Deck mode:** [`design-templates/guizang-ppt/`](../design-templates/guizang-ppt/) (bundled verbatim from [op7418/guizang-ppt-skill](https://github.com/op7418/guizang-ppt-skill)) and [`design-templates/simple-deck/`](../design-templates/simple-deck/)
 
 ### Spec & supporting docs
 
@@ -291,4 +290,4 @@ Pick the closest one to your idea and read its `SKILL.md` body before writing yo
 
 ## License
 
-By contributing a skill, you agree your contribution is licensed under the [Apache-2.0 License](../LICENSE) of this repository, with the exception of files inside [`skills/guizang-ppt/`](../skills/guizang-ppt/), which retain their original MIT license and authorship attribution to [op7418](https://github.com/op7418).
+By contributing a skill, you agree your contribution is licensed under the [Apache-2.0 License](../LICENSE) of this repository, with the exception of files inside [`design-templates/guizang-ppt/`](../design-templates/guizang-ppt/), which retain their original MIT license and authorship attribution to [op7418](https://github.com/op7418).

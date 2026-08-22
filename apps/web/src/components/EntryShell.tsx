@@ -24,8 +24,8 @@ import {
   defaultScenarioPluginIdForProjectMetadata,
   type ChatSessionMode,
   type InstalledPluginRecord,
-} from '@open-design/contracts';
-import type { OpenDesignHostProjectImportSuccess } from '@open-design/host';
+} from '@readable-studio/contracts';
+import type { ReadableStudioHostProjectImportSuccess } from '@readable-studio/host';
 import type { DesignSystemGenerateSnapshot } from './DesignSystemFlow';
 import { useAnalytics } from '../analytics/provider';
 import {
@@ -50,8 +50,8 @@ import type {
   TrackingOnboardingCompletionResult,
   TrackingOnboardingCompletionType,
   TrackingCliProviderId,
-} from '@open-design/contracts/analytics';
-import { agentIdToTracking } from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
+import { agentIdToTracking } from '@readable-studio/contracts/analytics';
 import { useT } from '../i18n';
 import { navigate, useRoute } from '../router';
 import type {
@@ -75,7 +75,6 @@ import { DesignsTab } from './DesignsTab';
 import { DesignSystemPreviewModal } from './DesignSystemPreviewModal';
 import { DesignSystemsTab } from './DesignSystemsTab';
 import { EntryNavRail, type EntryView as EntryViewKind } from './EntryNavRail';
-import { UpdaterPopup } from './UpdaterPopup';
 import { HomeView } from './HomeView';
 import {
   createPluginAuthoringHandoff,
@@ -120,7 +119,7 @@ import {
 // home -> project -> home navigation (EntryShell unmounts on the project
 // route) and a full reload. Without this the rail always reset to its
 // collapsed default on return.
-const RAIL_OPEN_STORAGE_KEY = 'od.entry.railOpen';
+const RAIL_OPEN_STORAGE_KEY = 'readable.entry.railOpen';
 
 function readStoredRailOpen(): boolean {
   if (typeof window === 'undefined') return false;
@@ -140,7 +139,7 @@ function writeStoredRailOpen(open: boolean): void {
   }
 }
 
-const ONBOARDING_DROPDOWN_OPEN_EVENT = 'open-design:onboarding-dropdown-open';
+const ONBOARDING_DROPDOWN_OPEN_EVENT = 'readable-studio:onboarding-dropdown-open';
 
 // The topbar chips (GitHub star, model switcher, Use everywhere)
 // collapse into the settings dropdown when the viewport gets
@@ -150,7 +149,7 @@ const ONBOARDING_DROPDOWN_OPEN_EVENT = 'open-design:onboarding-dropdown-open';
 // `display` based on `--compact-topbar` breakpoint (900px).
 
 // Default scenario plugin for each project kind/intent. The mapping
-// lives in `@open-design/contracts` so the daemon's `/api/projects`
+// lives in `@readable-studio/contracts` so the daemon's `/api/projects`
 // and `/api/runs` fallbacks resolve to the same plugin id when no
 // `pluginId` is on the request body — plan §3.3 of
 // `specs/current/plugin-driven-flow-plan.md`.
@@ -190,7 +189,7 @@ function defaultPluginInputsForCreate(
     };
   }
 
-  if (pluginId === 'od-new-generation') {
+  if (pluginId === 'readable-new-generation') {
     const templateLabel = input.metadata.templateLabel?.trim();
     const artifactKind =
       kind === 'template'
@@ -267,7 +266,7 @@ interface Props {
     file: File,
   ) => Promise<ImportClaudeDesignOutcome | void> | ImportClaudeDesignOutcome | void;
   onImportFolder?: (baseDir: string) => Promise<void> | void;
-  onImportFolderResponse?: (response: OpenDesignHostProjectImportSuccess) => Promise<void> | void;
+  onImportFolderResponse?: (response: ReadableStudioHostProjectImportSuccess) => Promise<void> | void;
   onOpenProject: (id: string) => void;
   onDeleteProject: (id: string) => Promise<boolean | void> | boolean | void;
   onRenameProject: (id: string, name: string) => void;
@@ -492,7 +491,7 @@ export function EntryShell({
   // Stage B of plugin-driven-flow-plan: the rail can stamp a
   // `projectKind` on the payload so the created project records the
   // chosen artifact type. Free-form Home submits now arrive with the
-  // hidden od-default router plugin and projectKind='other', so the
+  // hidden readable-default router plugin and projectKind='other', so the
   // agent asks for the exact task type before continuing.
   function handlePluginLoopSubmit(payload: PluginLoopSubmit) {
     const head = payload.prompt.trim().split(/\s+/).slice(0, 8).join(' ');
@@ -632,7 +631,6 @@ export function EntryShell({
             <div className="entry-main__topbar-chips entry-main__topbar-chips--icon-only">
               {executionSwitcher}
             </div>
-            <UpdaterPopup />
             {avatarMenu}
           </div>
           <div

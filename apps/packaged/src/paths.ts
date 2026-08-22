@@ -1,8 +1,9 @@
 import { homedir } from "node:os";
 import { join, posix, win32 } from "node:path";
 
-import { APP_KEYS, normalizeNamespace } from "@open-design/sidecar-proto";
+import { APP_KEYS, normalizeNamespace } from "@readable-studio/sidecar-proto";
 
+import { isInsidePortableDataContainer } from "./config.js";
 import type { PackagedConfig } from "./config.js";
 import { PackagedPathAccessError } from "./errors.js";
 
@@ -23,12 +24,10 @@ export type PackagedNamespacePaths = {
    * `apps/daemon/src/installation.ts`.
    */
   installationRoot: string;
-  installerObservationRoot: string;
   logsRoot: string;
   namespaceRoot: string;
   resourceRoot: string;
   runtimeRoot: string;
-  updateRoot: string;
   webIdentityPath: string;
 };
 
@@ -51,26 +50,38 @@ function getScopedPackagedDataRootNamespace(raw: string): string | null {
 }
 
 function resolvePackagedDataRoot(
-  config: Pick<PackagedConfig, "namespaceBaseRoot">,
+  config: Pick<PackagedConfig, "namespaceBaseRoot" | "portable">,
   namespace: string,
   env: NodeJS.ProcessEnv = {},
 ): string {
-  const odDataDir = env.OD_DATA_DIR?.trim();
-  if (odDataDir) {
-    const expanded = expandHomePrefix(odDataDir);
+  const configuredDataDir = env.READABLE_DATA_DIR?.trim();
+  if (configuredDataDir) {
+    const expanded = expandHomePrefix(configuredDataDir);
     const isAbs = process.platform === "win32"
       ? win32.isAbsolute(expanded)
       : posix.isAbsolute(expanded);
     if (!isAbs) {
       throw new PackagedPathAccessError(
         [
-          "Open Design's packaged runtime requires OD_DATA_DIR to be an absolute path.",
+          "Readable Studio's packaged runtime requires READABLE_DATA_DIR to be an absolute path.",
           "",
-          `Configured value: ${odDataDir}`,
+          `Configured value: ${configuredDataDir}`,
           "",
-          "Set OD_DATA_DIR to an absolute path (for example, C:\\\\Users\\\\You\\\\OpenDesign on Windows or /Users/you/OpenDesign on macOS/Linux) and relaunch Open Design.",
+          "Set READABLE_DATA_DIR to an absolute path (for example, C:\\\\Users\\\\You\\\\ReadableStudio on Windows or /Users/you/ReadableStudio on macOS/Linux) and relaunch Readable Studio.",
         ].join("\n"),
-        { title: "Open Design cannot start with this OD_DATA_DIR" },
+        { title: "Readable Studio cannot start with this READABLE_DATA_DIR" },
+      );
+    }
+    if (config.portable && !isInsidePortableDataContainer(expanded)) {
+      throw new PackagedPathAccessError(
+        [
+          "Readable Studio's portable runtime requires READABLE_DATA_DIR to stay inside <exeDir>/ReadableStudioData.",
+          "",
+          `Configured value: ${configuredDataDir}`,
+          "",
+          "Move the override beneath the extracted ReadableStudioData folder or remove READABLE_DATA_DIR and relaunch Readable Studio.",
+        ].join("\n"),
+        { title: "Readable Studio cannot start with this READABLE_DATA_DIR" },
       );
     }
     const scopedNamespace = getScopedPackagedDataRootNamespace(expanded);
@@ -78,15 +89,15 @@ function resolvePackagedDataRoot(
       if (scopedNamespace !== namespace) {
         throw new PackagedPathAccessError(
           [
-            "Open Design's packaged runtime requires OD_DATA_DIR to target the active namespace.",
+            "Readable Studio's packaged runtime requires READABLE_DATA_DIR to target the active namespace.",
             "",
-            `Configured value: ${odDataDir}`,
+            `Configured value: ${configuredDataDir}`,
             `Configured namespace: ${scopedNamespace}`,
             `Active namespace: ${namespace}`,
             "",
             "Use an unscoped absolute base path or relaunch the matching packaged namespace.",
           ].join("\n"),
-          { title: "Open Design cannot start with this OD_DATA_DIR" },
+          { title: "Readable Studio cannot start with this READABLE_DATA_DIR" },
         );
       }
       return expanded;
@@ -107,7 +118,7 @@ export function resolvePackagedNamespacePaths(
   const dataRoot = resolvePackagedDataRoot(config, normalizedNamespace, env);
   // Channel root = parent of the `namespaces/` directory. With the default
   // packaged layout this resolves to `<electronApp.userData>` — e.g.
-  // `~/Library/Application Support/Open Design Nightly/` on mac. Custom
+  // `~/Library/Application Support/Readable Studio Nightly/` on mac. Custom
   // `namespaceBaseRoot` overrides (tests, multi-namespace deployments)
   // still get a usable parent here.
   const installationRoot = join(config.namespaceBaseRoot, "..");
@@ -122,12 +133,10 @@ export function resolvePackagedNamespacePaths(
     electronUserDataRoot: join(namespaceRoot, "user-data"),
     headlessIdentityPath: join(namespaceRoot, "runtime", "headless-root.json"),
     installationRoot,
-    installerObservationRoot: join(dataRoot, "observations", "installer"),
     logsRoot: join(namespaceRoot, "logs"),
     namespaceRoot,
     resourceRoot: config.resourceRoot,
     runtimeRoot: join(namespaceRoot, "runtime"),
-    updateRoot: join(namespaceRoot, "updates"),
     webIdentityPath: join(namespaceRoot, "runtime", "web-root.json"),
   };
 }

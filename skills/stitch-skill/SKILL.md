@@ -7,7 +7,7 @@ triggers:
   - "generate DESIGN.md"
   - "semantic design system"
   - "premium design system"
-od:
+readable:
   mode: design-system
   surface: web
   platform: desktop

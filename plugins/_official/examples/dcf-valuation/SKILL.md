@@ -13,7 +13,7 @@ triggers:
   - "price target"
   - "undervalued"
   - "overvalued"
-od:
+readable:
   mode: prototype
   preview:
     type: markdown
@@ -26,8 +26,8 @@ od:
 # DCF Valuation Skill
 
 This skill is adapted from Dexter's DCF valuation workflow
-(`https://github.com/virattt/dexter`). It is an OD-native skill contract only;
-it does not assume Dexter tools, Financial Datasets, or any finance-specific OD
+(`https://github.com/virattt/dexter`). It is a Readable Studio-native skill contract only;
+it does not assume Dexter tools, Financial Datasets, or any finance-specific Readable Studio
 runtime exists.
 
 ## Goal
@@ -44,7 +44,7 @@ analyst judgment.
 
 ## Data Rules
 
-- Use user-provided financial data, uploaded filings, available OD research
+- Use user-provided financial data, uploaded filings, available Readable Studio research
   commands, or public sources the agent can access.
 - Missing financial data must be requested, researched, or labeled as an
   assumption. Do not invent revenue, free cash flow, debt, cash, shares,

@@ -15,9 +15,9 @@ import type {
   McpServerConfig,
   InstalledPluginRecord,
   ProjectKind,
-} from '@open-design/contracts';
-import { DEFAULT_UNSELECTED_SCENARIO_PLUGIN_ID } from '@open-design/contracts';
-import { projectKindToTracking } from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts';
+import { DEFAULT_UNSELECTED_SCENARIO_PLUGIN_ID } from '@readable-studio/contracts';
+import { projectKindToTracking } from '@readable-studio/contracts/analytics';
 import { useAnalytics } from '../analytics/provider';
 import {
   trackCommunityGalleryClick,
@@ -154,9 +154,9 @@ interface PendingPluginUseHandoff {
 }
 
 const AUTHORING_DEFAULT_SCENARIO_INPUTS = {
-  artifactKind: 'Open Design plugin',
-  audience: 'Open Design plugin authors',
-  topic: 'packaging a reusable workflow as an Open Design plugin',
+  artifactKind: 'Readable Studio plugin',
+  audience: 'Readable Studio plugin authors',
+  topic: 'packaging a reusable workflow as a Readable Studio plugin',
 };
 
 
@@ -282,10 +282,10 @@ export function HomeView({
       });
     };
     load();
-    window.addEventListener('open-design:plugins-changed', load);
+    window.addEventListener('readable-studio:plugins-changed', load);
     return () => {
       cancelled = true;
-      window.removeEventListener('open-design:plugins-changed', load);
+      window.removeEventListener('readable-studio:plugins-changed', load);
     };
   }, []);
 
@@ -377,7 +377,7 @@ export function HomeView({
   // When the active plugin was bound through a chip, the badge shows
   // the chip label (e.g. "Prototype") instead of the underlying plugin
   // record title (e.g. "New generation (default scenario)"). Several
-  // chips share od-new-generation, so surfacing the raw plugin title
+  // chips share readable-new-generation, so surfacing the raw plugin title
   // would mislabel what the user actually picked.
   const activeBadge = useMemo(() => {
     if (!active) return { title: null as string | null, isExplicitPlugin: false };
@@ -473,7 +473,7 @@ export function HomeView({
     activePluginApplyRequestRef.current = applyRequestId;
     setActiveSkill(null);
     const shouldResolveImmediately = options?.deferApply !== true;
-    const inputFields = options?.inputFields ?? record.manifest?.od?.inputs ?? [];
+    const inputFields = options?.inputFields ?? record.manifest?.readable?.inputs ?? [];
     const optimisticInputs = hydratePluginInputs(
       inputFields,
       withHomeDesignSystemDefault(options?.inputs, inputFields, defaultDesignSystemTitle),
@@ -484,7 +484,7 @@ export function HomeView({
         ? options.queryTemplate
         : nextPrompt !== undefined && nextPrompt !== null
         ? null
-        : resolvePluginQueryFallback(record.manifest?.od?.useCase?.query, locale) || null;
+        : resolvePluginQueryFallback(record.manifest?.readable?.useCase?.query, locale) || null;
     const suppressPromptUpdate = options?.suppressPromptUpdate === true;
     const optimisticPrompt =
       nextPrompt !== undefined && nextPrompt !== null
@@ -591,7 +591,7 @@ export function HomeView({
       const reconciledQuery =
         options?.queryTemplate !== undefined
           ? options.queryTemplate
-          : result.query || resolvePluginQueryFallback(record.manifest?.od?.useCase?.query, locale);
+          : result.query || resolvePluginQueryFallback(record.manifest?.readable?.useCase?.query, locale);
       if (reconciledQuery) {
         const reconciledPrompt = renderPluginBriefTemplate(reconciledQuery, reconciledInputs);
         if (reconciledPrompt !== optimisticPrompt) {
@@ -643,7 +643,7 @@ export function HomeView({
     },
   ) {
     const replacement = previewPluginReplacement(record, nextPrompt, {
-      inputs: withHomeDesignSystemDefault(options?.inputs, options?.inputFields ?? record.manifest?.od?.inputs ?? [], defaultDesignSystemTitle),
+      inputs: withHomeDesignSystemDefault(options?.inputs, options?.inputFields ?? record.manifest?.readable?.inputs ?? [], defaultDesignSystemTitle),
       inputFields: options?.inputFields,
       queryTemplate: options?.queryTemplate,
     });
@@ -663,7 +663,7 @@ export function HomeView({
   // driver of the next run — i.e. set it as the active plugin so its own
   // pipeline + SKILL.md/asset context are applied — rather than only
   // attaching it as background context. Without this, the submit path
-  // falls back to the hidden od-default scenario and the plugin's design
+  // falls back to the hidden readable-default scenario and the plugin's design
   // brief never reaches the agent.
   //
   // Prompt handling preserves the legacy context-use semantics:
@@ -688,7 +688,7 @@ export function HomeView({
     if (action === 'use-with-query') {
       // "Replicate this content" seeds the composer with the SAME human-friendly
       // text the Home example-prompt cards use (examplePresetSeedPrompt), NOT the
-      // raw `od.useCase.query` — which for many plugins is a generator-facing
+      // raw `readable.useCase.query` — which for many plugins is a generator-facing
       // meta-instruction ("follow the en field verbatim; start from example.html")
       // that reads as gibberish in the textarea. Fallback: plugin description /
       // title (the Home cards inject their richer structured-preview fallback).
@@ -713,7 +713,7 @@ export function HomeView({
       // meta-instruction seed there are no placeholders to extract, so null the
       // template (mirrors the example-prompt card path).
       const rawQueryTemplate = seed.fromRenderedQuery
-        ? resolvePluginQueryFallback(record.manifest?.od?.useCase?.query, locale) || null
+        ? resolvePluginQueryFallback(record.manifest?.readable?.useCase?.query, locale) || null
         : null;
       const hasTemplate = Boolean(rawQueryTemplate && trimmedSeed);
       const submittable = await usePlugin(record, combined, {
@@ -785,9 +785,9 @@ export function HomeView({
     const query =
       options?.queryTemplate !== undefined
         ? options.queryTemplate
-        : resolvePluginQueryFallback(record.manifest?.od?.useCase?.query, locale);
+        : resolvePluginQueryFallback(record.manifest?.readable?.useCase?.query, locale);
     if (!query) return null;
-    const fields = options?.inputFields ?? record.manifest?.od?.inputs ?? [];
+    const fields = options?.inputFields ?? record.manifest?.readable?.inputs ?? [];
     return renderPluginBriefTemplate(query, hydratePluginInputs(fields, options?.inputs));
   }
 
@@ -1004,14 +1004,14 @@ export function HomeView({
       focusPromptAtEnd();
     }, {
       before: active?.record.id ?? null,
-      after: 'od-plugin-authoring',
+      after: 'readable-plugin-authoring',
     });
   }
 
   useEffect(() => {
     if (!pendingAuthoringChipId || pluginsLoading) return;
-    const authoringRecord = plugins.find((plugin) => plugin.id === 'od-plugin-authoring');
-    const record = authoringRecord ?? plugins.find((plugin) => plugin.id === 'od-new-generation');
+    const authoringRecord = plugins.find((plugin) => plugin.id === 'readable-plugin-authoring');
+    const record = authoringRecord ?? plugins.find((plugin) => plugin.id === 'readable-new-generation');
     setPendingAuthoringChipId(null);
     if (!record) {
       setPendingChipId(null);
@@ -1226,7 +1226,7 @@ export function HomeView({
       ...(() => {
         if (!autoSendFirstMessage) return {};
         if (!examplePromptInfoRef.current) return {};
-        const key = 'od:example-prompt-used';
+        const key = 'readable:example-prompt-used';
         if (localStorage.getItem(key)) return {};
         localStorage.setItem(key, '1');
         return { examplePromptContext: examplePromptInfoRef.current };
@@ -1681,7 +1681,7 @@ function homeDesignSystemSelectionForInputs(
 function estimatePluginContextItemCount(
   record: InstalledPluginRecord,
 ): number {
-  const context = record.manifest?.od?.context;
+  const context = record.manifest?.readable?.context;
   if (!context) return 0;
   const assetCount = context.assets?.length ?? 0;
   const mcpCount = context.mcp?.length ?? 0;

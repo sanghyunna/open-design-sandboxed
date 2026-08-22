@@ -24,14 +24,14 @@ describe('useProjectDetail', () => {
   it('surfaces resolvedDir when the daemon includes it in the response', async () => {
     mockFetchOnce({
       project: { id: 'p1', name: 'Acme', skillId: null, designSystemId: null, createdAt: 1, updatedAt: 1 },
-      resolvedDir: '/tmp/od/projects/p1',
+      resolvedDir: '/tmp/readable/projects/p1',
     });
 
     const { result } = renderHook(() => useProjectDetail('p1'));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.error).toBeNull();
-    expect(result.current.resolvedDir).toBe('/tmp/od/projects/p1');
+    expect(result.current.resolvedDir).toBe('/tmp/readable/projects/p1');
     expect(result.current.project?.id).toBe('p1');
   });
 

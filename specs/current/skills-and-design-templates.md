@@ -1,20 +1,22 @@
-# Skills & Design Templates Refactor
+# Skills and design templates
+
+## Product context
+
+Readable Studio uses skills and templates to turn source text into structured company documents before users refine them with direct editing and export standalone HTML. These resources remain agent-readable files and must not become an opaque, desktop-only template system.
 
 ## Purpose
 
-Today the repo's `skills/` directory mixes two unrelated concepts:
+The repository separates two concepts:
 
 - **Design templates** — packaged "shapes" the agent renders into a project artifact (decks, prototypes, image/video/audio templates, …). ~104 of the 112 entries today.
 - **Functional skills** — capabilities the agent invokes mid-task (utilities, asset packagers, design briefs, …). The remaining ~6 entries.
 
-Settings → "Skills & Design Systems" surfaces the union of those two, plus the design-systems registry, in one big sub-tabbed dialog. The result is an
+The historical Settings → "Skills & Design Systems" surface combined those entries with the design-system registry. The result was an
 overcrowded settings tab that buries the small set of *truly skill-like* entries
 under 100+ rendering templates, and a top-level "Examples" tab whose contents
 are actually templates.
 
-This spec splits the two concerns at every layer (filesystem, daemon, web) and
-turns Settings → Skills into a real CRUD surface for functional skills, on par
-with what Multica/LobeHub ship.
+This specification keeps the two concerns separate at every layer (filesystem, daemon, web) and keeps Settings → Skills as a CRUD surface for functional skills.
 
 References:
 
@@ -33,9 +35,9 @@ References:
 
 Functional vs. design-template classification rule:
 
-- A skill whose `od.mode` is one of `prototype | deck | template` is a **design template**.
+- A skill whose `readable.mode` is one of `prototype | deck | template` is a **design template**.
 - A skill whose primary output is an `image | video | audio` *artifact* is a **design template** (`audio-jingle`, `image-poster`, `video-shortform`, `hyperframes`).
-- A skill whose `od.mode` is `utility`, `design-system`, or whose role is to *do work* on user input (capture a brief, package a pet, audit a file, …) is a **functional skill** — stays under `skills/`.
+- A skill whose `readable.mode` is `utility`, `design-system`, or whose role is to *do work* on user input (capture a brief, package a pet, audit a file, …) is a **functional skill** — stays under `skills/`.
 
 ## Phase 0 — Split + rename (MVP)
 

@@ -1,18 +1,18 @@
-// Help surface for `od design-systems`. Kept pure and separate from cli.ts so a
+// Help surface for `readable design-systems`. Kept pure and separate from cli.ts so a
 // test can assert the advertised subcommands without spawning the CLI or
 // stubbing process.exit / console.log.
 
 export const DESIGN_SYSTEMS_USAGE = `Usage:
-  od design-systems list                       List design systems.
-  od design-systems show <id>                  Print one entry.
-  od design-systems rename <id> --title <new>  Rename an editable design system.
-  od design-systems import-local <path>        Import a local project.
-  od design-systems import-github <url>        Import a public GitHub repo.
-  od design-systems import-shadcn <reference>  Import a shadcn registry item.
-  od design-systems rebuild-token-contract <id>  Start a token contract rebuild review.`;
+  readable design-systems list                       List design systems.
+  readable design-systems show <id>                  Print one entry.
+  readable design-systems rename <id> --title <new>  Rename an editable design system.
+  readable design-systems import-local <path>        Import a local project.
+  readable design-systems import-github <url>        Import a public GitHub repo.
+  readable design-systems import-shadcn <reference>  Import a shadcn registry item.
+  readable design-systems rebuild-token-contract <id>  Start a token contract rebuild review.`;
 
 // `help`, `--help`, and `-h` all route to the usage text above. Without the
-// flag forms, `od design-systems --help` falls through to the generic library
+// flag forms, `readable design-systems --help` falls through to the generic library
 // list, which only advertises `list` and `show` and never mentions `rename`.
 export function isDesignSystemsHelpArg(arg: string | undefined): boolean {
   return arg === 'help' || arg === '--help' || arg === '-h';

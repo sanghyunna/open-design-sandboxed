@@ -11,7 +11,7 @@
 // accidentally hidden behind a still-selected category pill.
 
 import { useEffect, useMemo, useState } from 'react';
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 import {
   applyFacetSelection,
   buildFacetCatalog,
@@ -78,7 +78,7 @@ export function usePluginFacets({
   const visiblePlugins = useMemo(
     () =>
       sortByVisualAppeal(
-        plugins.filter((p) => p.manifest?.od?.kind !== 'atom'),
+        plugins.filter((p) => p.manifest?.readable?.kind !== 'atom'),
       ),
     [plugins],
   );

@@ -54,18 +54,18 @@ import {
   type ComposeInput,
   type MemorySystemPromptResponse,
   type ResearchOptions,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import {
   anonymizeArtifactId,
   artifactKindToTracking,
   projectKindToTracking,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import type {
   TrackingArtifactKind,
   TrackingDesignSystemApplyTargetKind,
   TrackingDesignSystemOrigin,
   TrackingDesignSystemStatusValue,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import { useAnalytics } from '../analytics/provider';
 import {
   trackArtifactHeaderClick,
@@ -123,7 +123,7 @@ import {
   type SaveMessageOptions,
   waitGeneratedPluginShareTask,
 } from '../state/projects';
-import type { AppliedPluginSnapshot, ChatAnalyticsEntryFrom, ChatSessionMode, InstalledPluginRecord, RollbackMode, WorkspaceContextItem } from '@open-design/contracts';
+import type { AppliedPluginSnapshot, ChatAnalyticsEntryFrom, ChatSessionMode, InstalledPluginRecord, RollbackMode, WorkspaceContextItem } from '@readable-studio/contracts';
 import type {
   AgentEvent,
   AgentInfo,
@@ -329,7 +329,7 @@ interface QueuedChatSendUpdate {
   meta?: ChatSendMeta;
 }
 
-const CHAT_PANEL_WIDTH_STORAGE_KEY = 'open-design.project.chatPanelWidth';
+const CHAT_PANEL_WIDTH_STORAGE_KEY = 'readable-studio.project.chatPanelWidth';
 const DEFAULT_CHAT_PANEL_WIDTH = 460;
 const MIN_CHAT_PANEL_WIDTH = 345;
 const MAX_CHAT_PANEL_WIDTH = 720;
@@ -441,7 +441,7 @@ function historyWithWorkspaceContext(
     '',
     '',
     '<active-workspace-context>',
-    'Open Design selected the currently focused workspace tab as the default context for this turn.',
+    'Readable Studio selected the currently focused workspace tab as the default context for this turn.',
     ...items.map((item, index) => {
       const details = [
         item.path ? `path: ${item.path}` : null,
@@ -517,15 +517,15 @@ function saveChatPanelWidth(width: number): void {
 }
 
 function autoSendFirstMessageKey(projectId: string): string {
-  return `od:auto-send-first:${projectId}`;
+  return `readable:auto-send-first:${projectId}`;
 }
 
 function autoSendAttachmentsKey(projectId: string): string {
-  return `od:auto-send-attachments:${projectId}`;
+  return `readable:auto-send-attachments:${projectId}`;
 }
 
 function designSystemAuditAutoRepairKey(projectId: string): string {
-  return `od:design-system-audit-auto-repair:${projectId}`;
+  return `readable:design-system-audit-auto-repair:${projectId}`;
 }
 
 function readAutoSendAttachments(projectId: string): ChatAttachment[] {
@@ -4099,7 +4099,7 @@ export function ProjectView({
         return { message: outcome.message };
       }
       const conversationId = activeConversationId;
-      const shareAction = action === 'publish' ? 'publish-github' : 'contribute-open-design';
+      const shareAction = action === 'publish' ? 'publish-github' : 'contribute-readable-studio';
       setActivePluginActionPaths((prev) => new Set(prev).add(relativePath));
       let taskStart;
       try {
@@ -5245,7 +5245,7 @@ export function ProjectView({
   }, [designMdState.exists, handleContinueInCli]);
 
   // PluginLoopHome auto-send: when the user submits on Home, app.tsx
-  // sets `sessionStorage['od:auto-send-first:<projectId>']` and routes
+  // sets `sessionStorage['readable:auto-send-first:<projectId>']` and routes
   // through createProject. Once the conversation id resolves and the
   // composer is mounted, fire handleSend(pendingPrompt) exactly once so
   // the user lands inside a running pipeline without an extra click.
@@ -5308,9 +5308,9 @@ export function ProjectView({
 
   // Wire the Critique Theater drop-in mount into the project workspace.
   // The hook reads the M1 Settings toggle out of the existing
-  // `open-design:config` localStorage blob and stays in sync with the
+  // `readable-studio:config` localStorage blob and stays in sync with the
   // platform `storage` event (cross-tab) plus the same-tab
-  // `open-design:critique-theater-toggle` CustomEvent. The mount itself
+  // `readable-studio:critique-theater-toggle` CustomEvent. The mount itself
   // returns `null` until the daemon emits a `critique.run_started` for
   // the active project, so the visual surface is unchanged for users
   // who have not opted in. The daemon-side gate
@@ -5848,7 +5848,7 @@ function isActiveRunStatus(status: ChatMessage['runStatus']): boolean {
 const QUEUED_CHAT_SENDS_STORAGE_VERSION = 1;
 
 function queuedChatSendsStorageKey(projectId: string): string {
-  return `od:chat-queued-sends:${projectId}:v${QUEUED_CHAT_SENDS_STORAGE_VERSION}`;
+  return `readable:chat-queued-sends:${projectId}:v${QUEUED_CHAT_SENDS_STORAGE_VERSION}`;
 }
 
 function loadQueuedChatSends(projectId: string): QueuedChatSend[] {
@@ -5948,13 +5948,13 @@ function latestDesignSystemActivityEvents(messages: ChatMessage[]): AgentEvent[]
 }
 
 function pluginWorkflowTitle(action: PluginFolderAgentAction): string {
-  return action === 'publish' ? 'Publish repo' : 'Open Design PR';
+  return action === 'publish' ? 'Publish repo' : 'Readable Studio PR';
 }
 
 function pluginWorkflowCliCommand(action: PluginFolderAgentAction, relativePath: string): string {
   return action === 'publish'
-    ? `od plugin publish-repo ${relativePath}`
-    : `od plugin open-design-pr ${relativePath}`;
+    ? `readable plugin publish-repo ${relativePath}`
+    : `readable plugin readable-studio-pr ${relativePath}`;
 }
 
 function pluginWorkflowPlannedSteps(action: PluginFolderAgentAction): string[] {
@@ -5967,7 +5967,7 @@ function pluginWorkflowPlannedSteps(action: PluginFolderAgentAction): string[] {
     ];
   }
   return [
-    'Ensure the Open Design fork exists',
+    'Ensure the Readable Studio fork exists',
     'Clone the fork and prepare a branch',
     'Copy the plugin into plugins/community',
     'Push the branch and open the PR form',

@@ -1,8 +1,8 @@
-# Open Design Plugin Spec
+# Readable Studio Plugin Spec
 
 Language: English | [简体中文](SPEC.zh-CN.md)
 
-This spec is the compact contract for portable Open Design plugins. The canonical product spec remains `docs/plugins-spec.md`; this document is optimized for contributors and external coding agents.
+This spec is the compact contract for portable Readable Studio plugins. The canonical product spec remains `docs/plugins-spec.md`; this document is optimized for contributors and external coding agents.
 
 ## 1. Minimum Plugin
 
@@ -24,14 +24,14 @@ description: Use this plugin when the user wants...
 
 The folder name, `name`, and manifest `name` should match. Use lowercase letters, numbers, and hyphens.
 
-## 2. Enriched Open Design Plugin
+## 2. Enriched Readable Studio Plugin
 
-Add `open-design.json` when the plugin should appear in Open Design as a marketplace card or starter:
+Add `readable-studio.json` when the plugin should appear in Readable Studio as a marketplace card or starter:
 
 ```text
 my-plugin/
   SKILL.md
-  open-design.json
+  readable-studio.json
   README.md
   preview/
   examples/
@@ -40,11 +40,11 @@ my-plugin/
   evals/
 ```
 
-`open-design.json` points at the skill and declares the product surface:
+`readable-studio.json` points at the skill and declares the product surface:
 
 ```json
 {
-  "$schema": "https://open-design.ai/schemas/plugin.v1.json",
+  "$schema": "urn:readable-studio:schema:plugin-manifest:v1",
   "specVersion": "1.0.0",
   "name": "my-plugin",
   "title": "My Plugin",
@@ -55,7 +55,7 @@ my-plugin/
   "compat": {
     "agentSkills": [{ "path": "./SKILL.md" }]
   },
-  "od": {
+  "readable": {
     "kind": "skill",
     "taskKind": "new-generation",
     "mode": "prototype",
@@ -85,13 +85,17 @@ my-plugin/
 }
 ```
 
+### 2.1 Readable Studio v1 is unsupported
+
+Readable Studio does not normalize the former `readable-studio.json`, `readable` metadata namespace, Readable Studio schema URLs, marketplace indexes, or `.readable-studio/project.json` files. Every boundary rejects those inputs with the machine-readable code `UNSUPPORTED_LEGACY_PRODUCT_V1`. Authors must publish `readable-studio.json` with the `readable` namespace; there is no dual parser.
+
 ## 3. Workflow Taxonomy
 
-Use one primary lane. Put the lane in `tags`, `od.scenario`, or `od.mode` so search and facets can classify the plugin.
+Use one primary lane. Put the lane in `tags`, `readable.scenario`, or `readable.mode` so search and facets can classify the plugin.
 
 | Lane | Use when | Typical `taskKind` | Useful atoms |
 | --- | --- | --- | --- |
-| `import` | Bring external sources into OD | `figma-migration` or `code-migration` | `figma-extract`, `code-import`, `design-extract`, `token-map`, `rewrite-plan` |
+| `import` | Bring external sources into Readable Studio | `figma-migration` or `code-migration` | `figma-extract`, `code-import`, `design-extract`, `token-map`, `rewrite-plan` |
 | `create` | Generate a new artifact | `new-generation` | `discovery-question-form`, `direction-picker`, `todo-write`, `file-write`, `critique-theater` |
 | `export` | Convert an accepted artifact to a downstream format | `tune-collab` or `code-migration` | `file-read`, `file-write`, `handoff`, `diff-review` |
 | `share` | Publish or send an artifact to collaborators | `tune-collab` | `file-read`, `handoff` |
@@ -101,7 +105,7 @@ Use one primary lane. Put the lane in `tags`, `od.scenario`, or `od.mode` so sea
 
 ## 4. Create Modes
 
-Use `od.mode` for the main output surface:
+Use `readable.mode` for the main output surface:
 
 | Mode | Output |
 | --- | --- |
@@ -122,19 +126,19 @@ Use `od.mode` for the main output surface:
 - Reference support files by relative path from the plugin root.
 - Include an explicit workflow with checkpoints and expected outputs.
 - Describe what to ask the user only when the input is genuinely missing.
-- Avoid OD-only marketplace data in `SKILL.md`; keep it portable.
+- Avoid Readable Studio-only marketplace data in `SKILL.md`; keep it portable.
 
 ## 6. Manifest Rules
 
 - `name` is the stable plugin id.
-- `specVersion` is the Open Design plugin spec version that this manifest follows. Use the current spec kit value (`1.0.0`) unless the schema moves.
+- `specVersion` is the Readable Studio plugin spec version that this manifest follows. Use the current spec kit value (`1.0.0`) unless the schema moves.
 - `version` is required. Use semver when possible.
 - `version` is the plugin package version, independent from `specVersion`.
 - `compat.agentSkills[0].path` should point to `./SKILL.md`.
-- `od.taskKind` must be one of `new-generation`, `figma-migration`, `code-migration`, or `tune-collab`.
-- `od.pipeline.stages[].atoms[]` should use known first-party atoms unless the plugin clearly targets a future OD release.
+- `readable.taskKind` must be one of `new-generation`, `figma-migration`, `code-migration`, or `tune-collab`.
+- `readable.pipeline.stages[].atoms[]` should use known first-party atoms unless the plugin clearly targets a future Readable Studio release.
 - A repeated stage must include `until`.
-- `od.capabilities` should start small. Restricted installs get `prompt:inject` by default.
+- `readable.capabilities` should start small. Restricted installs get `prompt:inject` by default.
 
 Known v1 capabilities:
 
@@ -148,7 +152,7 @@ Known v1 capabilities:
 
 ## 7. Inputs And GenUI
 
-Use `od.inputs` for simple apply-time values. Use `od.genui.surfaces[]` when the agent needs controlled human input during a run.
+Use `readable.inputs` for simple apply-time values. Use `readable.genui.surfaces[]` when the agent needs controlled human input during a run.
 
 Built-in GenUI surface kinds:
 
@@ -204,11 +208,11 @@ Also add `evals/trigger-queries.json` for activation testing when the descriptio
 Before opening a PR:
 
 1. Validate JSON syntax.
-2. Confirm `open-design.json` includes `specVersion` and a bumped plugin `version` when behavior changed.
+2. Confirm `readable-studio.json` includes `specVersion` and a bumped plugin `version` when behavior changed.
 3. Run `pnpm guard`.
-4. Run `pnpm --filter @open-design/plugin-runtime typecheck`.
-5. If available, run `od plugin validate ./path/to/plugin`.
+4. Run `pnpm --filter @readable-studio/plugin-runtime typecheck`.
+5. If available, run `readable plugin validate ./path/to/plugin`.
 6. Include one screenshot, rendered preview, or example output when the plugin is visual.
 7. Explain trust and capabilities in the PR body.
 
-For external registry distribution, follow [`PUBLISHING-REGISTRIES.md`](PUBLISHING-REGISTRIES.md). In short: keep GitHub or the Open Design PR as source of truth, make the folder installable as a generic `SKILL.md` skill, then publish or list it on skills.sh, ClawHub, or other registries only after local validation passes.
+For external registry distribution, follow [`PUBLISHING-REGISTRIES.md`](PUBLISHING-REGISTRIES.md). In short: keep GitHub or the Readable Studio PR as source of truth, make the folder installable as a generic `SKILL.md` skill, then publish or list it on skills.sh, ClawHub, or other registries only after local validation passes.

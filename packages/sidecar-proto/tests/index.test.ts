@@ -1,55 +1,138 @@
+import { createHash } from "node:crypto";
+
 import { describe, expect, it } from "vitest";
 
+import { parseProductIdentity, PRODUCT_IDENTITY, ProductIdentityParseError } from "@readable-studio/product-identity";
+
+import * as sidecarProto from "../src/index.js";
 import {
   APP_KEYS,
-  DESKTOP_UPDATE_ACTIONS,
-  DESKTOP_UPDATE_CHANNELS,
-  DESKTOP_UPDATE_MODES,
-  DESKTOP_UPDATE_STATES,
+  createRuntimeDescriptor,
   normalizeDaemonSidecarMessage,
   normalizeDesktopSidecarMessage,
+  normalizeRuntimeDescriptor,
   normalizeNamespace,
   normalizeSidecarStamp,
-  OPEN_DESIGN_SIDECAR_CONTRACT,
+  createSidecarContract,
+  SIDECAR_CONTRACT,
   SIDECAR_MESSAGES,
+  SIDECAR_DEFAULTS,
+  PRODUCT_DESCRIPTOR_HASH,
+  RUNTIME_DESCRIPTOR_PROTOCOL_VERSION,
+  RUNTIME_DESCRIPTOR_VERSION,
+  serializeProductDescriptorIdentity,
+  serializeRuntimeDescriptor,
   SIDECAR_ENV,
   SIDECAR_SOURCES,
   SIDECAR_STAMP_FIELDS,
-  STAMP_APP_FLAG,
-  STAMP_IPC_FLAG,
-  STAMP_MODE_FLAG,
-  STAMP_NAMESPACE_FLAG,
-  STAMP_SOURCE_FLAG,
   type DaemonStatusSnapshot,
 } from "../src/index.js";
 
 const validStamp = {
   app: APP_KEYS.WEB,
-  ipc: "/tmp/open-design/ipc/contract-check/web.sock",
+  ipc: "/tmp/readable-studio/ipc/contract-check/web.sock",
   mode: "dev" as const,
   namespace: "contract-check",
   source: SIDECAR_SOURCES.TOOLS_DEV,
 };
 
-describe("open-design sidecar contract", () => {
-  it("exports the canonical five-field stamp descriptor", () => {
-    expect(SIDECAR_STAMP_FIELDS).toEqual(["app", "mode", "namespace", "ipc", "source"]);
-    expect(OPEN_DESIGN_SIDECAR_CONTRACT.stampFlags).toEqual({
-      app: STAMP_APP_FLAG,
-      ipc: STAMP_IPC_FLAG,
-      mode: STAMP_MODE_FLAG,
-      namespace: STAMP_NAMESPACE_FLAG,
-      source: STAMP_SOURCE_FLAG,
+describe("sidecar contract", () => {
+  it("derives canonical defaults from the Readable Studio identity", () => {
+    const contract = createSidecarContract(PRODUCT_IDENTITY);
+
+    expect(contract.defaults).toEqual({
+      host: "127.0.0.1",
+      ipcBase: "/tmp/readable-studio/ipc",
+      namespace: "default",
+      projectTmpDirName: ".tmp",
+      windowsPipePrefix: "readable-studio",
     });
-    expect(OPEN_DESIGN_SIDECAR_CONTRACT.updateActions).toBe(DESKTOP_UPDATE_ACTIONS);
-    expect(OPEN_DESIGN_SIDECAR_CONTRACT.updateChannels).toBe(DESKTOP_UPDATE_CHANNELS);
-    expect(Object.values(DESKTOP_UPDATE_CHANNELS)).toEqual(["beta", "nightly", "preview", "stable"]);
-    expect(OPEN_DESIGN_SIDECAR_CONTRACT.updateModes).toBe(DESKTOP_UPDATE_MODES);
-    expect(OPEN_DESIGN_SIDECAR_CONTRACT.updateStates).toBe(DESKTOP_UPDATE_STATES);
+    expect(SIDECAR_CONTRACT.defaults).toEqual(contract.defaults);
+    expect(SIDECAR_DEFAULTS).toBe(SIDECAR_CONTRACT.defaults);
+  });
+
+  it("rejects malformed identity before constructing a contract", () => {
+    const buildContract = () => createSidecarContract(parseProductIdentity({
+      ...PRODUCT_IDENTITY,
+      productId: "Readable Studio",
+    }));
+
+    expect(buildContract).toThrowError(ProductIdentityParseError);
+    expect(buildContract).toThrowError(expect.objectContaining({
+      code: "malformed_value",
+      field: "productId",
+    }));
+  });
+
+  it("exports the descriptor-derived five-field Readable Studio identity", () => {
+    expect(SIDECAR_STAMP_FIELDS).toEqual(["app", "mode", "namespace", "ipc", "source"]);
+    expect(SIDECAR_CONTRACT.stampFlags).toEqual({
+      app: "--readable-studio-stamp-app",
+      ipc: "--readable-studio-stamp-ipc",
+      mode: "--readable-studio-stamp-mode",
+      namespace: "--readable-studio-stamp-namespace",
+      source: "--readable-studio-stamp-source",
+    });
+    expect(SIDECAR_CONTRACT).not.toHaveProperty("updateActions");
+    expect(SIDECAR_ENV).toEqual({
+      BASE: "READABLE_SIDECAR_BASE",
+      DAEMON_CLI_PATH: "READABLE_DAEMON_CLI_PATH",
+      DAEMON_PORT: "READABLE_PORT",
+      DESKTOP_APPROVAL_TOKEN: "READABLE_DESKTOP_APPROVAL_TOKEN",
+      IPC_BASE: "READABLE_SIDECAR_IPC_BASE",
+      IPC_PATH: "READABLE_SIDECAR_IPC_PATH",
+      NAMESPACE: "READABLE_SIDECAR_NAMESPACE",
+      SOURCE: "READABLE_SIDECAR_SOURCE",
+      TOOLS_DEV_PARENT_PID: "READABLE_TOOLS_DEV_PARENT_PID",
+      WEB_DIST_DIR: "READABLE_WEB_DIST_DIR",
+      WEB_PORT: "READABLE_WEB_PORT",
+      WEB_TSCONFIG_PATH: "READABLE_WEB_TSCONFIG_PATH",
+    });
+  });
+
+  it("serializes the canonical runtime descriptor deterministically", () => {
+    const descriptor = createRuntimeDescriptor("1.2.3");
+
+    expect(descriptor).toEqual({
+      appId: "studio.readable.desktop",
+      appVersion: "1.2.3",
+      descriptorHash: "9d1181594e3733ae67c685c6e1529baa1f095a19d93ec9739445a15643ab0c3a",
+      productId: "readable-studio",
+      protocolVersion: 1,
+      runtimeVersion: 1,
+    });
+    expect(PRODUCT_DESCRIPTOR_HASH).toBe(descriptor.descriptorHash);
+    expect(createHash("sha256").update(serializeProductDescriptorIdentity()).digest("hex")).toBe(
+      descriptor.descriptorHash,
+    );
+    expect(RUNTIME_DESCRIPTOR_PROTOCOL_VERSION).toBe(1);
+    expect(RUNTIME_DESCRIPTOR_VERSION).toBe(1);
+    expect(serializeRuntimeDescriptor(descriptor)).toBe(`${JSON.stringify(descriptor, null, 2)}\n`);
+  });
+
+  it("rejects missing and foreign runtime product identities", () => {
+    const descriptor = createRuntimeDescriptor("1.2.3");
+    const { productId: _productId, ...missingProductId } = descriptor;
+
+    expect(() => normalizeRuntimeDescriptor(missingProductId)).toThrowError(/missing productId/);
+    expect(() => normalizeRuntimeDescriptor({ ...descriptor, productId: "foreign-product" })).toThrowError(
+      /productId must be "readable-studio"/,
+    );
+    expect(() => normalizeRuntimeDescriptor({ ...descriptor, appId: "io.readable-studio.desktop" })).toThrowError(
+      /appId must be "studio.readable.desktop"/,
+    );
+    expect(() => normalizeRuntimeDescriptor({ ...descriptor, descriptorHash: "0".repeat(64) })).toThrowError(
+      /descriptorHash must be/,
+    );
+  });
+
+  it("does not export legacy contract symbols", () => {
+    expect(sidecarProto).not.toHaveProperty("READABLE_PRODUCT_NAME");
+    expect(sidecarProto).not.toHaveProperty("READABLE_SIDECAR_CONTRACT");
   });
 
   it("exports the desktop approval launch token key outside the process stamp", () => {
-    expect(SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN).toBe("OD_DESKTOP_APPROVAL_TOKEN");
+    expect(SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN).toBe("READABLE_DESKTOP_APPROVAL_TOKEN");
     expect(SIDECAR_STAMP_FIELDS).not.toContain(SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN);
   });
 
@@ -152,11 +235,13 @@ describe("open-design sidecar contract", () => {
     // restart it before launching desktop main. Removing the field, or
     // softening it to optional, must fail this build.
     const armed: DaemonStatusSnapshot = {
+      descriptor: createRuntimeDescriptor("1.2.3"),
       state: "running",
       url: "http://127.0.0.1:7456",
       desktopAuthGateActive: true,
     };
     const dormant: DaemonStatusSnapshot = {
+      descriptor: createRuntimeDescriptor("1.2.3"),
       state: "running",
       url: "http://127.0.0.1:7456",
       desktopAuthGateActive: false,
@@ -201,36 +286,12 @@ describe("open-design sidecar contract", () => {
     ).toThrow();
   });
 
-  it("validates desktop update IPC message inputs", () => {
-    expect(
-      normalizeDesktopSidecarMessage({
-        input: { action: DESKTOP_UPDATE_ACTIONS.CHECK },
-        type: SIDECAR_MESSAGES.UPDATE,
-      }),
-    ).toEqual({
-      input: { action: "check" },
-      type: "update",
-    });
-    expect(
-      normalizeDesktopSidecarMessage({
-        input: { action: DESKTOP_UPDATE_ACTIONS.INSTALL },
-        type: SIDECAR_MESSAGES.UPDATE,
-      }),
-    ).toEqual({
-      input: { action: "install" },
-      type: "update",
-    });
+  it("rejects removed desktop update IPC messages", () => {
     expect(() =>
       normalizeDesktopSidecarMessage({
-        input: { action: "apply" },
-        type: SIDECAR_MESSAGES.UPDATE,
+        input: { action: "check" },
+        type: "update",
       }),
-    ).toThrow(/unsupported desktop update action/);
-    expect(() =>
-      normalizeDesktopSidecarMessage({
-        input: { action: "status", path: "/tmp/update.dmg" },
-        type: SIDECAR_MESSAGES.UPDATE,
-      }),
-    ).toThrow(/unsupported fields/);
+    ).toThrow(/unknown desktop sidecar message/);
   });
 });

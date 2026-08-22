@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  access,
   mkdir,
   mkdtemp,
   readFile,
@@ -9,14 +8,11 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import process from "node:process";
-
 import { copyBundledResourceTrees } from "../src/resources.js";
-import { copyOptionalVelaCliBinary, resolveOptionalVelaCliBinary } from "../src/vela-cli.js";
 
 describe("copyBundledResourceTrees", () => {
-  it("includes the full community pet catalog in non-portable builds", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-tools-pack-"));
+  it("includes the full packaged resource catalog", async () => {
+    const root = await mkdtemp(join(tmpdir(), "readable-studio-tools-pack-"));
     const workspaceRoot = join(root, "workspace");
     const resourceRoot = join(root, "resources");
 
@@ -47,7 +43,7 @@ describe("copyBundledResourceTrees", () => {
         "plugins",
         "registry",
         "community",
-        "open-design-marketplace.json",
+        "readable-studio-marketplace.json",
       );
       await mkdir(join(workspaceRoot, "skills", "sample"), { recursive: true });
       // The skills/design-templates split (see specs/current/
@@ -91,7 +87,7 @@ describe("copyBundledResourceTrees", () => {
       await writeFile(darioPetPath, "{\"name\":\"dario\"}\n", "utf8");
       await writeFile(clippitPetPath, "{\"name\":\"clippit\"}\n", "utf8");
       await writeFile(
-        join(workspaceRoot, "plugins", "_official", "sample", "open-design.json"),
+        join(workspaceRoot, "plugins", "_official", "sample", "readable-studio.json"),
         "{\"id\":\"sample\"}\n",
         "utf8",
       );
@@ -128,7 +124,7 @@ describe("copyBundledResourceTrees", () => {
       ).resolves.toBe("{\"name\":\"clippit\"}\n");
       await expect(
         readFile(
-          join(resourceRoot, "plugins", "_official", "sample", "open-design.json"),
+          join(resourceRoot, "plugins", "_official", "sample", "readable-studio.json"),
           "utf8",
         ),
       ).resolves.toBe("{\"id\":\"sample\"}\n");
@@ -139,7 +135,7 @@ describe("copyBundledResourceTrees", () => {
             "plugins",
             "registry",
             "community",
-            "open-design-marketplace.json",
+            "readable-studio-marketplace.json",
           ),
           "utf8",
         ),
@@ -150,7 +146,7 @@ describe("copyBundledResourceTrees", () => {
   });
 
   it("includes the full community pet catalog in portable builds", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-tools-pack-portable-"));
+    const root = await mkdtemp(join(tmpdir(), "readable-studio-tools-pack-portable-"));
     const workspaceRoot = join(root, "workspace");
     const resourceRoot = join(root, "resources");
 
@@ -180,13 +176,12 @@ describe("copyBundledResourceTrees", () => {
       );
       await writeFile(join(workspaceRoot, "data", "plugin-previews", "manifest.json"), "{\"previews\":{}}\n", "utf8");
       await writeFile(join(workspaceRoot, "design-templates", "orbit-general", "SKILL.md"), "# Orbit General\n", "utf8");
-      await writeFile(join(workspaceRoot, "plugins", "_official", "sample", "open-design.json"), "{\"id\":\"sample\"}\n", "utf8");
-      await writeFile(join(workspaceRoot, "plugins", "registry", "community", "open-design-marketplace.json"), "{\"plugins\":[]}\n", "utf8");
+      await writeFile(join(workspaceRoot, "plugins", "_official", "sample", "readable-studio.json"), "{\"id\":\"sample\"}\n", "utf8");
+      await writeFile(join(workspaceRoot, "plugins", "registry", "community", "readable-studio-marketplace.json"), "{\"plugins\":[]}\n", "utf8");
 
       await copyBundledResourceTrees({
         workspaceRoot,
         resourceRoot,
-        portable: true,
       });
 
       await expect(readFile(join(resourceRoot, "community-pets", "clippit", "pet.json"), "utf8")).resolves.toBe(
@@ -201,132 +196,5 @@ describe("copyBundledResourceTrees", () => {
     } finally {
       await rm(root, { force: true, recursive: true });
     }
-  });
-});
-
-describe("copyOptionalVelaCliBinary", () => {
-  // Corporate fork: vela/AMR integration removed. resolveOptionalVelaCliBinary
-  // returns null unconditionally, so copyOptionalVelaCliBinary is always a
-  // no-op — no vela binary is ever written to resources/bin/.
-
-  it("never copies the vela CLI (resolveOptionalVelaCliBinary returns null unconditionally)", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-tools-pack-vela-never-"));
-    const resourceRoot = join(root, "resources", "open-design");
-    const platform = process.platform === "win32" ? "win" : process.platform === "darwin" ? "mac" : "linux";
-
-    try {
-      const copied = await copyOptionalVelaCliBinary({
-        env: {},
-        platform,
-        requireBundled: true,
-        resourceRoot,
-      });
-
-      expect(copied).toBeNull();
-      await expect(access(join(resourceRoot, "bin", "vela"))).rejects.toThrow();
-      await expect(access(join(resourceRoot, "bin", "vela.exe"))).rejects.toThrow();
-    } finally {
-      await rm(root, { force: true, recursive: true });
-    }
-  });
-
-  it("returns null even when OPEN_DESIGN_VELA_CLI_BIN env is set", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-tools-pack-vela-env-"));
-    const source = join(root, "source", "vela");
-    const resourceRoot = join(root, "resources", "open-design");
-
-    try {
-      await mkdir(join(root, "source"), { recursive: true });
-      await writeFile(source, "#!/bin/sh\nexit 0\n", "utf8");
-
-      const copied = await copyOptionalVelaCliBinary({
-        env: { OPEN_DESIGN_VELA_CLI_BIN: source },
-        platform: "mac",
-        requireBundled: false,
-        resourceRoot,
-      });
-
-      expect(copied).toBeNull();
-      await expect(access(join(resourceRoot, "bin", "vela"))).rejects.toThrow();
-    } finally {
-      await rm(root, { force: true, recursive: true });
-    }
-  });
-
-  it("returns null even with an npm package mock resolver", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-tools-pack-vela-npm-"));
-    const source = join(root, "source", "vela");
-    const resourceRoot = join(root, "resources", "open-design");
-
-    try {
-      await mkdir(join(root, "source"), { recursive: true });
-      await writeFile(source, "#!/bin/sh\nexit 0\n", "utf8");
-
-      const copied = await copyOptionalVelaCliBinary({
-        env: {},
-        importPackage: async () => ({
-          resolveVelaCliBin: () => source,
-        }),
-        platform: "mac",
-        requireBundled: true,
-        resourceRoot,
-      });
-
-      expect(copied).toBeNull();
-      await expect(access(join(resourceRoot, "bin", "vela"))).rejects.toThrow();
-    } finally {
-      await rm(root, { force: true, recursive: true });
-    }
-  });
-});
-
-describe("resolveOptionalVelaCliBinary", () => {
-  // Corporate fork: vela/AMR integration removed. All inputs are ignored and
-  // null is returned unconditionally.
-
-  it("returns null regardless of OPEN_DESIGN_VELA_CLI_BIN env", async () => {
-    await expect(
-      resolveOptionalVelaCliBinary({
-        env: { OPEN_DESIGN_VELA_CLI_BIN: "/tmp/local-vela" },
-        importPackage: async () => ({
-          resolveVelaCliBin: () => "/tmp/npm-vela",
-        }),
-      }),
-    ).resolves.toBeNull();
-  });
-
-  it("returns null in strict mode (no throw) when the resolver package is missing", async () => {
-    await expect(
-      resolveOptionalVelaCliBinary({
-        env: {},
-        importPackage: async () => {
-          throw new Error("not installed");
-        },
-        requireBundled: true,
-      }),
-    ).resolves.toBeNull();
-  });
-
-  it("returns null in strict mode (no throw) when the resolver returns no binary", async () => {
-    await expect(
-      resolveOptionalVelaCliBinary({
-        env: {},
-        importPackage: async () => ({
-          resolveVelaCliBin: () => ({ supported: false }),
-        }),
-        requireBundled: true,
-      }),
-    ).resolves.toBeNull();
-  });
-
-  it("returns null in non-strict mode when the resolver package is missing", async () => {
-    await expect(
-      resolveOptionalVelaCliBinary({
-        env: {},
-        importPackage: async () => {
-          throw new Error("not installed");
-        },
-      }),
-    ).resolves.toBeNull();
   });
 });

@@ -26,7 +26,7 @@ full split.
 ## Adding a design template
 
 1. Create `design-templates/<my-template>/SKILL.md` with `name`,
-   `description`, `triggers`, and an explicit `od.mode` (one of
+   `description`, `triggers`, and an explicit `readable.mode` (one of
    `prototype`, `deck`, `template`, `image`, `video`, `audio`).
 2. Ship a baked `example.html` (and any side files) so the EntryView
    gallery has something to preview.
@@ -35,7 +35,7 @@ full split.
 
 ## Deck preview navigation contract
 
-Any template with `od.mode: deck` must make its baked `example.html`
+Any template with `readable.mode: deck` must make its baked `example.html`
 usable inside the gallery iframe without relying on the host app to add
 navigation. Use a shared deck runtime where one is available; otherwise
 ship a tiny local runtime with the same minimum behavior.
@@ -53,7 +53,7 @@ ship a tiny local runtime with the same minimum behavior.
   every navigation path, and mark it with `aria-current="true"`.
 - **Active slide state:** keep the visible slide marked with
   `.slide.active`; adding `.is-active` as a compatibility alias is fine.
-  Open Design's preview bridge reads this state for the host slide counter,
+  Readable Studio's preview bridge reads this state for the host slide counter,
   so it must stay in sync with keyboard, wheel, touch, and dot navigation.
 - **Iframe safety:** focus the deck on load / pointer interaction so keyboard
   navigation works after the gallery preview appears. Avoid

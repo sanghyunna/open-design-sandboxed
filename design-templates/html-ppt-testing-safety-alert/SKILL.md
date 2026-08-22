@@ -7,7 +7,7 @@ triggers:
   - "red team"
   - "risk review"
   - "policy as code"
-od:
+readable:
   mode: deck
   scenario: engineering
   upstream: "https://github.com/lewislulu/html-ppt-skill"

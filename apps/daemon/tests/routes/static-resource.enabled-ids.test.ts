@@ -59,7 +59,7 @@ describe('GET /api/agents respects enabledAgentIds', () => {
   beforeAll(
     () =>
       new Promise<void>((resolve) => {
-        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'od-agents-route-'));
+        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'readable-agents-route-'));
         dataDir = path.join(tempRoot, 'data');
         fs.mkdirSync(dataDir, { recursive: true });
 
@@ -85,7 +85,7 @@ describe('GET /api/agents respects enabledAgentIds', () => {
             BUNDLED_PETS_DIR: path.join(tempRoot, 'pets'),
             DESIGN_SYSTEMS_DIR: path.join(tempRoot, 'design-systems'),
             DESIGN_TEMPLATES_DIR: path.join(tempRoot, 'design-templates'),
-            OD_BIN: path.join(tempRoot, 'od'),
+            READABLE_BIN: path.join(tempRoot, 'readable'),
             PROJECT_ROOT: tempRoot,
             PROJECTS_DIR: path.join(tempRoot, 'projects'),
             RUNTIME_DATA_DIR: dataDir,

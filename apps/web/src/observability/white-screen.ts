@@ -8,7 +8,7 @@
 // Success condition (anything below is treated as "still showing a
 // pre-mount skeleton" and the timer keeps running):
 //
-//   1. The App component has set `data-od-app-mounted="1"` on
+//   1. The App component has set `data-readable-app-mounted="1"` on
 //      `<html>` (its very first `useEffect` runs that). This is the
 //      authoritative marker — once App has rendered at all, any later
 //      tree crash is a `$exception` story, not a white-screen story.
@@ -17,7 +17,7 @@
 //      without the marker), we accept "any non-loading-shell child of
 //      <body> with > MIN_VISIBLE_TEXT visible text". This guards
 //      against the loading sentinel
-//      `<div class="od-loading-shell">Loading Open Design…</div>`
+//      `<div class="readable-loading-shell">Loading Readable Studio…</div>`
 //      being mistaken for a mount (codex review on PR #2527).
 //
 // We do not try to discriminate between "still loading" and "white screen
@@ -31,10 +31,10 @@ const APP_MOUNT_TIMEOUT_MS = 5000;
 // Below this floor we treat the root as still showing the skeleton shell.
 const MIN_VISIBLE_TEXT = 10;
 // Class names that signal "still loading" — we ignore them when computing
-// whether the app rendered something meaningful. `od-loading-shell` is
-// the dynamic-import fallback rendered by `client-app.tsx`.
-const LOADING_SHELL_CLASSES = new Set(['od-loading-shell']);
-const APP_MOUNTED_ATTR = 'data-od-app-mounted';
+// whether the app rendered something meaningful. `readable-loading-shell`
+// is the dynamic-import fallback rendered by `client-app.tsx`.
+const LOADING_SHELL_CLASSES = new Set(['readable-loading-shell']);
+const APP_MOUNTED_ATTR = 'data-readable-app-mounted';
 
 export function installWhiteScreenDetector(): () => void {
   if (typeof window === 'undefined') return () => undefined;

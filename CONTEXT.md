@@ -1,107 +1,81 @@
-# Open Design
+# Readable Studio language and context
 
-Open Design is a local-first design workspace where projects contain generated design files and agent conversations. This glossary records domain language only, not implementation details.
+This file defines canonical product language for current documentation and product copy.
 
-## Language
+## Product thesis
 
-**Project**:
-A top-level design workspace that contains conversations and design files.
-_Avoid_: repo, folder, session
+**Readable Studio turns source text into polished standalone HTML with AI generation and PowerPoint-like direct editing.** It is built for office workers creating AI-readable company documents without entering a prompt-and-wait cycle for every small revision. Its enterprise AI transformation thesis is practical: company source remains governed and inspectable while people and AI systems work from the same structured document.
 
-**Normal Artifact**:
-A project design output represented by an artifact entry file and its artifact manifest.
-_Avoid_: live artifact, generic file upload
+Canonical workflow:
 
-**Live Artifact**:
-A refreshable project design output stored as a live-artifact record with source data and preview state.
-_Avoid_: normal artifact, static artifact
+```text
+Source Text -> AI Generation -> Direct Editing -> Standalone HTML
+```
 
-**Artifact Entry File**:
-The primary project file that opens or renders a normal artifact.
-_Avoid_: support file, asset, sidecar
+## Canonical terms
 
-**Artifact Manifest**:
-The sidecar metadata that identifies a project file as a normal artifact and records its kind, renderer, exports, and entry file.
-_Avoid_: live-artifact document, project metadata
+**Source Text**
 
-**Active Project**:
-The project the user most recently interacted with in the Open Design UI and that MCP tools may use when no project is specified.
-_Avoid_: latest project, default project
+The user-supplied business material that grounds the document: a brief, report, plan, notes, requirements, approved copy, tables, or imported project files.
 
-**Home Composer Media Surface**:
-A Home-only composer intent that lets the prompt card expose media-specific defaults before project creation. The current media surfaces are `image`, `video`, `hyperframes`, and `audio`; they map onto the existing project kinds at submit time instead of extending the backend `ProjectKind` union.
-_Avoid_: project kind, backend kind
+_Avoid:_ empty prompt as the expected starting point; invented facts; design-only prompt.
 
-**Chip Rail**:
-The row of intent chips below the Home prompt card. A chip chooses the composer surface, default scenario plugin, default option state, and project kind stamp before the user presses Run.
-_Avoid_: plugin list, template list
+**AI Generation**
 
-**HyperFrames Composer Surface**:
-A standalone Home composer media surface shown between Video and Audio for HTML-based motion generation. It submits as `kind: "video"` with `videoModel: "hyperframes-html"` so persisted projects keep the existing video backend shape while the Home UI still gives HyperFrames its own entry point.
-_Avoid_: new project kind, separate backend media kind
+The agent-assisted first draft and substantive revision path. The selected plugin, skill, design system, source material, and project context are composed into the run.
 
-**Essential Audio Generation**:
-A Home Audio entry workflow for the audio capabilities that the product can attempt directly in v1. It includes speech and sound effects, and excludes music until there is an integrated music generation path.
-_Avoid_: audio studio, full music workflow
+_Avoid:_ magic generation; automatic publishing; implying that AI replaces the user's editorial responsibility.
 
-**Audio Source Field**:
-The inline Home Audio option that provides the source content for generation. Speech uses a Text source because the content is spoken; sound effects use a Prompt source because the content describes a sound to synthesize.
-_Avoid_: generic subject field, hidden prompt text
+**Direct Editing**
 
-**ElevenLabs Fallback Voice**:
-The default voice option shown when the Home Audio composer cannot load configured ElevenLabs voices. It keeps ElevenLabs speech runnable by selecting the same default voice id the daemon uses when no explicit voice is supplied.
-_Avoid_: required credential setup, empty voice selector
+PowerPoint-like editing in the rendered preview. The user selects content and changes text or presentation details directly, with source-backed persistence.
 
-**AMR Cloud**:
-The user-facing cloud runtime option for Open Design's official model router, shown in onboarding and login-oriented product surfaces.
-_Avoid_: Vela, local CLI label
+_Avoid:_ prompt-only iteration; regenerate for a typo; code editing as the only correction path.
 
-**AMR CLI**:
-The local command-line runtime adapter used to run AMR from an installed or packaged native CLI.
-_Avoid_: AMR Cloud, cloud account
+**Standalone HTML**
 
-**AMR CLI Distribution Contract**:
-The separately owned release contract that provides the native AMR CLI builds Open Design can package.
-_Avoid_: Open Design release channel, package build step, source checkout
+The canonical finished document: a self-contained HTML file that opens independently. Statically discoverable local dependencies are inlined; unresolved external or missing references are reported.
 
-**AMR CLI Distribution Slice**:
-The set of native AMR CLI platforms currently available through the distribution contract; platforms outside the slice do not bundle the AMR CLI.
-_Avoid_: Open Design supported platforms, release channel, future platform promise
+_Avoid:_ hosted page; share URL; website; automatic upload; claim that every runtime network dependency is captured.
 
-**AMR Account Status**:
-Whether the user has authenticated the account needed to use AMR Cloud.
-_Avoid_: profile badge, environment, CLI version
+**AI-readable company document**
 
-**AMR Environment Profile**:
-The target AMR service environment a packaged runtime is configured to use.
-_Avoid_: release channel, account status, app identity
+A structured artifact whose headings, text, tables, semantics, and source remain usable by people and downstream tools. It is not a screenshot-only canvas.
 
-**Onboarding Skip**:
-The explicit path that lets a user leave onboarding without completing the currently selected setup option.
-_Avoid_: continue, finish setup, passive close
+**Portable ZIP**
 
-## Relationships
+The only supported product artifact: a manually downloaded Windows 10/11 x64 ZIP containing `Readable Studio.exe`. It has no installer or updater.
 
-- A **Project** contains zero or more **Normal Artifacts**.
-- A **Normal Artifact** has exactly one **Artifact Entry File**.
-- A **Normal Artifact** has exactly one **Artifact Manifest**.
-- A **Live Artifact** belongs to a **Project** but is distinct from a **Normal Artifact**.
-- An **Active Project** can be used as the target for MCP operations when the caller omits an explicit **Project**.
-- A **Home Composer Media Surface** maps user intent to an existing project kind and project metadata at submit time.
-- The **Chip Rail** is the visible Home entry point for choosing a **Home Composer Media Surface**.
-- **Essential Audio Generation** uses an **Audio Source Field** plus model options before creating an audio **Project**.
-- **AMR Cloud** is the user-facing product choice; **AMR CLI** is the local execution adapter behind that capability.
-- The **AMR CLI Distribution Contract** is owned separately from Open Design; Open Design release packaging consumes it instead of defining the native CLI release itself.
-- The first **AMR CLI Distribution Slice** is mac arm64 only.
-- **AMR Account Status** describes account readiness for **AMR Cloud**, not the environment profile or CLI installation state.
-- An **AMR Environment Profile** is independent from release channel identity; a beta, preview, nightly, or stable package can target different AMR service environments when explicitly configured.
-- **Onboarding Skip** bypasses setup completion requirements that belong to the normal onboarding continue path.
+**Plugin**
+
+A portable workflow folder. `SKILL.md` carries agent-readable instructions; optional `readable-studio.json` carries Readable Studio metadata, inputs, capabilities, stages, and references.
+
+**Studio**
+
+The project workspace containing conversation, source files, rendered preview, direct editing, comments, tweaks, and export actions.
+
+## Product boundaries
+
+Say:
+
+- Windows 10/11 x64 portable ZIP;
+- manually download from GitHub Releases;
+- extract and run `Readable Studio.exe`;
+- local daemon, web UI, desktop shell, CLI, plugins, skills, design systems, direct editing, and exports;
+- standalone HTML is canonical, with artifact-dependent PDF/PPTX/ZIP/Markdown support.
+
+Do not claim:
+
+- a product website or website download;
+- an installer, updater, app store, or automatic release channel;
+- macOS, Linux, WSL, or Nix product support;
+- cloud publishing as part of the core workflow;
+- that direct editing removes or replaces integrated agent and CLI capabilities.
+
+Historical records, upstream issue citations, vendor names, and legal notices may use legacy terminology when accuracy requires it.
 
 ## Example dialogue
 
-> **Dev:** "When a coding agent creates a Codex deck through MCP, should it create a live artifact?"
-> **Domain expert:** "No. Unless the user asked for refreshable data, create a **Normal Artifact**: write the **Artifact Entry File** and persist its **Artifact Manifest** in the **Active Project**."
-
-## Flagged ambiguities
-
-- "artifact creation" was used to mean both **Normal Artifact** creation and **Live Artifact** creation; resolved: this capability creates **Normal Artifacts** only.
+> **Office worker:** "The first draft is right, but the heading is too long and two cards need to move. Do I have to prompt the agent again?"
+>
+> **Readable Studio:** "No. Select those elements in Edit mode, change the text and layout directly, then export the updated document as standalone HTML. Use the agent again when the revision is substantive rather than mechanical."

@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { TOKEN_SCHEMA } from '@open-design/contracts/design-systems/token-schema';
+import { TOKEN_SCHEMA } from '@readable-studio/contracts/design-systems/token-schema';
 
 import { startServer } from '../src/server.js';
 
@@ -130,7 +130,7 @@ describe('design-system import token contract auto-rebuild route', () => {
   }
 
   function makeImportSource(namePrefix: string, tokensCss: string): string {
-    const sourceRoot = mkdtempSync(path.join(tmpdir(), `od-${namePrefix}-`));
+    const sourceRoot = mkdtempSync(path.join(tmpdir(), `readable-${namePrefix}-`));
     tempDirs.push(sourceRoot);
     const name = `${namePrefix}-${randomUUID().slice(0, 8)}`;
     mkdirSync(path.join(sourceRoot, 'src', 'styles'), { recursive: true });

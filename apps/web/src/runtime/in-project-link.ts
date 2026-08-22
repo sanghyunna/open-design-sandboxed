@@ -33,7 +33,7 @@ export function asInProjectFilePath(
   const knownProjectFilePath = matchKnownProjectFilePath(normalizedHref, projectFileNames);
   if (knownProjectFilePath) return knownProjectFilePath;
   // RFC 3986 scheme: ALPHA *( ALPHA / DIGIT / "+" / "-" / "." ) followed by `:`.
-  // Catches http:, https:, mailto:, file:, od:, blob:, javascript:, etc.
+  // Catches http:, https:, mailto:, file:, readable:, blob:, javascript:, etc.
   if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return null;
   if (trimmed.startsWith('/')) return null;
   const stripped = trimmed.startsWith('./') ? trimmed.slice(2) : trimmed;

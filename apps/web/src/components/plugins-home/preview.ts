@@ -6,7 +6,7 @@
 //                poster with optional hover-play (video-template)
 //   - `html`   → sandboxed iframe rendering the plugin's example
 //                output / preview entry (examples + scenarios that
-//                ship a `od.preview.entry` or `exampleOutputs[]`)
+//                ship a `readable.preview.entry` or `exampleOutputs[]`)
 //   - `design` → design-system showcase thumbnail, falling back to
 //                a stylized brand patch when no showcase ref exists
 //   - `text`   → fallback layout (other scenario plugins, atoms
@@ -16,7 +16,7 @@
 // branch on a single discriminator and lets the unit tests assert
 // classification without touching React.
 
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 
 export type PluginPreviewKind = 'media' | 'html' | 'design' | 'text';
 
@@ -96,18 +96,18 @@ interface ContextRef {
 }
 
 function readPreview(record: InstalledPluginRecord): PreviewBlock | null {
-  const od = record.manifest?.od as { preview?: unknown } | undefined;
-  if (!od || typeof od.preview !== 'object' || od.preview === null) return null;
-  return od.preview as PreviewBlock;
+  const readable = record.manifest?.readable as { preview?: unknown } | undefined;
+  if (!readable || typeof readable.preview !== 'object' || readable.preview === null) return null;
+  return readable.preview as PreviewBlock;
 }
 
 // Pre-baked hover-pan clip attached by the daemon (scripts/bake-plugin-previews.mjs),
-// kept separate from `od.preview` so only gallery tiles use it.
+// kept separate from `readable.preview` so only gallery tiles use it.
 function readBakedPreview(
   record: InstalledPluginRecord,
 ): { poster: string; video: string; holdMs: number | null } | null {
-  const od = record.manifest?.od as { bakedPreview?: unknown } | undefined;
-  const b = od?.bakedPreview;
+  const readable = record.manifest?.readable as { bakedPreview?: unknown } | undefined;
+  const b = readable?.bakedPreview;
   if (!b || typeof b !== 'object') return null;
   const { poster, video, holdMs } = b as Record<string, unknown>;
   if (typeof poster !== 'string' || typeof video !== 'string') return null;
@@ -115,10 +115,10 @@ function readBakedPreview(
 }
 
 function readExamples(record: InstalledPluginRecord): ExampleOutputEntry[] {
-  const od = record.manifest?.od as
+  const readable = record.manifest?.readable as
     | { useCase?: { exampleOutputs?: unknown } }
     | undefined;
-  const list = od?.useCase?.exampleOutputs;
+  const list = readable?.useCase?.exampleOutputs;
   if (!Array.isArray(list)) return [];
   return list as ExampleOutputEntry[];
 }
@@ -132,8 +132,8 @@ function exampleStem(entry: ExampleOutputEntry): string | null {
 }
 
 function isDesignSystemPlugin(record: InstalledPluginRecord): boolean {
-  const od = record.manifest?.od as { mode?: unknown } | undefined;
-  if (typeof od?.mode === 'string' && od.mode.toLowerCase() === 'design-system') {
+  const readable = record.manifest?.readable as { mode?: unknown } | undefined;
+  if (typeof readable?.mode === 'string' && readable.mode.toLowerCase() === 'design-system') {
     return true;
   }
   const tags = record.manifest?.tags ?? [];
@@ -141,10 +141,10 @@ function isDesignSystemPlugin(record: InstalledPluginRecord): boolean {
 }
 
 function designSystemRef(record: InstalledPluginRecord): string | null {
-  const od = record.manifest?.od as
+  const readable = record.manifest?.readable as
     | { context?: { designSystem?: ContextRef } }
     | undefined;
-  const ref = od?.context?.designSystem?.ref;
+  const ref = readable?.context?.designSystem?.ref;
   return typeof ref === 'string' && ref.length > 0 ? ref : null;
 }
 
@@ -186,7 +186,7 @@ export function inferPluginPreview(
 ): PluginPreviewSpec {
   // Gallery tiles opt in to a pre-baked hover-pan clip (cheap thumbnail) when
   // the daemon has attached one. Everything else — crucially the detail modal —
-  // falls through to the real `od.preview`, so opening a plugin still shows the
+  // falls through to the real `readable.preview`, so opening a plugin still shows the
   // live, interactive page rather than the baked video.
   if (opts?.preferBaked) {
     const baked = readBakedPreview(record);

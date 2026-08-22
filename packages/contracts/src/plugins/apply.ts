@@ -61,7 +61,7 @@ export const AppliedPluginSnapshotSchema = z.object({
   pluginTitle:          z.string().optional(),
   pluginDescription:    z.string().optional(),
   query:                z.string().optional(),
-  // Apply-pipeline status — flips to 'stale' when `od plugin doctor` detects
+  // Apply-pipeline status — flips to 'stale' when `readable plugin doctor` detects
   // a digest drift after an upgrade. Snapshots are never rewritten in place.
   status: z.enum(['fresh', 'stale']).default('fresh'),
 });

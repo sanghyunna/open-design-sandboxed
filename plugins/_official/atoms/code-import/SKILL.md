@@ -1,7 +1,7 @@
 ---
 name: code-import
 description: Read an existing repository's structure into the project cwd as a normalised snapshot the agent can analyse without re-walking the tree on every turn.
-od:
+readable:
   scenario: code-migration
   mode: import
 ---
@@ -9,7 +9,7 @@ od:
 # Code import
 
 Spec §10 / §21.3.2: a code-migration / tune-collab run starts from a
-real repo (cloned via `od project import` or a path the user
+real repo (cloned via `readable project import` or a path the user
 provided). This atom turns the raw checkout into a normalised
 on-disk record that subsequent atoms (`design-extract`,
 `rewrite-plan`, `patch-edit`) operate against. The point is to
@@ -21,7 +21,7 @@ explicit re-import.
 
 | Source | Required | Notes |
 | --- | --- | --- |
-| `repoPath` | yes | Absolute path to the repo's root, supplied via `od project import` or an upstream `od.context.assets[]` reference |
+| `repoPath` | yes | Absolute path to the repo's root, supplied via `readable project import` or an upstream `readable.context.assets[]` reference |
 | `targetStack` | yes | { framework, packageManager, styleSystem, componentLibrary } via the matching `form` GenUI surface |
 
 ## Output
@@ -36,7 +36,7 @@ project-cwd/
 ```
 
 `code/index.json` is the input every other Phase 7 atom reads. The
-walk respects a budget (`OD_CODE_IMPORT_BUDGET_MS`, default 60s) so
+walk respects a budget (`READABLE_CODE_IMPORT_BUDGET_MS`, default 60s) so
 large monorepos don't burn an entire run on import.
 
 ## Convergence

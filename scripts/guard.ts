@@ -3,6 +3,8 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { checkCrossAppImports } from "./check-cross-app-imports.ts";
+import { checkReadableIdentityAudit } from "./readable-identity-audit.ts";
+import { checkReadableWorkspaceIdentity } from "./readable-workspace-identity.ts";
 import { checkBundledCopyLanguage } from "./check-bundled-copy-language.ts";
 import { checkDesignSystemManifests } from "./check-design-system-manifests.ts";
 import { checkDesignSystemPackageQuality } from "./check-design-system-package-quality.ts";
@@ -29,6 +31,11 @@ const repoRoot = path.resolve(import.meta.dirname, "..");
 const allowedE2eScripts = new Set([
   "e2e/scripts/playwright.ts",
   "e2e/scripts/release-smoke.ts",
+  "e2e/scripts/portable-qa.ts",
+  "e2e/scripts/portable-qa-fail-closed.ts",
+  "e2e/scripts/portable-qa-runtime.ts",
+  "e2e/scripts/portable-qa-support.ts",
+  "e2e/scripts/portable-qa-workflows.ts",
 ]);
 
 type GuardCheck = {
@@ -50,8 +57,8 @@ const residualSkippedDirectories = new Set([
   ".codex",
   ".cursor",
   ".git",
-  ".od",
-  ".od-e2e",
+  ".readable-studio",
+  ".readable-studio-e2e",
   ".opencode",
   ".task",
   ".tmp",
@@ -69,7 +76,6 @@ const residualAllowedExactPaths = new Set([
   "packages/diagnostics/esbuild.config.mjs",
   "packages/download/esbuild.config.mjs",
   "packages/host/esbuild.config.mjs",
-  "packages/launcher-proto/esbuild.config.mjs",
   "packages/metatool/esbuild.config.mjs",
   "packages/platform/esbuild.config.mjs",
   "packages/plugin-runtime/esbuild.config.mjs",
@@ -79,11 +85,11 @@ const residualAllowedExactPaths = new Set([
   // Maintainer utility scripts executed directly by Node and not loaded by the
   // app runtime.
   "scripts/postinstall.mjs",
-  // Checked-in bin shim so pnpm can link `od` before daemon dist output exists.
-  "apps/daemon/bin/od.mjs",
+  // Checked-in bin shim so pnpm can link `readable` before daemon dist output exists.
+  "apps/daemon/bin/readable.mjs",
   "apps/packaged/esbuild.config.mjs",
   // Browser service workers must be served as JavaScript files.
-  "apps/web/public/od-notifications-sw.js",
+  "apps/web/public/readable-studio-notifications-sw.js",
   // PostCSS loads Tailwind through a web-local .mjs compatibility config entry.
   "apps/web/postcss.config.mjs",
   // Offline plugin-preview renderer. Kept .mjs and run directly by Node so its
@@ -102,9 +108,6 @@ const residualAllowedExactPaths = new Set([
   "tools/dev/esbuild.config.mjs",
   "tools/pack/bin/tools-pack.mjs",
   "tools/pack/esbuild.config.mjs",
-  "tools/serve/bin/tools-serve.mjs",
-  "tools/serve/esbuild.config.mjs",
-  "tools/pack/resources/mac/notarize.cjs",
   // electron-builder hook path; CJS compatibility entry used by tools-pack desktop builds.
   "tools/pack/resources/web-standalone-after-pack.cjs",
 ]);
@@ -118,7 +121,7 @@ const residualAllowedPathPrefixes = [
   "e2e/reports/html/",
   "e2e/reports/playwright-html-report/",
   "e2e/reports/test-results/",
-  "e2e/ui/.od-data/",
+  "e2e/ui/.readable-studio-data/",
   "e2e/ui/reports/playwright-html-report/",
   "e2e/ui/reports/test-results/",
   "e2e/ui/test-results/",
@@ -126,7 +129,7 @@ const residualAllowedPathPrefixes = [
   "design-templates/last30days/scripts/lib/vendor/",
   // Vendored upstream html-ppt runtime assets (lewislulu/html-ppt-skill, design template).
   "design-templates/html-ppt/assets/",
-  // Replay-based mock CLIs that impersonate the agent CLIs OD spawns
+  // Replay-based mock CLIs that impersonate the agent CLIs Readable Studio spawns
   // (opencode/claude/codex/gemini/cursor-agent + ACP family). Need to
   // be directly executable via Node so `child_process.spawn` from test
   // harnesses and PATH-overlay shells work without any transform step.
@@ -407,7 +410,7 @@ async function checkPackageDependencySpecs(): Promise<boolean> {
 }
 
 const testLayoutScopedDirectories = ["apps", "packages", "tools"];
-const testLayoutSkippedDirectories = new Set([".next", ".od-data", "dist", "node_modules", "out", "reports", "test-results"]);
+const testLayoutSkippedDirectories = new Set([".next", ".readable-studio-data", "dist", "node_modules", "out", "reports", "test-results"]);
 
 function isTestFile(fileName: string): boolean {
   return /\.test\.tsx?$/.test(fileName);
@@ -477,7 +480,7 @@ async function checkTestLayout(): Promise<boolean> {
 }
 
 const e2ePackageJsonPath = path.join(repoRoot, "e2e", "package.json");
-const e2eSkippedDirectories = new Set([".od-data", "node_modules", "reports", "test-results"]);
+const e2eSkippedDirectories = new Set([".readable-studio-data", "node_modules", "reports", "test-results"]);
 const e2eAllowedScripts = [
   "test",
   "test:p0",
@@ -513,7 +516,7 @@ async function collectRepositoryFiles(directory: string, skippedDirectoryNames =
 
 const productNeutralitySkippedDirectories = new Set([
   ".git",
-  ".od",
+  ".readable-studio",
   ".tmp",
   "dist",
   "node_modules",
@@ -523,7 +526,7 @@ const productNeutralitySkippedDirectories = new Set([
 // Public contracts, help/prompt strings, docs, and shipped content should
 // describe the integration role, not name a private deployment. The default
 // check blocks named "orchestrator such as ..." examples; private forks can
-// add stricter local terms through OD_PRODUCT_NEUTRALITY_FORBIDDEN_TERMS.
+// add stricter local terms through READABLE_PRODUCT_NEUTRALITY_FORBIDDEN_TERMS.
 const productNeutralityCheckedPathPrefixes = [
   "apps/daemon/src/",
   "apps/web/app/",
@@ -599,7 +602,7 @@ function isProductNeutralityTextFile(repositoryPath: string): boolean {
 }
 
 function productNeutralityForbiddenTerms(): string[] {
-  return String(process.env.OD_PRODUCT_NEUTRALITY_FORBIDDEN_TERMS ?? "")
+  return String(process.env.READABLE_PRODUCT_NEUTRALITY_FORBIDDEN_TERMS ?? "")
     .split(",")
     .map((term) => term.trim())
     .filter((term) => term.length > 0);
@@ -879,7 +882,7 @@ async function checkE2eLayout(): Promise<boolean> {
   return true;
 }
 
-const webTestSkippedDirectories = new Set([".od-data", "reports", "test-results"]);
+const webTestSkippedDirectories = new Set([".readable-studio-data", "reports", "test-results"]);
 
 async function checkWebTestLayout(): Promise<boolean> {
   const violations: string[] = [];
@@ -912,7 +915,6 @@ const toolsRootAllowlist = new Map<string, "directory" | "file">([
   ["AGENTS.md", "file"],
   ["dev", "directory"],
   ["pack", "directory"],
-  ["serve", "directory"],
 ]);
 
 async function checkToolsLayout(): Promise<boolean> {
@@ -926,7 +928,7 @@ async function checkToolsLayout(): Promise<boolean> {
     const repositoryPath = `tools/${entry.name}${entry.isDirectory() ? "/" : ""}`;
 
     if (expected == null) {
-      violations.push(`${repositoryPath} -> tools/ top-level entries are allowlisted; expected only AGENTS.md, dev/, pack/, and serve/`);
+      violations.push(`${repositoryPath} -> tools/ top-level entries are allowlisted; expected only AGENTS.md, dev/, and pack/`);
       continue;
     }
 
@@ -957,7 +959,7 @@ async function checkToolsLayout(): Promise<boolean> {
 
 const stylePolicySkippedDirectories = new Set([
   ".next",
-  ".od-data",
+  ".readable-studio-data",
   "dist",
   "node_modules",
   "out",
@@ -967,6 +969,8 @@ const stylePolicySkippedDirectories = new Set([
 
 const stylePolicySourcePrefixes = ["apps/web/app/", "apps/web/src/", "packages/components/src/"];
 const stylePolicyHardcodedColorEnforcedPrefixes = ["scripts/guard-style-policy-fixtures/"];
+const designSystemMetadataPathPattern = /^design-systems\/[^/]+\/(?:manifest\.json|USAGE\.md|design-tokens\.json|source\/(?:evidence\.md|tokens\.source\.json|token-contract\.report\.json)|preview\/typography\.html)$/u;
+const staleDesignSystemIdentityPattern = /@open[-]design|Open[ ]Design|open[-]design|readable[-]design-(?:system-project|tokens)/gu;
 const stylePolicyHardcodedColorEnforcedExactPaths = new Set([
   "apps/web/src/components/AgentIcon.tsx",
   "apps/web/src/components/FileViewer.tsx",
@@ -986,9 +990,9 @@ const stylePolicyHardcodedColorEnforcedExactPaths = new Set([
   "apps/web/src/state/themes.ts",
 ]);
 const stylePolicyCheckedDirectoryPrefixes = [
-  ...new Set([...stylePolicySourcePrefixes, ...stylePolicyHardcodedColorEnforcedPrefixes]),
+  ...new Set([...stylePolicySourcePrefixes, ...stylePolicyHardcodedColorEnforcedPrefixes, "design-systems/"]),
 ];
-const stylePolicyExtensions = new Set([".css", ".ts", ".tsx"]);
+const stylePolicyExtensions = new Set([".css", ".html", ".json", ".md", ".ts", ".tsx"]);
 const tailwindDefaultColorNames = [
   "slate",
   "gray",
@@ -1186,13 +1190,26 @@ function isLikelyTsInlineStyleNamedColor(source: string, index: number): boolean
 export function collectStylePolicyViolationsFromSource(repositoryPath: string, source: string): StylePolicyViolation[] {
   const violations: StylePolicyViolation[] = [];
 
+  if (designSystemMetadataPathPattern.test(repositoryPath)) {
+    for (const match of source.matchAll(staleDesignSystemIdentityPattern)) {
+      addStylePolicyViolation(
+        violations,
+        repositoryPath,
+        source,
+        match.index ?? 0,
+        match[0],
+        "design-system product attribution must use Readable Studio metadata",
+      );
+    }
+  }
+
   if (isStylePolicySource(repositoryPath)) {
     for (const match of source.matchAll(defaultTailwindPaletteClassPattern)) {
       violations.push({
         filePath: repositoryPath,
         lineNumber: lineNumberForIndex(source, match.index ?? 0),
         match: match[0],
-        reason: "default Tailwind palette classes must use Open Design token utilities instead",
+        reason: "default Tailwind palette classes must use Readable Studio token utilities instead",
       });
     }
   }
@@ -1231,7 +1248,7 @@ export function collectStylePolicyViolationsFromSource(repositoryPath: string, s
           source,
           match.index,
           value,
-          "unregistered hardcoded UI colors must use Open Design tokens or an explicit allowlist entry",
+          "unregistered hardcoded UI colors must use Readable Studio tokens or an explicit allowlist entry",
         );
       }
     } else {
@@ -1251,7 +1268,7 @@ export function collectStylePolicyViolationsFromSource(repositoryPath: string, s
           source,
           index,
           value,
-          "unregistered hardcoded UI colors must use Open Design tokens or an explicit allowlist entry",
+          "unregistered hardcoded UI colors must use Readable Studio tokens or an explicit allowlist entry",
         );
       }
     }
@@ -1407,7 +1424,11 @@ async function collectStylePolicyViolations(directory: string): Promise<StylePol
     if (!entry.isFile() || !stylePolicyExtensions.has(path.extname(entry.name))) continue;
 
     const repositoryPath = toRepositoryPath(fullPath);
-    if (!isStylePolicySource(repositoryPath) && !isHardcodedColorEnforcedPath(repositoryPath)) continue;
+    if (
+      !isStylePolicySource(repositoryPath)
+      && !isHardcodedColorEnforcedPath(repositoryPath)
+      && !designSystemMetadataPathPattern.test(repositoryPath)
+    ) continue;
 
     violations.push(...collectStylePolicyViolationsFromSource(repositoryPath, await readFile(fullPath, "utf8")));
   }
@@ -1444,7 +1465,7 @@ async function checkStylePolicy(): Promise<boolean> {
     for (const violation of violations) {
       console.error(`- ${violation.filePath}:${violation.lineNumber} \`${violation.match}\` -> ${violation.reason}`);
     }
-    console.error("Use Open Design token utilities/CSS variables or add a narrow allowlist entry with a reason.");
+    console.error("Use Readable Studio token utilities/CSS variables or add a narrow allowlist entry with a reason.");
     return false;
   }
 
@@ -1453,6 +1474,8 @@ async function checkStylePolicy(): Promise<boolean> {
 }
 
 const checks: GuardCheck[] = [
+  { name: "readable identity baseline", run: checkReadableIdentityAudit },
+  { name: "readable workspace identity", run: checkReadableWorkspaceIdentity },
   { name: "residual JavaScript", run: checkResidualJavaScript },
   { name: "bundled copy language", run: checkBundledCopyLanguage },
   { name: "package dependency specs", run: checkPackageDependencySpecs },

@@ -1,3 +1,5 @@
+import type { ARTIFACT_MANIFEST_SCHEMA } from '@readable-studio/contracts';
+
 export type ArtifactKind =
   | 'html'
   | 'deck'
@@ -33,7 +35,7 @@ export type ArtifactExportKind =
 export type ArtifactStatus = 'streaming' | 'complete' | 'error';
 
 export interface ArtifactManifest {
-  version: 1;
+  schema: typeof ARTIFACT_MANIFEST_SCHEMA;
   kind: ArtifactKind;
   title: string;
   entry: string;

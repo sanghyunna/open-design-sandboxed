@@ -316,7 +316,7 @@ describe('DesignSystemCreationFlow', () => {
     await waitFor(() => expect(mocks.patchProject).toHaveBeenCalledWith(
       project.id,
       expect.objectContaining({
-        pendingPrompt: expect.stringContaining('Create this project as a complete Open Design design system workspace.'),
+        pendingPrompt: expect.stringContaining('Create this project as a complete Readable Studio design system workspace.'),
       }),
     ));
     await waitFor(() => expect(onProjectPrepared).toHaveBeenCalledWith(
@@ -403,7 +403,7 @@ describe('DesignSystemCreationFlow', () => {
     expect(mocks.patchProject).toHaveBeenCalledWith(
       project.id,
       expect.objectContaining({
-        pendingPrompt: expect.stringContaining('Create this project as a complete Open Design design system workspace.'),
+        pendingPrompt: expect.stringContaining('Create this project as a complete Readable Studio design system workspace.'),
       }),
     );
     expect(mocks.patchProject).toHaveBeenCalledWith(
@@ -822,7 +822,7 @@ describe('DesignSystemCreationFlow', () => {
       'context/source-context.md',
       expect.stringContaining('Placeholder component shells are not sufficient'),
     );
-    expect(window.sessionStorage.getItem(`od:auto-send-first:${project.id}`)).toBe('1');
+    expect(window.sessionStorage.getItem(`readable:auto-send-first:${project.id}`)).toBe('1');
     expect(onCreated).toHaveBeenCalledWith(project.id, project);
     expect(onSystemsRefresh).toHaveBeenCalled();
   });
@@ -906,7 +906,7 @@ describe('DesignSystemCreationFlow', () => {
     )?.[2] as string | undefined;
     expect(sourceManifestBody).not.toContain('Local Folder Intake Runbook');
     expect(sourceManifestBody).not.toContain('local-design-context --path');
-    expect(window.sessionStorage.getItem(`od:auto-send-first:${project.id}`)).toBe('1');
+    expect(window.sessionStorage.getItem(`readable:auto-send-first:${project.id}`)).toBe('1');
     expect(onCreated).toHaveBeenCalledWith(project.id, project);
   });
 

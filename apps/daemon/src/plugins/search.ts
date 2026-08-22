@@ -5,9 +5,9 @@
 // structural filters (taskKind / mode / tag / trust).
 //
 // The function is consumed by:
-//   - `od plugin search <query>` (new in §3.Y1) — searches installed
+//   - `readable plugin search <query>` (new in §3.Y1) — searches installed
 //     plugins for discovery,
-//   - `od plugin list --filter ...` (new in §3.Y1) — same filter
+//   - `readable plugin list --filter ...` (new in §3.Y1) — same filter
 //     surface without requiring a query.
 //
 // The matcher is intentionally simple — case-insensitive substring
@@ -16,7 +16,7 @@
 // this helper is for the local installed roster only and never
 // pretends to be a search engine.
 
-import type { InstalledPluginRecord, PluginManifest, TrustTier } from '@open-design/contracts';
+import type { InstalledPluginRecord, PluginManifest, TrustTier } from '@readable-studio/contracts';
 
 export interface SearchInstalledPluginsInput {
   plugins: ReadonlyArray<InstalledPluginRecord>;
@@ -63,9 +63,9 @@ export function searchInstalledPlugins(input: SearchInstalledPluginsInput): Sear
     const matched: SearchInstalledPluginsResultEntry['matched'] = [];
 
     // Structural filters first (cheap; short-circuit on miss).
-    if (taskKind && (manifest.od?.taskKind ?? '').toLowerCase() !== taskKind) continue;
+    if (taskKind && (manifest.readable?.taskKind ?? '').toLowerCase() !== taskKind) continue;
     if (taskKind) matched.push('taskKind');
-    if (mode && (manifest.od?.mode ?? '').toLowerCase() !== mode) continue;
+    if (mode && (manifest.readable?.mode ?? '').toLowerCase() !== mode) continue;
     if (mode) matched.push('mode');
     if (trust && plugin.trust !== trust) continue;
     if (trust) matched.push('trust');

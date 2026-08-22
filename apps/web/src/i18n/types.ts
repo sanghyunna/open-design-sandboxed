@@ -468,8 +468,6 @@ export interface Dict {
   'settings.runtimePackaged': string;
   'settings.runtimeDevelopment': string;
   'settings.versionUnavailable': string;
-  'settings.installLatest': string;
-  'settings.alreadyLatest': string;
   'settings.skills': string;
   'settings.skillsHint': string;
   'settings.skillsNew': string;
@@ -721,33 +719,6 @@ export interface Dict {
   'notify.successBody': string;
   'notify.failureBody': string;
 
-  // Desktop updater
-  'updater.available': string;
-  'updater.availableBody': string;
-  'updater.checking': string;
-  'updater.download': string;
-  'updater.downloading': string;
-  'updater.downloadingPercent': string;
-  'updater.done': string;
-  'updater.failed': string;
-  'updater.installerOpenBody': string;
-  'updater.installerOpened': string;
-  'updater.later': string;
-  'updater.openFailedFallback': string;
-  'updater.installRestart': string;
-  'updater.installingRestart': string;
-  'updater.openInstaller': string;
-  'updater.opening': string;
-  'updater.payloadReadyGeneric': string;
-  'updater.payloadReadyVersion': string;
-  'updater.quitButton': string;
-  'updater.quitFailedBody': string;
-  'updater.quitFailedTitle': string;
-  'updater.quitting': string;
-  'updater.ready': string;
-  'updater.readyGeneric': string;
-  'updater.readyVersion': string;
-  'updater.upToDate': string;
 
   // Newsletter email field on the onboarding About-you step.
   'newsletter.label': string;
@@ -1404,8 +1375,6 @@ export interface Dict {
   'entry.helpMenuAria': string;
   'entry.helpGetHelp': string;
   'entry.helpSubmitFeature': string;
-  'entry.helpWhatsNew': string;
-  'entry.helpDownloadDesktop': string;
   // GitHub star pill in the top bar
 
 
@@ -1573,7 +1542,7 @@ export interface Dict {
   'examples.shareTitle': string;
   'examples.shareLoadFirst': string;
   // Card placeholder + share-button hint for skills whose
-  // `od.preview.type` is not `html` (image / markdown / …) so the
+  // `readable.preview.type` is not `html` (image / markdown / …) so the
   // gallery doesn't sit on a forever "Loading preview…" shimmer for
   // skills that ship no fetchable artifact. Issue #897.
   'examples.unavailablePlaceholder': string;
@@ -1626,10 +1595,6 @@ export interface Dict {
   'avatar.modelLabel': string;
   'avatar.reasoningLabel': string;
   'avatar.customSuffix': string;
-  'socialShare.openDesignSection': string;
-  'socialShare.openDesignTitle': string;
-  'socialShare.openDesignText': string;
-  'socialShare.openDesignCopyText': string;
   'socialShare.projectSection': string;
   'socialShare.projectTitle': string;
   'socialShare.projectText': string;
@@ -2032,11 +1997,11 @@ export interface Dict {
   'preview.errorTitle': string;
   'preview.errorBody': string;
   'preview.retry': string;
-  // Friendly placeholder copy for surfaces whose `od.preview.type` is
+  // Friendly placeholder copy for surfaces whose `readable.preview.type` is
   // not `html`, or whose manifest declares a preview entry that doesn't
   // ship on disk — they have no fetchable example artifact, so the
   // loading / error states are misleading. Issues #897, #2840, #3216.
-  // Body uses the `{kind}` placeholder (raw `od.preview.type` token,
+  // Body uses the `{kind}` placeholder (raw `readable.preview.type` token,
   // e.g. "markdown" or "image"); both keys use the `{noun}` placeholder
   // so the same wording reads correctly on skills, plugins, and design
   // templates (filled from one of the `preview.noun.*` keys below).
@@ -2489,6 +2454,12 @@ export interface Dict {
   'fileViewer.exportJsx': string;
   'fileViewer.exportReactHtml': string;
   'fileViewer.exportStarted': string;
+  'fileViewer.standaloneExportSuccess': string;
+  'fileViewer.standaloneExportExternal': string;
+  'fileViewer.standaloneExportMissing': string;
+  'fileViewer.standaloneExportExternalAndMissing': string;
+  'fileViewer.standaloneExportFailed': string;
+  'fileViewer.standaloneExportTooLarge': string;
   'fileViewer.saveAsTemplate': string;
   'fileViewer.savingTemplate': string;
   'fileViewer.savedTemplate': string;
@@ -2661,7 +2632,6 @@ export interface Dict {
   'rollback.agentRequestDiffAria': string;
   'rollback.agentRequestRejected': string;
   'rollback.agentRequestExpired': string;
-  'assistant.shareToOpenDesign': string;
   'assistant.emptyResponseLabel': string;
   'assistant.emptyResponseMessage': string;
   'assistant.unfinishedLabel': string;

@@ -162,25 +162,25 @@ export interface ManualEditHistoryEntry {
 }
 
 export interface ManualEditTargetMessage {
-  type: 'od-edit-targets';
+  type: 'readable-edit-targets';
   targets: ManualEditTarget[];
   documentEpoch?: string;
   sequence?: number;
 }
 
 export interface ManualEditSelectMessage {
-  type: 'od-edit-select';
+  type: 'readable-edit-select';
   target: ManualEditTarget;
 }
 
 export interface ManualEditHoverMessage {
-  type: 'od-edit-hover';
+  type: 'readable-edit-hover';
   target: ManualEditTarget | null;
 }
 
 /** Host overlay -> iframe: re-resolve hover beneath an overlay surface. */
 export interface ManualEditHoverAtMessage {
-  type: 'od-edit-hover-at';
+  type: 'readable-edit-hover-at';
   clientX: number;
   clientY: number;
   selectedId: string;
@@ -188,7 +188,7 @@ export interface ManualEditHoverAtMessage {
 }
 
 export interface ManualEditBackgroundMessage {
-  type: 'od-edit-background';
+  type: 'readable-edit-background';
 }
 
 export type ManualEditResizeAxis = 'width' | 'height';
@@ -217,7 +217,7 @@ export interface ManualEditResizeOutcome {
 }
 
 export interface ManualEditPreviewAppliedMessage {
-  type: 'od-edit-preview-style-applied';
+  type: 'readable-edit-preview-style-applied';
   id: string;
   version: number;
   ok: boolean;
@@ -240,7 +240,7 @@ export interface ManualEditPreviewAppliedMessage {
 }
 
 export interface ManualEditDuplicateCreateMessage {
-  type: 'od-edit-duplicate-create';
+  type: 'readable-edit-duplicate-create';
   documentEpoch: string;
   transactionId: string;
   sequence: number;
@@ -251,7 +251,7 @@ export interface ManualEditDuplicateCreateMessage {
 }
 
 export interface ManualEditDuplicateUpdateMessage {
-  type: 'od-edit-duplicate-update';
+  type: 'readable-edit-duplicate-update';
   documentEpoch: string;
   transactionId: string;
   sequence: number;
@@ -259,14 +259,14 @@ export interface ManualEditDuplicateUpdateMessage {
 }
 
 export interface ManualEditDuplicateCancelMessage {
-  type: 'od-edit-duplicate-cancel';
+  type: 'readable-edit-duplicate-cancel';
   documentEpoch: string;
   transactionId: string;
   sequence: number;
 }
 
 export interface ManualEditDuplicatePreviewMessage {
-  type: 'od-edit-duplicate-preview';
+  type: 'readable-edit-duplicate-preview';
   documentEpoch: string;
   transactionId: string;
   sequence: number;
@@ -278,31 +278,31 @@ export interface ManualEditDuplicatePreviewMessage {
 }
 
 export interface ManualEditDuplicateRemovedMessage {
-  type: 'od-edit-duplicate-removed';
+  type: 'readable-edit-duplicate-removed';
   documentEpoch: string;
   transactionId: string;
   sequence: number;
 }
 
 export interface ManualEditTextCommitMessage {
-  type: 'od-edit-text-commit';
+  type: 'readable-edit-text-commit';
   id: string;
   value: string;
 }
 
 export interface ManualEditHtmlCommitMessage {
-  type: 'od-edit-html-commit';
+  type: 'readable-edit-html-commit';
   id: string;
   html: string;
 }
 
 export interface ManualEditUndoMessage {
-  type: 'od-edit-undo';
+  type: 'readable-edit-undo';
   redo: boolean;
 }
 
 export interface ManualEditNudgeMessage {
-  type: 'od-edit-nudge';
+  type: 'readable-edit-nudge';
   direction: 'up' | 'down' | 'left' | 'right';
   /** Stable id of the selected target that must still be selected on the host. */
   targetId: string;
@@ -311,7 +311,7 @@ export interface ManualEditNudgeMessage {
 }
 
 export interface ManualEditBurstCancelMessage {
-  type: 'od-edit-burst-cancel';
+  type: 'readable-edit-burst-cancel';
 }
 
 // iframe -> host: all owned arrow keys were released inside the preview, so the
@@ -319,7 +319,7 @@ export interface ManualEditBurstCancelMessage {
 // iframe boundary, so the bridge tracks its own held arrow keys and emits this
 // once the set empties. Carries identity so a stale burst end is ignored.
 export interface ManualEditNudgeCommitMessage {
-  type: 'od-edit-nudge-commit';
+  type: 'readable-edit-nudge-commit';
   targetId: string;
   revision: number;
 }
@@ -330,7 +330,7 @@ export interface ManualEditNudgeCommitMessage {
 // crossed the boundary mid-hold) ends on this signal. Carries identity so a
 // stale keyup is ignored.
 export interface ManualEditNudgeKeyupMessage {
-  type: 'od-edit-nudge-keyup';
+  type: 'readable-edit-nudge-keyup';
   key: string;
   targetId: string;
   revision: number;
@@ -339,7 +339,7 @@ export interface ManualEditNudgeKeyupMessage {
 // iframe -> host: reports the live rich-text edit/selection/format state so the
 // typography toolbar can enable + show pressed state for B/I/U.
 export interface ManualEditSelectionStateMessage {
-  type: 'od-edit-selection-state';
+  type: 'readable-edit-selection-state';
   editing: boolean;       // an element is in a rich (contenteditable="true") edit session
   hasSelection: boolean;  // a non-collapsed selection sits inside that element
   bold: boolean;
@@ -349,14 +349,14 @@ export interface ManualEditSelectionStateMessage {
 
 // host -> iframe: apply an execCommand format command to the current selection.
 export interface ManualEditRichFormatMessage {
-  type: 'od-edit-rich-format';
+  type: 'readable-edit-rich-format';
   command: 'bold' | 'italic' | 'underline';
 }
 
 // host -> iframe: explicitly enter the rich-text edit session for an element
 // (for example, a structured container's double-click).
 export interface ManualEditBeginTextEditMessage {
-  type: 'od-edit-begin-text-edit';
+  type: 'readable-edit-begin-text-edit';
   id: string;
 }
 
@@ -365,22 +365,22 @@ export interface ManualEditBeginTextEditMessage {
 // The bridge tears down contenteditable and re-broadcasts selection-state
 // (editing: false) so the host flips the move frame to object-selected mode.
 export interface ManualEditEndTextEditMessage {
-  type: 'od-edit-end-text-edit';
+  type: 'readable-edit-end-text-edit';
 }
 
 export interface ManualEditClickMessage {
-  type: 'od-edit-click';
+  type: 'readable-edit-click';
   clientX: number;
   clientY: number;
   selectedId: string;
 }
 
 export interface ManualEditClickCancelMessage {
-  type: 'od-edit-click-cancel';
+  type: 'readable-edit-click-cancel';
 }
 
 export interface ManualEditAltClickMessage {
-  type: 'od-edit-alt-click';
+  type: 'readable-edit-alt-click';
   clientX: number;
   clientY: number;
 }

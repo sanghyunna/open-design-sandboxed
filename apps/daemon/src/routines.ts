@@ -8,7 +8,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-// Local mirror of the @open-design/contracts routine types. Kept here so
+// Local mirror of the @readable-studio/contracts routine types. Kept here so
 // this service typechecks under NodeNext (the contracts dist re-exports are
 // extension-less, which only works under bundler-mode resolution). The
 // shapes must stay aligned with packages/contracts/src/api/routines.ts.
@@ -519,7 +519,7 @@ export class RoutineService {
         })
         .catch((error) => {
           console.error(
-            `[od] routine ${routine.id} scheduled run failed:`,
+            `[readable] routine ${routine.id} scheduled run failed:`,
             error instanceof ScheduledRunPersistenceError
               ? error.originalError instanceof Error
                 ? error.originalError.message
@@ -652,7 +652,7 @@ export class RoutineService {
         }
         if (discardError != null) {
           console.error(
-            `[od] routine ${routine.id} prepare cleanup failed:`,
+            `[readable] routine ${routine.id} prepare cleanup failed:`,
             discardError instanceof Error ? discardError.message : discardError,
           );
         }

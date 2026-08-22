@@ -2,24 +2,26 @@ import { randomBytes } from "node:crypto";
 
 import {
   APP_KEYS,
-  OPEN_DESIGN_SIDECAR_CONTRACT,
+  SIDECAR_CONTRACT,
   SIDECAR_ENV,
   SIDECAR_MESSAGES,
+  createRuntimeDescriptor,
   normalizeDaemonSidecarMessage,
   type DaemonStatusSnapshot,
   type DesktopExportPdfInput,
   type DesktopExportPdfResult,
   type MintImportTokenResult,
   type SidecarStamp,
-} from "@open-design/sidecar-proto";
+} from "@readable-studio/sidecar-proto";
 import {
   createJsonIpcServer,
   requestJsonIpc,
   resolveAppIpcPath,
   type JsonIpcServerHandle,
   type SidecarRuntimeContext,
-} from "@open-design/sidecar";
+} from "@readable-studio/sidecar";
 
+import { readCurrentAppVersionInfo } from "../app-version.js";
 import { startDaemonRuntime, type StartedDaemonRuntime } from "../daemon-startup.js";
 import {
   getDesktopAuthSecret,
@@ -120,7 +122,7 @@ export async function startDaemonSidecar(runtime: SidecarRuntimeContext<SidecarS
     desktopPdfExporter: async (input: DesktopExportPdfInput): Promise<DesktopExportPdfResult> => {
       const desktopIpc = resolveAppIpcPath({
         app: APP_KEYS.DESKTOP,
-        contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+        contract: SIDECAR_CONTRACT,
         namespace: runtime.namespace,
       });
       return await requestJsonIpc<DesktopExportPdfResult>(
@@ -139,7 +141,9 @@ export async function startDaemonSidecar(runtime: SidecarRuntimeContext<SidecarS
   // the public `status()` method below recompute it from
   // `isDesktopAuthGateActive()` per request — the value cached here is
   // a startup snapshot only.
+  const appVersion = await readCurrentAppVersionInfo();
   const state: DaemonStatusSnapshot = {
+    descriptor: createRuntimeDescriptor(appVersion.version),
     desktopAuthGateActive: isDesktopAuthGateActive(),
     pid: process.pid,
     state: "running",

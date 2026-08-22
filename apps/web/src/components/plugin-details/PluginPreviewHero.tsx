@@ -1,7 +1,7 @@
 // Hero preview surface for the PluginDetailsModal.
 //
 // Renders example outputs declared in the manifest's
-// `od.useCase.exampleOutputs[]` as a sandboxed iframe inside a
+// `readable.useCase.exampleOutputs[]` as a sandboxed iframe inside a
 // browser-chrome frame, with a tab pill row when more than one
 // example exists. The daemon serves each example via
 // `/api/plugins/:id/example/:name` with the §9.2 CSP +

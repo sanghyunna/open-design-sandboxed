@@ -6,7 +6,7 @@ import {
 } from '../src/providers/hosted';
 
 const session = {
-  publicOrigin: 'https://hosted.open-design.test',
+  publicOrigin: 'https://hosted.readable-studio.test',
   csrfToken: 'csrf-one',
   csrfExpiresAt: Date.now() + 60_000,
   providers: [{ id: 'anthropic', model: 'claude-sonnet-4-20250514' }],
@@ -44,7 +44,7 @@ describe('HostedProviderClient content surface', () => {
       credentials: 'include',
       headers: expect.objectContaining({
         Origin: session.publicOrigin,
-        'X-Open-Design-CSRF': session.csrfToken,
+        'X-Readable-Studio-CSRF': session.csrfToken,
       }),
     });
     expect(fetcher.mock.calls.flatMap(([url]) => String(url))).not.toContain('/raw/');
@@ -144,8 +144,8 @@ describe('HostedProviderClient content surface', () => {
     expect((body.getAll('files')[0] as File).name).toBe('one.txt');
     expect(new Headers(first?.headers).get('content-type')).toBeNull();
     expect(new Headers(first?.headers).get('origin')).toBe(session.publicOrigin);
-    expect(new Headers(first?.headers).get('x-open-design-csrf')).toBe('csrf-one');
-    expect(new Headers(retry?.headers).get('x-open-design-csrf')).toBe('csrf-two');
+    expect(new Headers(first?.headers).get('x-readable-studio-csrf')).toBe('csrf-one');
+    expect(new Headers(retry?.headers).get('x-readable-studio-csrf')).toBe('csrf-two');
   });
 
   it('returns only same-origin API URLs for archive, manifest, and artifact downloads', () => {

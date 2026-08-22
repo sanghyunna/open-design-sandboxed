@@ -2,7 +2,7 @@
 name: mythic-naturecore
 description: "Use this plugin when the user wants a cinematic mythic-naturecore landing page — the 'Reverie' template: a scroll-linked zoom-through-a-portal hero with mirrored opening curtains, a layered world background, mouse-parallax 3D depth, and an elegant Viaoda-Libre/Imprima serif+sans pairing. Invoke for 'naturecore landing', 'portal scroll page', 'Reverie', 'cinematic parallax hero', or when the user references the Mythic Naturecore template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design
@@ -42,15 +42,15 @@ body { font-family: 'Imprima', sans-serif; }
 Define these exact constants at the top of the script. These are big background stills on a stable CDN (`res.cloudinary.com`); per the inline-vs-remote rule they **stay remote** — do NOT re-host, swap the host, or inline them.
 
 ```
-PORTAL_BG    = https://plugin-assets.open-design.ai/plugins/mythic-naturecore/portal_bg_mu60k9-78f20d.webp
-CURTAIN_LEFT = https://plugin-assets.open-design.ai/plugins/mythic-naturecore/curtain_left_cdht6q-c85f2f.webp
-CURTAIN_RIGHT= https://plugin-assets.open-design.ai/plugins/mythic-naturecore/curtain_right_a9bn3i-1ca8f6.webp
-WORLD_BG     = https://plugin-assets.open-design.ai/plugins/mythic-naturecore/world_bg_jzzcn1-dfd909.webp
+PORTAL_BG    = https://plugin-assets.readable-studio.ai/plugins/mythic-naturecore/portal_bg_mu60k9-78f20d.webp
+CURTAIN_LEFT = https://plugin-assets.readable-studio.ai/plugins/mythic-naturecore/curtain_left_cdht6q-c85f2f.webp
+CURTAIN_RIGHT= https://plugin-assets.readable-studio.ai/plugins/mythic-naturecore/curtain_right_a9bn3i-1ca8f6.webp
+WORLD_BG     = https://plugin-assets.readable-studio.ai/plugins/mythic-naturecore/world_bg_jzzcn1-dfd909.webp
 // Cards MUST remain in this exact order (Card 3, Card 1, Card 2):
 CARD_IMAGES = [
-  https://plugin-assets.open-design.ai/plugins/mythic-naturecore/card_3_nbwm25-de0132.webp,  // Card 3
-  https://plugin-assets.open-design.ai/plugins/mythic-naturecore/card_2_wr6al6-b3a8c5.webp,  // Card 1
-  https://plugin-assets.open-design.ai/plugins/mythic-naturecore/card_1_jz8otj-096be2.webp   // Card 2
+  https://plugin-assets.readable-studio.ai/plugins/mythic-naturecore/card_3_nbwm25-de0132.webp,  // Card 3
+  https://plugin-assets.readable-studio.ai/plugins/mythic-naturecore/card_2_wr6al6-b3a8c5.webp,  // Card 1
+  https://plugin-assets.readable-studio.ai/plugins/mythic-naturecore/card_1_jz8otj-096be2.webp   // Card 2
 ]
 ```
 

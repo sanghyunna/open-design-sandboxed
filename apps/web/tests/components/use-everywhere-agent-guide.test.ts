@@ -6,7 +6,7 @@ import { GUIDE_SECTIONS } from '../../src/components/use-everywhere/sections';
 describe('buildAgentGuideMarkdown', () => {
   it('emits a top-level header and the setup checklist by default', () => {
     const md = buildAgentGuideMarkdown();
-    expect(md).toMatch(/^# Open Design — agent setup guide/);
+    expect(md).toMatch(/^# Readable Studio — agent setup guide/);
     expect(md).toContain('## Setup checklist');
     expect(md).toContain('http://127.0.0.1:7456/api/health');
     expect(md).toContain('http://127.0.0.1:7456/api/mcp/install-info');
@@ -44,28 +44,28 @@ describe('buildAgentGuideMarkdown', () => {
 
   it('documents the current project create plus run start CLI flow', () => {
     const md = buildAgentGuideMarkdown();
-    expect(md).toContain('od project create');
-    expect(md).toContain('od run start');
+    expect(md).toContain('readable project create');
+    expect(md).toContain('readable run start');
     expect(md).toContain('--conversation "$CONVERSATION_ID"');
     expect(md).toContain('[form answers - discovery]');
-    expect(md).toContain('od files list "$PROJECT_ID"');
-    expect(md).not.toContain('od run \\\n  --plugin');
+    expect(md).toContain('readable files list "$PROJECT_ID"');
+    expect(md).not.toContain('readable run \\\n  --plugin');
     expect(md).not.toContain("--prompt 'A 10-slide investor pitch");
   });
 
   it('surfaces version and CLI hints in the checklist when supplied', () => {
     const md = buildAgentGuideMarkdown({
       versionHint: '0.42.0',
-      cliHint: '/usr/local/bin/od',
+      cliHint: '/usr/local/bin/readable',
     });
-    expect(md).toContain('Reported Open Design version: `0.42.0`');
-    expect(md).toContain('The user reported `od` at: `/usr/local/bin/od`');
+    expect(md).toContain('Reported Readable Studio version: `0.42.0`');
+    expect(md).toContain('The user reported `readable` at: `/usr/local/bin/readable`');
   });
 
   it('omits hint sentences when the corresponding option is not provided', () => {
     const md = buildAgentGuideMarkdown();
-    expect(md).not.toContain('Reported Open Design version');
-    expect(md).not.toContain('The user reported `od` at');
+    expect(md).not.toContain('Reported Readable Studio version');
+    expect(md).not.toContain('The user reported `readable` at');
   });
 
   it('always closes with a Reference URLs section', () => {

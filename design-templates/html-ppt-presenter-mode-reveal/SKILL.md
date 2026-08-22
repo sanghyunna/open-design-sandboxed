@@ -5,7 +5,7 @@ triggers:
   - "presenter mode"
   - "speaker notes"
   - "presenter view"
-od:
+readable:
   mode: deck
   scenario: engineering
   upstream: "https://github.com/lewislulu/html-ppt-skill"

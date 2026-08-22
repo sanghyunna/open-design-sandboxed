@@ -32,7 +32,7 @@ describe('/api/chat', () => {
   let baseUrl: string;
   let originalMemoryConfig: Awaited<ReturnType<typeof readMemoryConfig>> | null = null;
   const originalPath = process.env.PATH;
-  const originalAgentHome = process.env.OD_AGENT_HOME;
+  const originalAgentHome = process.env.READABLE_AGENT_HOME;
   const tempDirs: string[] = [];
 
   async function createPluginFixture(args: {
@@ -40,7 +40,7 @@ describe('/api/chat', () => {
     dirName: string;
     localSkillPath?: string;
   }): Promise<string> {
-    const root = await fsp.mkdtemp(join(tmpdir(), 'od-plugin-fixture-'));
+    const root = await fsp.mkdtemp(join(tmpdir(), 'readable-plugin-fixture-'));
     tempDirs.push(root);
     const fixtureDir = resolve(root, args.dirName);
     const baseFixtureDir = resolve(
@@ -51,27 +51,27 @@ describe('/api/chat', () => {
       'sample-plugin',
     );
     await fsp.cp(baseFixtureDir, fixtureDir, { recursive: true });
-    const manifestPath = resolve(fixtureDir, 'open-design.json');
+    const manifestPath = resolve(fixtureDir, 'readable-studio.json');
     const manifest = JSON.parse(await fsp.readFile(manifestPath, 'utf8')) as {
       name: string;
       title: string;
-      od?: { context?: { skills?: Array<{ ref?: string; path?: string }> } };
+      readable?: { context?: { skills?: Array<{ ref?: string; path?: string }> } };
     };
     manifest.name = args.pluginId;
     manifest.title = args.pluginId;
     if (args.localSkillPath) {
-      manifest.od ??= {};
-      manifest.od.context ??= {};
-      manifest.od.context.skills = [{ path: args.localSkillPath }];
+      manifest.readable ??= {};
+      manifest.readable.context ??= {};
+      manifest.readable.context.skills = [{ path: args.localSkillPath }];
     }
     await fsp.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
     return fixtureDir;
   }
 
   beforeAll(async () => {
-    if (process.env.OD_DATA_DIR) {
-      originalMemoryConfig = await readMemoryConfig(process.env.OD_DATA_DIR);
-      await writeMemoryConfig(process.env.OD_DATA_DIR, {
+    if (process.env.READABLE_DATA_DIR) {
+      originalMemoryConfig = await readMemoryConfig(process.env.READABLE_DATA_DIR);
+      await writeMemoryConfig(process.env.READABLE_DATA_DIR, {
         enabled: false,
         extraction: null,
       });
@@ -91,9 +91,9 @@ describe('/api/chat', () => {
       process.env.PATH = originalPath;
     }
     if (originalAgentHome == null) {
-      delete process.env.OD_AGENT_HOME;
+      delete process.env.READABLE_AGENT_HOME;
     } else {
-      process.env.OD_AGENT_HOME = originalAgentHome;
+      process.env.READABLE_AGENT_HOME = originalAgentHome;
     }
   });
 
@@ -104,8 +104,8 @@ describe('/api/chat', () => {
     if (server) {
       await closeHttpServer(server);
     }
-    if (process.env.OD_DATA_DIR && originalMemoryConfig) {
-      await writeMemoryConfig(process.env.OD_DATA_DIR, {
+    if (process.env.READABLE_DATA_DIR && originalMemoryConfig) {
+      await writeMemoryConfig(process.env.READABLE_DATA_DIR, {
         enabled: originalMemoryConfig.enabled,
         extraction: originalMemoryConfig.extraction,
       });
@@ -114,9 +114,9 @@ describe('/api/chat', () => {
 
   it('does not reference an out-of-scope response while starting a run', async () => {
     process.env.PATH = '';
-    const emptyAgentHome = mkdtempSync(join(tmpdir(), 'od-empty-agent-home-'));
+    const emptyAgentHome = mkdtempSync(join(tmpdir(), 'readable-empty-agent-home-'));
     tempDirs.push(emptyAgentHome);
-    process.env.OD_AGENT_HOME = emptyAgentHome;
+    process.env.READABLE_AGENT_HOME = emptyAgentHome;
 
     const response = await fetch(`${baseUrl}/api/chat`, {
       method: 'POST',
@@ -182,8 +182,8 @@ process.exit(0);
 
 
   it('reuses an existing assistant message row instead of creating a duplicate when assistantMessageId is supplied', async () => {
-    if (!process.env.OD_DATA_DIR) {
-      throw new Error('OD_DATA_DIR is required for assistant message reuse tests');
+    if (!process.env.READABLE_DATA_DIR) {
+      throw new Error('READABLE_DATA_DIR is required for assistant message reuse tests');
     }
     const projectId = `proj-${randomUUID()}`;
     const assistantMessageId = `assistant-${randomUUID()}`;
@@ -203,7 +203,7 @@ process.exit(0);
     const conversationId = conversationsBody.conversations[0]?.id;
     expect(conversationId).toBeTruthy();
 
-    const dbFile = resolve(process.env.OD_DATA_DIR, 'app.sqlite');
+    const dbFile = resolve(process.env.READABLE_DATA_DIR, 'app.sqlite');
     const sqlite = new Database(dbFile);
     try {
       upsertMessage(sqlite as never, conversationId!, {
@@ -300,11 +300,11 @@ process.exit(1);
     // longer blocks on a synchronous `model list` retry loop.
     const previousRuntimeKey = process.env.VELA_RUNTIME_KEY;
     const previousLinkUrl = process.env.VELA_LINK_URL;
-    const stateFile = join(tmpdir(), `od-amr-model-retry-${randomUUID()}.json`);
+    const stateFile = join(tmpdir(), `readable-amr-model-retry-${randomUUID()}.json`);
     try {
       // Unique key so the shared model cache key is unique per test run.
       process.env.VELA_RUNTIME_KEY = `fake-runtime-key-${randomUUID()}`;
-      process.env.VELA_LINK_URL = 'https://amr-link.open-design.ai/v1';
+      process.env.VELA_LINK_URL = 'https://amr-link.example.test/v1';
 
       await withFakeAgent(
         'vela',
@@ -321,7 +321,7 @@ if (args[0] === 'model' && args[1] === 'list') {
   state.attempts += 1;
   writeFileSync(stateFile, JSON.stringify(state), 'utf8');
   if (state.attempts < 3) {
-    process.stderr.write('Get "https://amr-link.open-design.ai/v1/models": context deadline exceeded\\n');
+    process.stderr.write('Get "https://amr-link.example.test/v1/models": context deadline exceeded\\n');
     process.exit(1);
   }
 }
@@ -386,7 +386,7 @@ child.on('exit', (code, signal) => {
       // shared model cache key unique so this case never reuses another test's
       // cached remote catalog.
       process.env.VELA_RUNTIME_KEY = `fake-runtime-key-${randomUUID()}`;
-      process.env.VELA_LINK_URL = 'https://amr-link.open-design.ai/v1';
+      process.env.VELA_LINK_URL = 'https://amr-link.example.test/v1';
 
       await withFakeAgent(
         'vela',
@@ -399,7 +399,7 @@ const args = process.argv.slice(2);
 // \`login\`, and \`agent run\` still delegate to the fixture, mirroring the real
 // CLI where the offline preset and the ACP run do not need the gateway.
 if (args[0] === 'model' && args[1] === 'list') {
-  process.stderr.write('Get "https://amr-link.open-design.ai/v1/models": context deadline exceeded\\n');
+  process.stderr.write('Get "https://amr-link.example.test/v1/models": context deadline exceeded\\n');
   process.exit(1);
 }
 const child = spawn(process.execPath, [fixture, ...args], {
@@ -474,10 +474,10 @@ process.stdin.resume();
 process.stdin.on('end', () => {
   const pluginDir = path.join(process.cwd(), 'generated-plugin');
   fs.mkdirSync(pluginDir, { recursive: true });
-  fs.writeFileSync(path.join(pluginDir, 'open-design.json'), JSON.stringify({ name: 'generated-plugin' }, null, 2));
+  fs.writeFileSync(path.join(pluginDir, 'readable-studio.json'), JSON.stringify({ name: 'generated-plugin' }, null, 2));
   fs.writeFileSync(path.join(pluginDir, 'SKILL.md'), '# Generated plugin\\n');
   console.log(JSON.stringify({ type: 'step_start' }));
-  console.log(JSON.stringify({ type: 'text', part: { text: '我来帮你创建一个通用的 Open Design 插件脚手架。先读取文档规范，再生成插件文件。' } }));
+  console.log(JSON.stringify({ type: 'text', part: { text: '我来帮你创建一个通用的 Readable Studio 插件脚手架。先读取文档规范，再生成插件文件。' } }));
   console.log(JSON.stringify({ type: 'step_finish', part: { tokens: { input: 1, output: 1 } } }));
   process.exit(0);
 });
@@ -490,8 +490,8 @@ process.stdin.on('end', () => {
             agentId: 'opencode',
             projectId,
             conversationId,
-            pluginId: 'od-plugin-authoring',
-            message: '请创建一个可刷新、可审计、由 API 驱动的 Open Design 插件脚手架。',
+            pluginId: 'readable-plugin-authoring',
+            message: '请创建一个可刷新、可审计、由 API 驱动的 Readable Studio 插件脚手架。',
           }),
         });
         expect(createResponse.status).toBe(202);
@@ -507,7 +507,7 @@ process.stdin.on('end', () => {
         const filesResponse = await fetch(`${baseUrl}/api/projects/${projectId}/files`);
         expect(filesResponse.status).toBe(200);
         const filesBody = await filesResponse.json() as { files: Array<{ name: string }> };
-        expect(filesBody.files.some((file) => file.name === 'generated-plugin/open-design.json')).toBe(true);
+        expect(filesBody.files.some((file) => file.name === 'generated-plugin/readable-studio.json')).toBe(true);
         expect(filesBody.files.some((file) => file.name === 'generated-plugin/SKILL.md')).toBe(true);
       },
     );
@@ -541,7 +541,7 @@ process.stdin.on('end', () => {
 process.stdin.resume();
 process.stdin.on('end', () => {
   console.log(JSON.stringify({ type: 'step_start' }));
-  console.log(JSON.stringify({ type: 'text', part: { text: '我来帮你创建一个通用的 Open Design 插件脚手架。先读取文档规范，再生成插件文件。' } }));
+  console.log(JSON.stringify({ type: 'text', part: { text: '我来帮你创建一个通用的 Readable Studio 插件脚手架。先读取文档规范，再生成插件文件。' } }));
   console.log(JSON.stringify({ type: 'step_finish', part: { tokens: { input: 1, output: 1 } } }));
   process.exit(0);
 });
@@ -554,8 +554,8 @@ process.stdin.on('end', () => {
             agentId: 'opencode',
             projectId,
             conversationId,
-            pluginId: 'od-plugin-authoring',
-            message: '请创建一个可刷新、可审计、由 API 驱动的 Open Design 插件脚手架。',
+            pluginId: 'readable-plugin-authoring',
+            message: '请创建一个可刷新、可审计、由 API 驱动的 Readable Studio 插件脚手架。',
           }),
         });
         expect(createResponse.status).toBe(202);
@@ -568,7 +568,7 @@ process.stdin.on('end', () => {
           pluginId: string | null;
           appliedPluginSnapshotId: string | null;
         };
-        expect(pluginId).toBe('od-plugin-authoring');
+        expect(pluginId).toBe('readable-plugin-authoring');
         expect(appliedPluginSnapshotId).toBeTruthy();
 
         const eventsResponse = await fetch(`${baseUrl}/api/runs/${runId}/events`);
@@ -586,7 +586,7 @@ process.stdin.on('end', () => {
     );
   });
   it('does not fail plugin authoring when the turn-1 reply is a clarifying question-form awaiting the brief', async () => {
-    // The `od-plugin-authoring` plugin's turn-1 flow is to emit a
+    // The `readable-plugin-authoring` plugin's turn-1 flow is to emit a
     // `<question-form>` collecting the plugin brief, then STOP and wait for
     // the user to answer — artifacts only land on the follow-up turn. The
     // missing-artifacts guard must not treat that expected pause as a
@@ -632,7 +632,7 @@ process.stdin.on('end', () => {
             agentId: 'opencode',
             projectId,
             conversationId,
-            pluginId: 'od-plugin-authoring',
+            pluginId: 'readable-plugin-authoring',
             message: '帮我做个插件。',
           }),
         });
@@ -696,7 +696,7 @@ process.stdin.on('end', () => {
             agentId: 'opencode',
             projectId,
             conversationId,
-            pluginId: 'od-plugin-authoring',
+            pluginId: 'readable-plugin-authoring',
             message: '帮我做个插件。',
           }),
         });
@@ -760,7 +760,7 @@ process.stdin.on('end', () => {
             agentId: 'opencode',
             projectId,
             conversationId,
-            pluginId: 'od-plugin-authoring',
+            pluginId: 'readable-plugin-authoring',
             message: '帮我做个插件。',
           }),
         });
@@ -822,7 +822,7 @@ process.stdin.on('end', () => {
             agentId: 'opencode',
             projectId,
             conversationId,
-            pluginId: 'od-plugin-authoring',
+            pluginId: 'readable-plugin-authoring',
             message: '帮我做个插件。',
           }),
         });
@@ -929,7 +929,7 @@ process.stdin.on('end', () => {
 
   it('stages ad-hoc skill side files into the project cwd', async () => {
     const projectId = `project-${randomUUID()}`;
-    const stagedRelativePath = `.od-skills/${skillCwdAliasSegment(resolve(process.cwd(), '..', '..', 'skills', 'release-notes-one-pager'))}/references/checklist.md`;
+    const stagedRelativePath = `.readable-studio-skills/${skillCwdAliasSegment(resolve(process.cwd(), '..', '..', 'skills', 'release-notes-one-pager'))}/references/checklist.md`;
     const expectedChecklist = await fsp.readFile(
       resolve(process.cwd(), '..', '..', 'skills', 'release-notes-one-pager', 'references', 'checklist.md'),
       'utf8',
@@ -998,8 +998,8 @@ process.stdin.on('end', () => {
   it('stages side files for every composed skill into the project cwd', async () => {
     const projectId = `project-${randomUUID()}`;
     const stagedPaths = [
-      `.od-skills/${skillCwdAliasSegment(resolve(process.cwd(), '..', '..', 'skills', 'release-notes-one-pager'))}/references/checklist.md`,
-      `.od-skills/${skillCwdAliasSegment(resolve(process.cwd(), '..', '..', 'skills', 'swiss-creative-mode-template'))}/references/checklist.md`,
+      `.readable-studio-skills/${skillCwdAliasSegment(resolve(process.cwd(), '..', '..', 'skills', 'release-notes-one-pager'))}/references/checklist.md`,
+      `.readable-studio-skills/${skillCwdAliasSegment(resolve(process.cwd(), '..', '..', 'skills', 'swiss-creative-mode-template'))}/references/checklist.md`,
     ] as const;
     const expectedBodies = await Promise.all(
       [
@@ -1075,7 +1075,7 @@ process.stdin.on('data', (chunk) => {
 });
 process.stdin.on('end', () => {
   const checks = [
-    prompt.includes('## Composed skill — open-design-landing-deck') ? 'has-deck-skill-header' : 'missing-deck-skill-header',
+    prompt.includes('## Composed skill — readable-landing-deck') ? 'has-deck-skill-header' : 'missing-deck-skill-header',
     prompt.includes('# Slide deck — fixed framework (this is non-negotiable for deck mode)') ? 'has-deck-framework' : 'missing-deck-framework',
   ];
   console.log(JSON.stringify({ type: 'step_start' }));
@@ -1091,7 +1091,7 @@ process.stdin.on('end', () => {
           body: JSON.stringify({
             agentId: 'opencode',
             message: 'build an editorial brand deck',
-            skillIds: ['open-design-landing-deck'],
+            skillIds: ['readable-landing-deck'],
           }),
         });
         const body = await response.text();
@@ -1106,13 +1106,13 @@ process.stdin.on('end', () => {
   });
 
   it('propagates ad-hoc skill critique policy into the chat resolver', async () => {
-    if (!process.env.OD_DATA_DIR) {
-      throw new Error('OD_DATA_DIR is required for user skill critique-policy tests');
+    if (!process.env.READABLE_DATA_DIR) {
+      throw new Error('READABLE_DATA_DIR is required for user skill critique-policy tests');
     }
 
     const skillId = `critique-opt-out-${randomUUID()}`;
-    const skillDir = resolve(process.env.OD_DATA_DIR, 'skills', skillId);
-    const originalCritiqueEnabled = process.env.OD_CRITIQUE_ENABLED;
+    const skillDir = resolve(process.env.READABLE_DATA_DIR, 'skills', skillId);
+    const originalCritiqueEnabled = process.env.READABLE_CRITIQUE_ENABLED;
 
     await fsp.mkdir(skillDir, { recursive: true });
     await fsp.writeFile(
@@ -1120,7 +1120,7 @@ process.stdin.on('end', () => {
       `---
 name: ${skillId}
 description: Ad-hoc critique opt-out regression fixture.
-od:
+readable:
   critique:
     policy: opt-out
 ---
@@ -1133,7 +1133,7 @@ This skill should suppress critique when selected through skillIds.
     );
     invalidateSkillListCache();
 
-    process.env.OD_CRITIQUE_ENABLED = 'true';
+    process.env.READABLE_CRITIQUE_ENABLED = 'true';
 
     try {
       await withFakeAgent(
@@ -1177,9 +1177,9 @@ process.stdin.on('end', () => {
       );
     } finally {
       if (originalCritiqueEnabled == null) {
-        delete process.env.OD_CRITIQUE_ENABLED;
+        delete process.env.READABLE_CRITIQUE_ENABLED;
       } else {
-        process.env.OD_CRITIQUE_ENABLED = originalCritiqueEnabled;
+        process.env.READABLE_CRITIQUE_ENABLED = originalCritiqueEnabled;
       }
       await fsp.rm(skillDir, { recursive: true, force: true });
       invalidateSkillListCache();
@@ -1271,8 +1271,8 @@ process.stdin.on('end', () => {
   });
 
   it('stages colliding plugin and composed skill dirs under distinct aliases', async () => {
-    if (!process.env.OD_DATA_DIR) {
-      throw new Error('OD_DATA_DIR is required for colliding skill-dir staging tests');
+    if (!process.env.READABLE_DATA_DIR) {
+      throw new Error('READABLE_DATA_DIR is required for colliding skill-dir staging tests');
     }
 
     const pluginId = `plugin-collision-${randomUUID()}`;
@@ -1292,7 +1292,7 @@ process.stdin.on('end', () => {
     expect(installBody).toContain(`"id":"${pluginId}"`);
 
     const projectId = `project-${randomUUID()}`;
-    const userSkillDir = resolve(process.env.OD_DATA_DIR, 'skills', 'sample-plugin');
+    const userSkillDir = resolve(process.env.READABLE_DATA_DIR, 'skills', 'sample-plugin');
     const userChecklist = 'user-skill-checklist';
     const userAlias = skillCwdAliasSegment(userSkillDir);
 
@@ -1332,8 +1332,8 @@ process.stdin.on('end', () => {
         'opencode',
         `
 const fs = require('node:fs');
-const pluginSkill = fs.readFileSync(${JSON.stringify(`.od-skills/${pluginAlias}/SKILL.md`)}, 'utf8');
-const userChecklist = fs.readFileSync(${JSON.stringify(`.od-skills/${userAlias}/references/checklist.md`)}, 'utf8');
+const pluginSkill = fs.readFileSync(${JSON.stringify(`.readable-studio-skills/${pluginAlias}/SKILL.md`)}, 'utf8');
+const userChecklist = fs.readFileSync(${JSON.stringify(`.readable-studio-skills/${userAlias}/references/checklist.md`)}, 'utf8');
 if (!pluginSkill.includes('# Sample Plugin')) {
   console.error('plugin-skill-stage-missing');
   process.exit(1);
@@ -1388,10 +1388,10 @@ process.stdin.on('data', (chunk) => {
   prompt += chunk;
 });
 process.stdin.on('end', () => {
-  const hasDuplicateComposedAlias = prompt.includes('## Composed skill — open-design-landing');
+  const hasDuplicateComposedAlias = prompt.includes('## Composed skill — readable-landing');
   const checks = [
     hasDuplicateComposedAlias ? 'duplicate-alias-composed-skill' : 'deduped-alias-composed-skill',
-    prompt.includes('# open-design-landing') ? 'has-base-alias-skill-body' : 'missing-base-alias-skill-body',
+    prompt.includes('# readable-landing') ? 'has-base-alias-skill-body' : 'missing-base-alias-skill-body',
   ];
   console.log(JSON.stringify({ type: 'step_start' }));
   console.log(JSON.stringify({ type: 'text', part: { text: checks.join('\\n') } }));
@@ -1405,9 +1405,9 @@ process.stdin.on('end', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             agentId: 'opencode',
-            message: 'build the Open Design landing page',
+            message: 'build the Readable Studio landing page',
             skillId: 'editorial-collage',
-            skillIds: ['open-design-landing'],
+            skillIds: ['readable-landing'],
           }),
         });
         const body = await response.text();
@@ -1804,8 +1804,8 @@ process.exit(0);
   });
 
   it('fails stalled json-stream runs after the inactivity timeout elapses', async () => {
-    const previous = process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS;
-    process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS = '500';
+    const previous = process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS;
+    process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS = '500';
     try {
       await withFakeAgent(
         'opencode',
@@ -1844,16 +1844,16 @@ setInterval(() => {}, 1000);
       );
     } finally {
       if (previous == null) {
-        delete process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS;
+        delete process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS;
       } else {
-        process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS = previous;
+        process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS = previous;
       }
     }
   });
 
   it('keeps Claude stream runs alive while structured output is still flowing', async () => {
-    const previous = process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS;
-    process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS = '3000';
+    const previous = process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS;
+    process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS = '3000';
     try {
       await withFakeAgent(
         'claude',
@@ -1895,9 +1895,9 @@ const timer = setInterval(() => {
       );
     } finally {
       if (previous == null) {
-        delete process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS;
+        delete process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS;
       } else {
-        process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS = previous;
+        process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS = previous;
       }
     }
   });
@@ -1938,8 +1938,8 @@ process.exit(1);
   });
 
   it('caps oversized inactivity overrides so Node does not fire the timer immediately', async () => {
-    const previous = process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS;
-    process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS = '10000000000';
+    const previous = process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS;
+    process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS = '10000000000';
     try {
       await withFakeAgent(
         'opencode',
@@ -1967,16 +1967,16 @@ setTimeout(() => {
       );
     } finally {
       if (previous == null) {
-        delete process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS;
+        delete process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS;
       } else {
-        process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS = previous;
+        process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS = previous;
       }
     }
   });
 
   it('marks stalled runs failed even when the child ignores SIGTERM', async () => {
-    const previous = process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS;
-    process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS = '500';
+    const previous = process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS;
+    process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS = '500';
     try {
       await withFakeAgent(
         'opencode',
@@ -2011,19 +2011,19 @@ setInterval(() => {}, 1000);
       );
     } finally {
       if (previous == null) {
-        delete process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS;
+        delete process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS;
       } else {
-        process.env.OD_CHAT_RUN_INACTIVITY_TIMEOUT_MS = previous;
+        process.env.READABLE_CHAT_RUN_INACTIVITY_TIMEOUT_MS = previous;
       }
     }
   });
 
   it('marks submitted discovery form answers as the active turn before the transcript', async () => {
-    const captureDir = mkdtempSync(join(tmpdir(), 'od-form-answer-prompt-'));
+    const captureDir = mkdtempSync(join(tmpdir(), 'readable-form-answer-prompt-'));
     tempDirs.push(captureDir);
     const capturePath = join(captureDir, 'prompt.txt');
-    const previousCapturePath = process.env.OD_CAPTURE_PROMPT_PATH;
-    process.env.OD_CAPTURE_PROMPT_PATH = capturePath;
+    const previousCapturePath = process.env.READABLE_CAPTURE_PROMPT_PATH;
+    process.env.READABLE_CAPTURE_PROMPT_PATH = capturePath;
     try {
       await withFakeAgent(
         'opencode',
@@ -2033,7 +2033,7 @@ let input = '';
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', (chunk) => { input += chunk; });
 process.stdin.on('end', () => {
-  fs.writeFileSync(process.env.OD_CAPTURE_PROMPT_PATH, input, 'utf8');
+  fs.writeFileSync(process.env.READABLE_CAPTURE_PROMPT_PATH, input, 'utf8');
   console.log(JSON.stringify({ type: 'text', part: { text: 'building now' } }));
 });
 `,
@@ -2081,9 +2081,9 @@ process.stdin.on('end', () => {
       );
     } finally {
       if (previousCapturePath == null) {
-        delete process.env.OD_CAPTURE_PROMPT_PATH;
+        delete process.env.READABLE_CAPTURE_PROMPT_PATH;
       } else {
-        process.env.OD_CAPTURE_PROMPT_PATH = previousCapturePath;
+        process.env.READABLE_CAPTURE_PROMPT_PATH = previousCapturePath;
       }
     }
   });
@@ -2091,8 +2091,8 @@ process.stdin.on('end', () => {
 
 describe('daemon run creation during shutdown', () => {
   it('rejects new run creation while shutdown cleanup is still in flight', async () => {
-    const previousGrace = process.env.OD_CHAT_RUN_SHUTDOWN_GRACE_MS;
-    process.env.OD_CHAT_RUN_SHUTDOWN_GRACE_MS = '100';
+    const previousGrace = process.env.READABLE_CHAT_RUN_SHUTDOWN_GRACE_MS;
+    process.env.READABLE_CHAT_RUN_SHUTDOWN_GRACE_MS = '100';
     const started = await startServer({ port: 0, returnServer: true }) as {
       url: string;
       server: http.Server;
@@ -2135,9 +2135,9 @@ setInterval(() => {}, 1000);
       );
     } finally {
       if (previousGrace == null) {
-        delete process.env.OD_CHAT_RUN_SHUTDOWN_GRACE_MS;
+        delete process.env.READABLE_CHAT_RUN_SHUTDOWN_GRACE_MS;
       } else {
-        process.env.OD_CHAT_RUN_SHUTDOWN_GRACE_MS = previousGrace;
+        process.env.READABLE_CHAT_RUN_SHUTDOWN_GRACE_MS = previousGrace;
       }
       await closeHttpServer(started.server);
     }

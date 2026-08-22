@@ -4,7 +4,7 @@ import type {
   DesignSystemPackageAuditIssue,
   DesignSystemPackageAuditSeverity,
   DesignSystemPackageAudit,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 export type { DesignSystemPackageAuditIssue, DesignSystemPackageAuditSeverity, DesignSystemPackageAudit };
 async function listAuditFiles(root: string): Promise<string[]> {
@@ -73,7 +73,7 @@ export async function auditDesignSystemPackage(
 
   if (options.referencePackage === true) {
     if (!fileSet.has('DESIGN.md')) {
-      addIssue('warning', 'missing_open_design_rules', 'Reference packages may omit DESIGN.md, but generated Open Design packages must include it as the canonical rules file.', 'DESIGN.md');
+      addIssue('warning', 'missing_readable_studio_rules', 'Reference packages may omit DESIGN.md, but generated Readable Studio packages must include it as the canonical rules file.', 'DESIGN.md');
     }
   } else {
     requireFile('DESIGN.md', 'Claude Design-style packages need DESIGN.md as the canonical system rules.');
@@ -1034,10 +1034,10 @@ export async function runDesignSystemPackageAuditCli(args: string[]): Promise<{ 
 }
 
 async function fetchDaemonAudit(projectId: string): Promise<DesignSystemPackageAudit> {
-  const daemonUrl = process.env.OD_DAEMON_URL;
-  const token = process.env.OD_TOOL_TOKEN;
-  if (!daemonUrl) throw new Error('OD_DAEMON_URL is required for --project-id audit');
-  if (!token) throw new Error('OD_TOOL_TOKEN is required for --project-id audit');
+  const daemonUrl = process.env.READABLE_DAEMON_URL;
+  const token = process.env.READABLE_TOOL_TOKEN;
+  if (!daemonUrl) throw new Error('READABLE_DAEMON_URL is required for --project-id audit');
+  if (!token) throw new Error('READABLE_TOOL_TOKEN is required for --project-id audit');
 
   const url = new URL(`/api/projects/${encodeURIComponent(projectId)}/design-system-package-audit`, daemonUrl);
   const response = await fetch(url, {

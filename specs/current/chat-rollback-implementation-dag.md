@@ -91,7 +91,7 @@ Boundaries:
 Done when:
 
 - Web, daemon, and CLI can import shared checkpoint DTOs.
-- `pnpm --filter @open-design/contracts typecheck` passes.
+- `pnpm --filter @readable-studio/contracts typecheck` passes.
 
 ### A2 daemon DB metadata
 
@@ -220,7 +220,7 @@ Boundaries:
 
 Done when:
 
-- `pnpm --filter @open-design/daemon test` passes or failures are understood and
+- `pnpm --filter @readable-studio/daemon test` passes or failures are understood and
   unrelated.
 
 ### A7 CLI surface
@@ -229,7 +229,7 @@ Owner: CLI worker.
 
 Purpose:
 
-- Add `od chat checkpoints`, `od chat checkpoint diff`, and `od chat rollback`.
+- Add `readable chat checkpoints`, `readable chat checkpoint diff`, and `readable chat rollback`.
 
 Likely write set:
 
@@ -316,7 +316,7 @@ Boundaries:
 
 Done when:
 
-- `pnpm --filter @open-design/web test` passes or failures are understood and
+- `pnpm --filter @readable-studio/web test` passes or failures are understood and
   unrelated.
 
 ### A11 CLI tests
@@ -346,9 +346,9 @@ Purpose:
 Commands:
 
 ```bash
-pnpm --filter @open-design/contracts typecheck
-pnpm --filter @open-design/daemon test
-pnpm --filter @open-design/web test
+pnpm --filter @readable-studio/contracts typecheck
+pnpm --filter @readable-studio/daemon test
+pnpm --filter @readable-studio/web test
 pnpm guard
 pnpm typecheck
 ```

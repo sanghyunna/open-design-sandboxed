@@ -261,7 +261,7 @@ describe('EntryShell onboarding single runtime-pick step', () => {
     expect(screen.getByRole('button', { name: /Bring your own key/i })).toBeTruthy();
 
     // The AMR cloud upsell card is gone, and nothing is pre-selected.
-    expect(screen.queryByRole('button', { name: /Open Design AMR/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /AMR/i })).toBeNull();
     expect(document.querySelector('.onboarding-view__amr-cloud-card')).toBeNull();
     expect(document.querySelector('.onboarding-view__card--skeleton')).toBeNull();
 

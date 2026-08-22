@@ -7,7 +7,7 @@ triggers:
   - "engineering talk"
   - "conference talk"
   - "dev talk"
-od:
+readable:
   mode: deck
   scenario: engineering
   upstream: "https://github.com/lewislulu/html-ppt-skill"

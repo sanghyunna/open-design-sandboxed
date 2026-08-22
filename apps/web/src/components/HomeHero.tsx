@@ -28,8 +28,8 @@ import type {
   InputFieldSpec,
   InstalledPluginRecord,
   McpServerConfig,
-} from '@open-design/contracts';
-import { Button } from '@open-design/components';
+} from '@readable-studio/contracts';
+import { Button } from '@readable-studio/components';
 import { DesignSystemPicker } from './DesignSystemPicker';
 import type { SkillSummary } from '../types';
 import { Icon, type IconName } from './Icon';
@@ -38,7 +38,7 @@ import {
   trackComposerSessionModeClick,
   trackHomeChatComposerClick,
 } from '../analytics/events';
-import { sessionModeToTracking } from '@open-design/contracts/analytics';
+import { sessionModeToTracking } from '@readable-studio/contracts/analytics';
 import {
   chipsForGroup,
   type ChipGroup,
@@ -497,7 +497,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
   // deck/image plugin that merely carries a "brand" tag is not pulled in.
   const filteredExamplePlugins = useMemo(() => {
     if (!selectedSubcategory || !isSubChipParent(activeChipId)) return activeExamplePlugins;
-    const pool = pluginOptions.filter((plugin) => plugin.manifest?.od?.kind !== 'atom');
+    const pool = pluginOptions.filter((plugin) => plugin.manifest?.readable?.kind !== 'atom');
     return sortByVisualAppeal(
       applyFacetSelection(pool, { category: activeChipId, subcategory: selectedSubcategory }),
     );
@@ -896,7 +896,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
         <span className="home-hero__brand-mark">
           <img src="/app-icon.svg" alt="" draggable={false} />
         </span>
-        <span className="home-hero__brand-name">Open Design</span>
+        <span className="home-hero__brand-name">Readable Studio</span>
       </div>
       <h1 className="home-hero__title">{t('homeHero.title')}</h1>
       <p className="home-hero__subtitle">
@@ -978,7 +978,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
                       )}
                       <button
                         type="button"
-                        className="home-hero__active-clear od-tooltip"
+                        className="home-hero__active-clear readable-tooltip"
                         onClick={() => removeFileChip(index, file)}
                         aria-label={t('chat.removeAria', { name: file.name })}
                         title={t('homeHero.removeFile')}
@@ -1016,7 +1016,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
                 {activeCreateChip && !activePluginIsExplicit ? null : (
                   <button
                     type="button"
-                    className="home-hero__active-clear od-tooltip"
+                    className="home-hero__active-clear readable-tooltip"
                     onClick={() => {
                       trackHomeChatComposerClick(analytics.track, {
                         page_name: 'home',
@@ -1046,7 +1046,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
                 <span className="home-hero__active-label">{t('homeHero.skillPrefix', { title: activeSkillTitle })}</span>
                 <button
                   type="button"
-                  className="home-hero__active-clear od-tooltip"
+                  className="home-hero__active-clear readable-tooltip"
                   onClick={onClearActiveSkill}
                   aria-label={t('homeHero.clearActiveSkill')}
                   title={t('homeHero.clearActiveSkill')}
@@ -1068,7 +1068,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
                 <span className="home-hero__active-label">{plugin.title}</span>
                 <button
                   type="button"
-                  className="home-hero__active-clear od-tooltip"
+                  className="home-hero__active-clear readable-tooltip"
                   onClick={() => onRemovePluginContext(plugin.id)}
                   aria-label={t('chat.removeAria', { name: plugin.title })}
                   title={t('common.close')}
@@ -1093,7 +1093,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
                   <span className="home-hero__active-label">{label}</span>
                   <button
                     type="button"
-                    className="home-hero__active-clear od-tooltip"
+                    className="home-hero__active-clear readable-tooltip"
                     onClick={() => onRemoveMcpContext(server.id)}
                     aria-label={t('chat.removeAria', { name: label })}
                     title={t('common.close')}
@@ -1241,7 +1241,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
                     <p>{localizePluginDescription(locale, hoveredPlugin) || hoveredPlugin.id}</p>
                   </div>
                   <div className="home-hero__plugin-hover-meta">
-                    <span>{t('homeHero.parameters', { n: (hoveredPlugin.manifest?.od?.inputs ?? []).length })}</span>
+                    <span>{t('homeHero.parameters', { n: (hoveredPlugin.manifest?.readable?.inputs ?? []).length })}</span>
                     {getPluginQueryPreview(hoveredPlugin) ? (
                       <span>{getPluginQueryPreview(hoveredPlugin)}</span>
                     ) : null}
@@ -1380,7 +1380,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
             ) : null}
             <button
               type="button"
-              className={`home-hero__submit od-tooltip${sendAttention ? ' home-hero__attention-sheen' : ''}`}
+              className={`home-hero__submit readable-tooltip${sendAttention ? ' home-hero__attention-sheen' : ''}`}
               data-testid="home-hero-submit"
               onClick={onSubmit}
               onAnimationEnd={() => setSendAttention(false)}
@@ -1519,7 +1519,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
               <span title={previewHomeFile.name}>{previewHomeFile.name}</span>
               <button
                 type="button"
-                className="icon-only od-tooltip"
+                className="icon-only readable-tooltip"
                 onClick={() => setPreviewHomeFileKey(null)}
                 aria-label={t('common.close')}
                 title={t('common.close')}
@@ -2356,7 +2356,7 @@ function getPluginSourceLabel(plugin: InstalledPluginRecord): string {
 }
 
 function getPluginQueryPreview(plugin: InstalledPluginRecord): string {
-  const raw = plugin.manifest?.od?.useCase?.query;
+  const raw = plugin.manifest?.readable?.useCase?.query;
   const value =
     typeof raw === 'string'
       ? raw
@@ -2710,21 +2710,21 @@ function pluginPresetRank(record: InstalledPluginRecord, chipId: string): number
   if (record.id.includes('template')) score += 8;
   if (inferPluginPreview(record).kind !== 'text') score += 6;
   if (slugs.has(chipId)) score += 4;
-  if (record.manifest?.od?.preview) score += 3;
+  if (record.manifest?.readable?.preview) score += 3;
   return score;
 }
 
 function pluginRecordSlugs(record: InstalledPluginRecord): Set<string> {
-  const od = record.manifest?.od ?? {};
+  const readable = record.manifest?.readable ?? {};
   const rawValues = [
     record.id,
     record.title,
     record.manifest?.name,
     record.manifest?.title,
-    fieldString(od, 'mode'),
-    fieldString(od, 'surface'),
-    fieldString(od, 'scenario'),
-    fieldString(od, 'taskKind'),
+    fieldString(readable, 'mode'),
+    fieldString(readable, 'surface'),
+    fieldString(readable, 'scenario'),
+    fieldString(readable, 'taskKind'),
     ...(record.manifest?.tags ?? []),
   ];
   return new Set(rawValues.map((value) => slugifyHomeValue(value ?? '')).filter(Boolean));
@@ -2948,7 +2948,7 @@ function briefForChipId(chipId: string): Record<string, string> {
 
 function briefForPluginPreset(record: InstalledPluginRecord, chipId: string): Record<string, string> {
   const brief: Record<string, string> = { ...briefForChipId(chipId) };
-  const fields = record.manifest?.od?.inputs ?? [];
+  const fields = record.manifest?.readable?.inputs ?? [];
   for (const field of fields) {
     const value = field.default ?? field.placeholder;
     if (value != null && typeof value === 'string' && value.trim()) {

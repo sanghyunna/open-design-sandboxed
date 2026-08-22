@@ -32,7 +32,7 @@ function baseFile(overrides: Partial<ProjectFile> = {}): ProjectFile {
     kind: 'text',
     mime: 'text/markdown',
     artifactManifest: {
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
       kind: 'markdown-document',
       title: 'Notes',
       entry: 'notes.md',

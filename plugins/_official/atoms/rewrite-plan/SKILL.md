@@ -1,7 +1,7 @@
 ---
 name: rewrite-plan
 description: Author a long-running multi-file rewrite plan that subsequent patch-edit + diff-review + build-test stages will execute, with explicit ownership boundaries and patch-safety guarantees.
-od:
+readable:
   scenario: code-migration
   mode: planning
 ---

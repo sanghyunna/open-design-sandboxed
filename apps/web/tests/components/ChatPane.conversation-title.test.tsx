@@ -167,7 +167,7 @@ describe('ChatPane session switcher', () => {
         activeConversationId="conv-1"
         onSelectConversation={vi.fn()}
         onDeleteConversation={vi.fn()}
-        config={{ agentCliEnv: { amr: { OPEN_DESIGN_AMR_PROFILE: 'test' } } } as unknown as AppConfig}
+        config={{ agentCliEnv: { amr: { READABLE_AMR_PROFILE: 'test' } } } as unknown as AppConfig}
       />,
     );
 
@@ -180,7 +180,7 @@ describe('ChatPane session switcher', () => {
     expect(`${parsedWalletUrl.origin}${parsedWalletUrl.pathname}`).toBe(
       'https://vela.powerformer.net/wallet',
     );
-    expect(parsedWalletUrl.searchParams.get('od_entry_source')).toBe('chat_error_recharge');
+    expect(parsedWalletUrl.searchParams.get('readable_entry_source')).toBe('chat_error_recharge');
   });
 });
 

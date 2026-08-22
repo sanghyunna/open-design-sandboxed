@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { installMockOpenDesignHost } from '@open-design/host/testing';
+import { installMockReadableStudioHost } from '@readable-studio/host/testing';
 
 import { DesignBrowserPanel } from '../../src/components/DesignBrowserPanel';
 import { I18nProvider } from '../../src/i18n';
@@ -28,9 +28,9 @@ let restoreHost: (() => void) | null = null;
 
 beforeEach(() => {
   window.localStorage.clear();
-  // Makes isOpenDesignHostAvailable() true so the panel renders the desktop
+  // Makes isReadableStudioHostAvailable() true so the panel renders the desktop
   // <webview> branch (rather than the iframe fallback).
-  restoreHost = installMockOpenDesignHost();
+  restoreHost = installMockReadableStudioHost();
 });
 
 afterEach(() => {
@@ -467,7 +467,7 @@ describe('DesignBrowserPanel <webview> navigation', () => {
       expect(document.querySelector('.preview-draw-toolbar')).toBeNull();
       return { ok: true as const, dataUrl: 'data:image/png;base64,cG5n', w: 10, h: 10 };
     });
-    restoreHost = installMockOpenDesignHost({
+    restoreHost = installMockReadableStudioHost({
       host: { capture: { page: capturePage } },
     });
 

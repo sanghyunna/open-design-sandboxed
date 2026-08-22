@@ -41,13 +41,13 @@ function writeNonExecutableCursorAgent(dir: string): string {
 }
 
 posixTest('detectAgents emits a not-on-path diagnostic with searched dirs + fix intents', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-diag-notpath-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-diag-notpath-'));
   try {
-    await withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], async () => {
+    await withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], async () => {
       // Only cursor-agent is on PATH; everything else is unavailable.
       writeCursorAgent(dir, 'Authenticated');
       process.env.PATH = dir;
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       const agents = await detectAgents();
       const gemini = agents.find((agent) => agent.id === 'gemini');
@@ -71,12 +71,12 @@ posixTest('detectAgents emits a not-on-path diagnostic with searched dirs + fix 
 });
 
 posixTest('detectAgents emits a not-executable diagnostic for a PATH match without execute permission', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-diag-notexec-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-diag-notexec-'));
   try {
-    await withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], async () => {
+    await withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], async () => {
       const bin = writeNonExecutableCursorAgent(dir);
       process.env.PATH = dir;
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       const agents = await detectAgents();
       const cursor = agents.find((agent) => agent.id === 'cursor-agent');
@@ -102,12 +102,12 @@ posixTest('detectAgents emits a not-executable diagnostic for a PATH match witho
 });
 
 posixTest('detectAgents emits an auth-missing diagnostic when the auth probe reports not authenticated', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-diag-auth-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-diag-auth-'));
   try {
-    await withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], async () => {
+    await withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], async () => {
       writeCursorAgent(dir, 'Not authenticated');
       process.env.PATH = dir;
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       const agents = await detectAgents();
       const cursor = agents.find((agent) => agent.id === 'cursor-agent');
@@ -141,12 +141,12 @@ test('auth diagnostics do not offer daemon OAuth without an active producer', ()
 });
 
 posixTest('detectAgentsStream yields the same agent set as detectAgents', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-diag-stream-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-diag-stream-'));
   try {
-    await withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], async () => {
+    await withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], async () => {
       writeCursorAgent(dir, 'Authenticated');
       process.env.PATH = dir;
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       const batch = await detectAgents();
       const streamed: string[] = [];

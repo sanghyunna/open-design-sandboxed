@@ -20,7 +20,7 @@ export interface PathDeps {
   // Distinct from SKILLS_DIR so the EntryView Templates surface and the
   // Settings → Skills surface stay decoupled.
   DESIGN_TEMPLATES_DIR: string;
-  OD_BIN: string;
+  READABLE_BIN: string;
   PROJECT_ROOT: string;
   PROJECTS_DIR: string;
   RUNTIME_DATA_DIR: string;

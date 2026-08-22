@@ -4,8 +4,8 @@ description: |
   Browser automation CLI for AI agents. Use when the user needs to inspect,
   test, or automate browser behavior: navigating pages, filling forms,
   clicking buttons, taking screenshots, extracting page data, reading selected
-  Open Design browser-tab context, testing web apps, dogfooding Open Design
-  previews, QA, bug hunts, or reviewing app quality. Prefer local Open Design
+  Readable Studio browser-tab context, testing web apps, dogfooding Readable Studio
+  previews, QA, bug hunts, or reviewing app quality. Prefer local Readable Studio
   preview URLs unless the user explicitly asks for external browsing.
 triggers:
   - "browser"
@@ -29,7 +29,7 @@ triggers:
   - "QA"
   - "dogfood"
   - "bug hunt"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop
@@ -45,7 +45,7 @@ od:
 
 # Agent Browser
 
-Use `agent-browser` for local Open Design preview validation: inspect rendered
+Use `agent-browser` for local Readable Studio preview validation: inspect rendered
 state, click/type when requested, and capture one screenshot when visual evidence
 matters. Keep the browser local-first unless the user explicitly asks for
 external browsing.
@@ -89,7 +89,7 @@ a temp file the same way.
 
 ## Browser Context Extraction
 
-For selected Open Design browser tabs and browser-use/browser-harness-style
+For selected Readable Studio browser tabs and browser-use/browser-harness-style
 tasks, collect the smallest useful evidence first:
 
 1. Confirm the target with `agent-browser get title` and `agent-browser get url`.
@@ -100,7 +100,7 @@ tasks, collect the smallest useful evidence first:
 4. For logos, fonts, colors, images, motion code, OG metadata, page structure,
    and accessibility checks, prefer DOM/CSS/accessibility evidence from the
    attached browser over guessing from the rendered screenshot alone.
-5. If the selected Open Design context only provided a URL/title and no browser
+5. If the selected Readable Studio context only provided a URL/title and no browser
    automation tool is attached, say that directly and do not invent page
    internals.
 
@@ -115,9 +115,9 @@ screenshots.
 `agent-browser open` before `agent-browser connect`; doing so can make the CLI
 auto-launch Chrome and re-enter the crash path.
 
-Do not run Open Design's own daemon CLI as a browser automation tool. Commands
-such as `od browser snapshot`, `daemon-cli.mjs browser snapshot`, or
-`$OD_NODE_BIN $OD_BIN browser snapshot` are not valid browser tools; they can be
+Do not run Readable Studio's own daemon CLI as a browser automation tool. Commands
+such as `readable browser snapshot`, `daemon-cli.mjs browser snapshot`, or
+`$READABLE_NODE_BIN $READABLE_BIN browser snapshot` are not valid browser tools; they can be
 misinterpreted as daemon startup and open an internal `127.0.0.1:<port>` service
 in the system browser. Use the external `agent-browser` CLI attached to CDP
 instead.
@@ -128,7 +128,7 @@ Use this sequence:
 if ! curl -fsS http://127.0.0.1:9223/json/version | rg -q webSocketDebuggerUrl; then
   open -na "Google Chrome" --args \
     --remote-debugging-port=9223 \
-    --user-data-dir=/tmp/od-agent-browser-chrome \
+    --user-data-dir=/tmp/readable-agent-browser-chrome \
     --no-first-run \
     --no-default-browser-check
 
@@ -150,7 +150,7 @@ Chrome manually from Terminal:
 ```bash
 /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
   --remote-debugging-port=9223 \
-  --user-data-dir=/tmp/od-agent-browser-chrome \
+  --user-data-dir=/tmp/readable-agent-browser-chrome \
   --no-first-run \
   --no-default-browser-check
 ```
@@ -162,27 +162,27 @@ If Chrome exits before CDP is ready or reports `DevToolsActivePort`, report:
 Lightpanda is optional. Do not try `--engine lightpanda` unless
 `command -v lightpanda` succeeds.
 
-## Open Design Smoke Path
+## Readable Studio Smoke Path
 
 Use a temp home and stable session:
 
 ```bash
 export HOME=/tmp/agent-browser-home
-export AGENT_BROWSER_SESSION=od-local-preview
+export AGENT_BROWSER_SESSION=readable-local-preview
 ```
 
 When you start a temporary Chrome profile for this smoke path, close it before
 finishing the task. Prefer a shell trap around the whole smoke script:
 
 ```bash
-CHROME_USER_DATA_DIR=/tmp/od-agent-browser-chrome
+CHROME_USER_DATA_DIR=/tmp/readable-agent-browser-chrome
 cleanup_agent_browser() {
   pkill -f -- "--user-data-dir=${CHROME_USER_DATA_DIR}" 2>/dev/null || true
 }
 trap cleanup_agent_browser EXIT INT TERM
 ```
 
-With the Open Design preview at `http://127.0.0.1:17573/`, run:
+With the Readable Studio preview at `http://127.0.0.1:17573/`, run:
 
 ```bash
 if ! curl -fsS http://127.0.0.1:9223/json/version | rg -q webSocketDebuggerUrl; then
@@ -206,12 +206,12 @@ agent-browser open http://127.0.0.1:17573/
 agent-browser get title
 agent-browser get url
 agent-browser snapshot
-agent-browser screenshot /tmp/od-agent-browser.png
+agent-browser screenshot /tmp/readable-agent-browser.png
 ```
 
-Expected success: title `Open Design`, current URL under `127.0.0.1:17573`,
-visible Open Design UI text in the snapshot, and a screenshot at
-`/tmp/od-agent-browser.png`.
+Expected success: title `Readable Studio`, current URL under `127.0.0.1:17573`,
+visible Readable Studio UI text in the snapshot, and a screenshot at
+`/tmp/readable-agent-browser.png`.
 
 ## Workflow
 

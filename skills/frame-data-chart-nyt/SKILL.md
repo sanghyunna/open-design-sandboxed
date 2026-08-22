@@ -18,7 +18,7 @@ example_tagline: "Editorial chart with staggered reveal"
 example_desc: "Eight years of weekly-active-user data with NYT-red accents and mono annotations"
 example_source_url: "https://hyperframes.heygen.com/catalog"
 example_source_label: "hyperframes · data-chart"
-od:
+readable:
   mode: video
   surface: video
   scenario: video

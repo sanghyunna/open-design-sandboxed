@@ -16,7 +16,7 @@ example_name: "Minimalist Resume · Frontend Engineer"
 example_format: markdown
 example_tagline: "A4 single page, printable / PDF export"
 example_desc: "Senior frontend engineer resume, two-column layout, highlighted quantified achievements"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

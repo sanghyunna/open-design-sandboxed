@@ -1,71 +1,19 @@
-/**
- * Regression coverage for the OD_LEGACY_DATA_DIR migration-aware
- * daemon status timeout in apps/packaged/src/sidecars.ts.
- *
- * Background: when the user is recovering 0.3.x `.od/` data via
- * OD_LEGACY_DATA_DIR, apps/daemon/src/legacy-data-migrator.ts runs a
- * synchronous payload copy at module import time, before the daemon
- * sidecar can answer status. With the default 35-second status budget
- * a multi-GB legacy `.od/projects` or `.od/artifacts` tree can hit the
- * timeout while staging is still copying, after which the parent tears
- * the child down mid-promotion and can leave dataDir half-promoted
- * even with the in-process rollback.
- *
- * @see apps/packaged/src/sidecars.ts
- * @see apps/daemon/src/legacy-data-migrator.ts
- * @see https://github.com/nexu-io/open-design/issues/710
- */
 import { EventEmitter } from 'node:events';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { delimiter, dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { SIDECAR_ENV } from '@open-design/sidecar-proto';
+import { SIDECAR_ENV } from '@readable-studio/sidecar-proto';
 
 import {
   buildPackagedDaemonSpawnEnv,
-  resolveDaemonStatusTimeoutMs,
   resolvePackagedChildBaseEnv,
   resolvePackagedElectronNodeCommand,
   resolvePackagedPathEnv,
   waitForStatus,
 } from '../src/sidecars.js';
 import type { PackagedNamespacePaths } from '../src/paths.js';
-
-describe('resolveDaemonStatusTimeoutMs', () => {
-  it('uses the default 35-second budget for normal cold boots', () => {
-    expect(resolveDaemonStatusTimeoutMs({})).toBe(35_000);
-  });
-
-  it('treats an empty OD_LEGACY_DATA_DIR as unset', () => {
-    expect(resolveDaemonStatusTimeoutMs({ OD_LEGACY_DATA_DIR: '' })).toBe(35_000);
-  });
-
-  it('extends the budget to 30 minutes when OD_LEGACY_DATA_DIR is set', () => {
-    // The packaged sidecar must give the daemon a long-enough window to
-    // sync-copy a multi-GB legacy `.od/` payload. Anything below ~10
-    // minutes was historically observed to time out on real installs.
-    const value = resolveDaemonStatusTimeoutMs({
-      OD_LEGACY_DATA_DIR: '/path/to/old/.od',
-    });
-    expect(value).toBeGreaterThanOrEqual(10 * 60 * 1000);
-    expect(value).toBe(30 * 60 * 1000);
-  });
-
-  it('falls back to process.env when called with no argument', () => {
-    const original = process.env.OD_LEGACY_DATA_DIR;
-    try {
-      delete process.env.OD_LEGACY_DATA_DIR;
-      expect(resolveDaemonStatusTimeoutMs()).toBe(35_000);
-      process.env.OD_LEGACY_DATA_DIR = '/some/legacy/path';
-      expect(resolveDaemonStatusTimeoutMs()).toBe(30 * 60 * 1000);
-    } finally {
-      if (original == null) delete process.env.OD_LEGACY_DATA_DIR;
-      else process.env.OD_LEGACY_DATA_DIR = original;
-    }
-  });
-});
 
 describe('packaged child Vite+ environment forwarding', () => {
   it('never inherits the desktop approval bearer through packaged child forwarding', () => {
@@ -209,7 +157,7 @@ describe('packaged child Vite+ environment forwarding', () => {
   });
 
   it('adds custom VP_HOME/bin to the packaged PATH builder', () => {
-    const vpHome = mkdtempSync(join(tmpdir(), 'od-packaged-vp-home-'));
+    const vpHome = mkdtempSync(join(tmpdir(), 'readable-packaged-vp-home-'));
     const originalVpHome = process.env.VP_HOME;
     try {
       process.env.VP_HOME = vpHome;
@@ -227,18 +175,18 @@ describe('packaged child Vite+ environment forwarding', () => {
 
 describe('resolvePackagedElectronNodeCommand', () => {
   it('uses the hidden Electron helper as the macOS Electron-as-Node command when available', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'od-packaged-electron-helper-'));
+    const root = mkdtempSync(join(tmpdir(), 'readable-packaged-electron-helper-'));
     try {
-      const appPath = join(root, 'Open Design.app');
-      const execPath = join(appPath, 'Contents', 'MacOS', 'Open Design').replace(/\\/g, '/');
+      const appPath = join(root, 'Readable Studio.app');
+      const execPath = join(appPath, 'Contents', 'MacOS', 'Readable Studio').replace(/\\/g, '/');
       const helperPath = join(
         appPath,
         'Contents',
         'Frameworks',
-        'Open Design Helper.app',
+        'Readable Studio Helper.app',
         'Contents',
         'MacOS',
-        'Open Design Helper',
+        'Readable Studio Helper',
       );
 
       mkdirSync(join(appPath, 'Contents', 'MacOS'), { recursive: true });
@@ -253,9 +201,9 @@ describe('resolvePackagedElectronNodeCommand', () => {
   });
 
   it('falls back to the main executable when the macOS helper is unavailable', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'od-packaged-no-electron-helper-'));
+    const root = mkdtempSync(join(tmpdir(), 'readable-packaged-no-electron-helper-'));
     try {
-      const execPath = join(root, 'Open Design.app', 'Contents', 'MacOS', 'Open Design').replace(/\\/g, '/');
+      const execPath = join(root, 'Readable Studio.app', 'Contents', 'MacOS', 'Readable Studio').replace(/\\/g, '/');
       mkdirSync(dirname(execPath), { recursive: true });
       writeFileSync(execPath, '#!/bin/sh\n', 'utf8');
 
@@ -266,7 +214,7 @@ describe('resolvePackagedElectronNodeCommand', () => {
   });
 
   it('keeps the main executable on non-macOS platforms', async () => {
-    const execPath = '/opt/Open Design/open-design';
+    const execPath = '/opt/Readable Studio/readable-studio';
 
     await expect(resolvePackagedElectronNodeCommand(execPath, 'linux')).resolves.toBe(execPath);
   });
@@ -307,39 +255,36 @@ describe('buildPackagedDaemonSpawnEnv', () => {
   // regress either side.
   function fakePaths(): PackagedNamespacePaths {
     return {
-      cacheRoot: '/tmp/od-pkg/cache',
-      dataRoot: '/tmp/od-pkg/data',
-      desktopIdentityPath: '/tmp/od-pkg/runtime/desktop-root.json',
-      desktopLogPath: '/tmp/od-pkg/logs/desktop/latest.log',
-      desktopLogsRoot: '/tmp/od-pkg/logs/desktop',
-      electronSessionDataRoot: '/tmp/od-pkg/user-data/session',
-      electronUserDataRoot: '/tmp/od-pkg/user-data',
-      headlessIdentityPath: '/tmp/od-pkg/runtime/headless-root.json',
-      installationRoot: '/tmp/od-pkg/..',
-      installerObservationRoot: '/tmp/od-pkg/data/observations/installer',
-      logsRoot: '/tmp/od-pkg/logs',
-      namespaceRoot: '/tmp/od-pkg',
-      resourceRoot: '/tmp/od-pkg/resources',
-      runtimeRoot: '/tmp/od-pkg/runtime',
-      updateRoot: '/tmp/od-pkg/updates',
-      webIdentityPath: '/tmp/od-pkg/runtime/web-root.json',
+      cacheRoot: '/tmp/readable-pkg/cache',
+      dataRoot: '/tmp/readable-pkg/data',
+      desktopIdentityPath: '/tmp/readable-pkg/runtime/desktop-root.json',
+      desktopLogPath: '/tmp/readable-pkg/logs/desktop/latest.log',
+      desktopLogsRoot: '/tmp/readable-pkg/logs/desktop',
+      electronSessionDataRoot: '/tmp/readable-pkg/user-data/session',
+      electronUserDataRoot: '/tmp/readable-pkg/user-data',
+      headlessIdentityPath: '/tmp/readable-pkg/runtime/headless-root.json',
+      installationRoot: '/tmp/readable-pkg/..',
+      logsRoot: '/tmp/readable-pkg/logs',
+      namespaceRoot: '/tmp/readable-pkg',
+      resourceRoot: '/tmp/readable-pkg/resources',
+      runtimeRoot: '/tmp/readable-pkg/runtime',
+      webIdentityPath: '/tmp/readable-pkg/runtime/web-root.json',
     };
   }
 
-  it('sets OD_REQUIRE_DESKTOP_AUTH=1 when requireDesktopAuth=true (Electron entry)', () => {
+  it('sets READABLE_REQUIRE_DESKTOP_AUTH=1 when requireDesktopAuth=true (Electron entry)', () => {
     const env = buildPackagedDaemonSpawnEnv(fakePaths(), {
       appVersion: '1.2.3',
       daemonCliEntry: null,
       daemonPort: 7456,
-      legacyDataDir: null,
       requireDesktopAuth: true,
     });
-    expect(env.OD_REQUIRE_DESKTOP_AUTH).toBe('1');
-    expect(env.OD_DATA_DIR).toBe('/tmp/od-pkg/data');
-    expect(env.OD_RESOURCE_ROOT).toBe('/tmp/od-pkg/resources');
-    expect(env.OD_APP_VERSION).toBe('1.2.3');
+    expect(env.READABLE_REQUIRE_DESKTOP_AUTH).toBe('1');
+    expect(env.READABLE_DATA_DIR).toBe('/tmp/readable-pkg/data');
+    expect(env.READABLE_RESOURCE_ROOT).toBe('/tmp/readable-pkg/resources');
+    expect(env.READABLE_APP_VERSION).toBe('1.2.3');
+    expect(env.READABLE_AGENT_DISCOVERY_OFFLINE).toBe('1');
     expect(env[SIDECAR_ENV.DAEMON_PORT]).toBe('7456');
-    expect(env.OD_LEGACY_DATA_DIR).toBeUndefined();
   });
 
   it('passes the ephemeral approval bearer only through the explicit daemon env', () => {
@@ -354,55 +299,31 @@ describe('buildPackagedDaemonSpawnEnv', () => {
     expect(env[SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN]).toBe('packaged-approval-token');
   });
 
-  it('omits OD_REQUIRE_DESKTOP_AUTH entirely when requireDesktopAuth=false (headless)', () => {
+  it('omits READABLE_REQUIRE_DESKTOP_AUTH entirely when requireDesktopAuth=false (headless)', () => {
     const env = buildPackagedDaemonSpawnEnv(fakePaths(), {
       appVersion: null,
       daemonCliEntry: null,
       daemonPort: 7456,
-      legacyDataDir: null,
       requireDesktopAuth: false,
     });
     // Round-5 (lefarcen P2): MUST NOT set the env var, even to "0" —
-    // the daemon's gate trigger is `process.env.OD_REQUIRE_DESKTOP_AUTH === '1'`,
+    // the daemon's gate trigger is `process.env.READABLE_REQUIRE_DESKTOP_AUTH === '1'`,
     // so a literal "0" would behave the same as omitted today, but a
     // future code change to truthy-check the variable would silently
     // re-arm the gate. Omitted is the intent.
-    expect('OD_REQUIRE_DESKTOP_AUTH' in env).toBe(false);
-    expect(env.OD_DATA_DIR).toBe('/tmp/od-pkg/data');
-    expect(env.OD_APP_VERSION).toBeUndefined();
+    expect('READABLE_REQUIRE_DESKTOP_AUTH' in env).toBe(false);
+    expect(env.READABLE_DATA_DIR).toBe('/tmp/readable-pkg/data');
+    expect(env.READABLE_APP_VERSION).toBeUndefined();
   });
 
-  it('forwards OD_LEGACY_DATA_DIR only when set, irrespective of requireDesktopAuth', () => {
-    const withLegacy = buildPackagedDaemonSpawnEnv(fakePaths(), {
-      appVersion: null,
-      daemonCliEntry: null,
-      daemonPort: 7456,
-      legacyDataDir: '/old/.od',
-      requireDesktopAuth: false,
-    });
-    expect(withLegacy.OD_LEGACY_DATA_DIR).toBe('/old/.od');
-
-    const withEmptyLegacy = buildPackagedDaemonSpawnEnv(fakePaths(), {
-      appVersion: null,
-      daemonCliEntry: null,
-      daemonPort: 7456,
-      legacyDataDir: '',
-      requireDesktopAuth: true,
-    });
-    // Empty string must NOT propagate — daemon treats "env set but
-    // path invalid" as an error and refuses to start.
-    expect('OD_LEGACY_DATA_DIR' in withEmptyLegacy).toBe(false);
-  });
-
-  it('forwards daemonCliEntry through OD_DAEMON_CLI_PATH when set', () => {
+  it('forwards daemonCliEntry through READABLE_DAEMON_CLI_PATH when set', () => {
     const env = buildPackagedDaemonSpawnEnv(fakePaths(), {
       appVersion: null,
       daemonCliEntry: '/path/to/cli/dist/index.js',
       daemonPort: 7456,
-      legacyDataDir: null,
       requireDesktopAuth: true,
     });
-    expect(env.OD_DAEMON_CLI_PATH).toBe('/path/to/cli/dist/index.js');
+    expect(env.READABLE_DAEMON_CLI_PATH).toBe('/path/to/cli/dist/index.js');
   });
 
   it('forwards the packaged AMR profile to the daemon when configured', () => {
@@ -411,28 +332,18 @@ describe('buildPackagedDaemonSpawnEnv', () => {
       amrProfile: 'test',
       daemonCliEntry: null,
       daemonPort: 7456,
-      legacyDataDir: null,
       requireDesktopAuth: true,
     });
-    expect(env.OPEN_DESIGN_AMR_PROFILE).toBe('test');
+    expect(env.READABLE_AMR_PROFILE).toBe('test');
   });
 
 });
 
 describe('waitForStatus child-exit fast-fail', () => {
-  // mrcfps round-7: when OD_LEGACY_DATA_DIR is set the daemon status
-  // budget extends to 30 minutes for legitimate large-payload migrations.
-  // But a daemon that throws LegacyMigrationError at startup (invalid
-  // legacy dir, existing target payload, symlink, marker write failure)
-  // exits before reporting status, and waiting the full 30 minutes makes
-  // the packaged app look hung. Racing the IPC polling against the
-  // child's exit event surfaces the failure promptly with a pointer to
-  // the daemon log.
-
   it('rejects within milliseconds when the child exits before status is ready', async () => {
     const child = fakeChild();
-    const ipcPath = '/tmp/od-test-no-such-ipc-' + Date.now();
-    const logPath = '/tmp/od-test-daemon.log';
+    const ipcPath = '/tmp/readable-test-no-such-ipc-' + Date.now();
+    const logPath = '/tmp/readable-test-daemon.log';
 
     const startedAt = Date.now();
     const promise = waitForStatus<{ url: string | null }>(
@@ -479,10 +390,10 @@ describe('waitForStatus child-exit fast-fail', () => {
     let captured: unknown;
     try {
       await waitForStatus<{ url: string | null }>(
-        '/tmp/od-test-no-such-ipc-pre-' + Date.now(),
+        '/tmp/readable-test-no-such-ipc-pre-' + Date.now(),
         (status) => status.url != null,
         30 * 60 * 1000,
-        { child, logPath: '/tmp/od-test-daemon.log' },
+        { child, logPath: '/tmp/readable-test-daemon.log' },
       );
     } catch (err) {
       captured = err;

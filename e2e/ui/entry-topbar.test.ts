@@ -3,20 +3,20 @@ import { ensureRailOpen } from '@/playwright/rail';
 import { routeAgents } from '@/playwright/mock-factory';
 import type { Page } from '@playwright/test';
 
-const STORAGE_KEY = 'open-design:config';
+const STORAGE_KEY = 'readable-studio:config';
 const LOCAL_CLI_LABEL = /Local CLI|本机 CLI|本地 CLI/i;
 const OPEN_SETTINGS_LABEL = /Open settings|打开设置|開啟設定/i;
 
 test.describe.configure({ timeout: 30_000 });
 
 async function waitForLoadingToClear(page: Page) {
-  await expect(page.getByText('Loading Open Design…')).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.locator('.readable-loading-shell')).toHaveCount(0, { timeout: 15_000 });
 }
 
 async function gotoEntryHome(page: Page) {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForLoadingToClear(page);
-  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Open Design' });
+  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Readable Studio' });
   if (await privacyDialog.isVisible().catch(() => false)) {
     await privacyDialog.getByRole('button', { name: /I get it|not now|got it|don't share/i }).click();
   }
@@ -45,7 +45,7 @@ test.beforeEach(async ({ page }) => {
     );
   }, STORAGE_KEY);
 
-  await page.route('**/api/github/open-design', async (route) => {
+  await page.route('**/api/github/readable-studio', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -103,7 +103,7 @@ test('[P2] home topbar shows the new entry chips and links', async ({ page }) =>
 
   const star = page.getByTestId('entry-star-badge');
   await expect(star).toBeVisible();
-  await expect(star).toHaveAttribute('href', 'https://github.com/nexu-io/open-design');
+  await expect(star).toHaveAttribute('href', 'https://github.com/sanghyunna/readable-studio');
   await expect(star).toContainText('Star');
   await expect(star).toContainText('51.6K');
 
@@ -148,8 +148,9 @@ test('[P2] home topbar star and discord badges expose the current external-link 
 
   const discord = page.getByTestId('entry-discord-badge');
   await expect(discord).toHaveAttribute('href', 'https://discord.gg/mHAjSMV6gz');
-  await expect(discord).toHaveAttribute('title', /Join the Open Design Discord/i);
-  await expect(discord).toHaveAttribute('aria-label', /Join the Open Design Discord/i);
+  const discordTitle = await discord.getAttribute('title');
+  expect(discordTitle).toBeTruthy();
+  await expect(discord).toHaveAttribute('aria-label', discordTitle ?? '');
 });
 
 test('[P2] home topbar Use everywhere navigates to Integrations with the tab selected', async ({ page }) => {

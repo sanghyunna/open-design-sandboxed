@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { searchResearch, ResearchError } from '../src/research/index.js';
 
-const TAVILY_ENV_KEYS = ['OD_TAVILY_API_KEY', 'TAVILY_API_KEY'];
+const TAVILY_ENV_KEYS = ['READABLE_TAVILY_API_KEY', 'TAVILY_API_KEY'];
 type FetchInput = Parameters<typeof fetch>[0];
 type FetchInit = Parameters<typeof fetch>[1];
 
@@ -27,7 +27,7 @@ describe('research search', () => {
   });
 
   async function tempProjectRoot() {
-    projectRoot = await mkdtemp(path.join(tmpdir(), 'od-research-project-'));
+    projectRoot = await mkdtemp(path.join(tmpdir(), 'readable-research-project-'));
     return projectRoot;
   }
 
@@ -43,7 +43,7 @@ describe('research search', () => {
   });
 
   it('uses shallow Tavily search and normalizes JSON findings', async () => {
-    process.env.OD_TAVILY_API_KEY = 'tvly-test';
+    process.env.READABLE_TAVILY_API_KEY = 'tvly-test';
     const fetchMock = vi.fn(async (_input: FetchInput, _init?: FetchInit) =>
       new Response(
         JSON.stringify({

@@ -1,4 +1,4 @@
-// Phase 4 / spec §14.1 — `od plugin scaffold` unit test.
+// Phase 4 / spec §14.1 — `readable plugin scaffold` unit test.
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
@@ -12,7 +12,7 @@ import {
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-scaffold-'));
+  tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-scaffold-'));
 });
 
 afterEach(async () => {
@@ -20,7 +20,7 @@ afterEach(async () => {
 });
 
 describe('scaffoldPlugin', () => {
-  it('writes SKILL.md + open-design.json + README.md by default', async () => {
+  it('writes SKILL.md + readable-studio.json + README.md by default', async () => {
     const result = await scaffoldPlugin({
       targetDir: tmpDir,
       id:        'sample-plugin',
@@ -29,17 +29,17 @@ describe('scaffoldPlugin', () => {
     expect(result.files.map((f) => path.basename(f)).sort()).toEqual([
       'README.md',
       'SKILL.md',
-      'open-design.json',
+      'readable-studio.json',
     ]);
     const skillBody = await readFile(path.join(result.folder, 'SKILL.md'), 'utf8');
     expect(skillBody).toMatch(/^---/);
     expect(skillBody).toMatch(/name: sample-plugin/);
     const manifest = JSON.parse(
-      await readFile(path.join(result.folder, 'open-design.json'), 'utf8'),
+      await readFile(path.join(result.folder, 'readable-studio.json'), 'utf8'),
     );
     expect(manifest.name).toBe('sample-plugin');
-    expect(manifest.od.taskKind).toBe('new-generation');
-    expect(manifest.od.useCase.query).toMatch(/sample plugin/i);
+    expect(manifest.readable.taskKind).toBe('new-generation');
+    expect(manifest.readable.useCase.query).toMatch(/sample plugin/i);
   });
 
   it('humanises the title from the id when --title is omitted', async () => {
@@ -48,7 +48,7 @@ describe('scaffoldPlugin', () => {
       id:        'my-cool-plugin',
     });
     const manifest = JSON.parse(
-      await readFile(path.join(result.folder, 'open-design.json'), 'utf8'),
+      await readFile(path.join(result.folder, 'readable-studio.json'), 'utf8'),
     );
     expect(manifest.title).toBe('My Cool Plugin');
   });

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { questionsFormTrackingId } from '@open-design/contracts/analytics';
+import { questionsFormTrackingId } from '@readable-studio/contracts/analytics';
 import { useT } from '../i18n';
 import { useAnalytics } from '../analytics/provider';
 import { trackQuestionsFormClick, trackQuestionsFormSurfaceView } from '../analytics/events';
@@ -30,7 +30,7 @@ const viewedFormOccurrences = new Set<string>();
 // for them — submitting whatever they picked (unanswered questions count as
 // skipped) so generation never stalls waiting on a reply.
 const SKIP_COUNTDOWN_SECONDS = 120;
-const QUESTION_FORM_DRAFT_STORAGE_PREFIX = 'open-design:question-form-draft:';
+const QUESTION_FORM_DRAFT_STORAGE_PREFIX = 'readable-studio:question-form-draft:';
 
 type QuestionFormAnswers = Record<string, string | string[]>;
 

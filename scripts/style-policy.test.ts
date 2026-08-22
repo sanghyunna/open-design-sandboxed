@@ -153,6 +153,27 @@ test("style policy ignores TS comments and non-style named color strings", () =>
   );
 });
 
+test("rejects stale design-system identity", () => {
+  const source = [
+    '{',
+    '  "name": "OpenAI",',
+    `  "description": "Bundled ${["Open", "Design"].join(" ")} package for OpenAI"`,
+    '}',
+  ].join("\n");
+
+  assert.deepEqual(
+    collectStylePolicyViolationsFromSource("design-systems/openai/manifest.json", source),
+    [
+      {
+        filePath: "design-systems/openai/manifest.json",
+        lineNumber: 3,
+        match: ["Open", "Design"].join(" "),
+        reason: "design-system product attribution must use Readable Studio metadata",
+      },
+    ],
+  );
+});
+
 test("theme parity requires the theme selector to match the file theme id", () => {
   const expected = new Set(["--accent", "--accent-contrast"]);
 

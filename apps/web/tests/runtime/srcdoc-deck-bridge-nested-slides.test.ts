@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { JSDOM } from 'jsdom';
 import { buildSrcdoc } from '../../src/runtime/srcdoc';
 
-// Behavioral coverage for nexu-io/open-design#1530. The deck bridge in
+// Behavioral coverage for nexu-io/readable-studio#1530. The deck bridge in
 // `buildSrcdoc({ deck: true })` counts slides via a DOM selector to drive
 // the host preview toolbar's `slideState.count`. Generated HTML decks
 // commonly nest `.slide` elements under an extra wrapper rather than
@@ -18,7 +18,7 @@ import { buildSrcdoc } from '../../src/runtime/srcdoc';
 // falls back to all `.slide` only when the structured count is zero.
 
 function extractDeckBridgeScript(srcdoc: string): string {
-  const match = srcdoc.match(/<script data-od-deck-bridge>([\s\S]*?)<\/script>/);
+  const match = srcdoc.match(/<script data-readable-deck-bridge>([\s\S]*?)<\/script>/);
   if (!match || !match[1]) {
     throw new Error('deck bridge script not found in srcdoc');
   }
@@ -58,13 +58,13 @@ function setupDeckBridge(bodyHtml: string) {
 function lastSlideState(parentPostMessage: ReturnType<typeof vi.fn>) {
   const messages = parentPostMessage.mock.calls
     .map((call) => call[0])
-    .filter((m) => m?.type === 'od:slide-state');
+    .filter((m) => m?.type === 'readable-studio:slide-state');
   return messages.at(-1);
 }
 
 function postSlide(win: ReturnType<typeof setupDeckBridge>['win'], action: 'next' | 'prev') {
   win.dispatchEvent(new win.window.MessageEvent('message', {
-    data: { type: 'od:slide', action },
+    data: { type: 'readable-studio:slide', action },
   }));
 }
 

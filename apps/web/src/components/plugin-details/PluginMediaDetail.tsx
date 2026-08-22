@@ -13,7 +13,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type {
   InstalledPluginRecord,
   PluginManifest,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { useT } from '../../i18n';
 import { resolvePluginQueryFallback } from '../../state/projects';
 import { Icon } from '../Icon';
@@ -48,7 +48,7 @@ interface MediaPreview {
 }
 
 function readMedia(record: InstalledPluginRecord): MediaPreview {
-  const preview = record.manifest?.od?.preview as
+  const preview = record.manifest?.readable?.preview as
     | {
         type?: unknown;
         poster?: unknown;
@@ -94,9 +94,9 @@ export function PluginMediaDetail({
   const [copied, setCopied] = useState(false);
 
   const manifest: PluginManifest = record.manifest ?? ({} as PluginManifest);
-  const od = manifest.od ?? {};
+  const readable = manifest.readable ?? {};
   const description = manifest.description ?? '';
-  const query = resolvePluginQueryFallback(od.useCase?.query);
+  const query = resolvePluginQueryFallback(readable.useCase?.query);
   const media = useMemo(() => readMedia(record), [record]);
   const hasAsset = Boolean(media.poster || media.videoUrl || media.audioUrl);
 

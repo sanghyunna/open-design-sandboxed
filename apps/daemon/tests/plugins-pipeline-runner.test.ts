@@ -21,7 +21,7 @@ import type {
   GenUISurfaceEvent,
   GenUISurfaceSpec,
   PluginPipelineStageEvent,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { migratePlugins } from '../src/plugins/persistence.js';
 import { createSnapshot } from '../src/plugins/snapshots.js';
 import { runPipelineForRun } from '../src/plugins/pipeline-runner.js';
@@ -42,7 +42,7 @@ let db: Database.Database;
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-runner-'));
+  tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-runner-'));
   db = new Database(path.join(tmpDir, 'test.sqlite'));
   db.exec(`
     CREATE TABLE projects (id TEXT PRIMARY KEY, name TEXT);

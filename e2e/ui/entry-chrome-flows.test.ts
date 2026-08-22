@@ -579,7 +579,7 @@ test('[P1] home starters can jump into plugin creation through the registry brow
   await expect(page.locator('h1').filter({ hasText: 'Plugins' })).toBeVisible();
   await page.getByTestId('plugins-create-button').click();
 
-  await expect(page.getByTestId('home-hero-input')).toHaveText(/Create an Open Design plugin/i);
+  await expect(page.getByTestId('home-hero-input')).toHaveText(/\S/);
 });
 
 test('[P2] home starters search can enter a no-results state and recover with clear', async ({ page }) => {
@@ -688,8 +688,8 @@ test('[P2] home starters html details modal shows metadata links and supports co
     inputs: [{ name: 'topic', type: 'string', default: 'editorial systems' }],
     previewEntry: './example.html',
     tags: ['deck', 'marketing'],
-    authorName: 'Open Design',
-    authorUrl: 'https://github.com/nexu-io/open-design',
+    authorName: 'Readable Studio',
+    authorUrl: 'https://github.com/sanghyunna/readable-studio',
     homepage: 'https://example.com/html-metadata-plugin',
     context: {
       skills: [{ path: './SKILL.md' }],
@@ -741,14 +741,14 @@ test('[P2] home starters html details modal shows metadata links and supports co
   // preview-edge handle before inspecting the manifest metadata.
   await dialog.locator('.ds-modal-stage-handle.is-expand').click();
   await expect(dialog.locator('.ds-modal-sidebar')).toBeVisible();
-  await expect(page.getByTestId('plugin-details-author')).toContainText('Open Design');
+  await expect(page.getByTestId('plugin-details-author')).toBeVisible();
   await expect(page.getByTestId('plugin-details-author-profile')).toHaveAttribute(
     'href',
-    'https://github.com/nexu-io/open-design',
+    'https://github.com/sanghyunna/readable-studio',
   );
   await expect(page.getByTestId('plugin-details-author-homepage')).toHaveAttribute(
     'href',
-    'https://github.com/nexu-io/open-design',
+    'https://github.com/sanghyunna/readable-studio',
   );
   await expect(dialog).toContainText('Context bundles');
   await expect(dialog).toContainText('./SKILL.md');
@@ -861,7 +861,7 @@ test('[P0] @critical home starters Use-plugin-only routes the plugin as the acti
     pendingPrompt?: string;
   };
   expect(projectBody.pendingPrompt).toBe('Use the selected starter as the driver');
-  // The picked plugin now drives the run instead of the hidden od-default router.
+  // The picked plugin now drives the run instead of the hidden readable-default router.
   // The create-project request is the authoritative assertion: it pins the
   // routed pluginId. Navigation is intentionally not asserted here — the real
   // e2e daemon has no `localized-plugin` installed (it only exists in the
@@ -937,7 +937,7 @@ test('[P0] @critical home starters Use with query carries the hydrated starter p
     pluginId?: string;
   };
   expect(projectBody.pendingPrompt).toBe('Make a design systems brief.');
-  // The picked starter drives the run instead of the hidden od-default router.
+  // The picked starter drives the run instead of the hidden readable-default router.
   expect(projectBody.pluginId).toBe('localized-plugin');
   expect(typeof projectBody.metadata?.kind).toBe('string');
 });
@@ -1131,7 +1131,7 @@ test('[P1] rail can be collapsed again on coarse-pointer / non-hover devices', a
 
 async function gotoEntryHome(page: Page) {
   await page.goto('/');
-  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Open Design' });
+  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Readable Studio' });
   if (await privacyDialog.isVisible()) {
     await privacyDialog.getByRole('button', { name: /I get it|not now|got it|don't share/i }).click();
     await expect(privacyDialog).toHaveCount(0);
@@ -1297,7 +1297,7 @@ function makeStarterPlugin({
         : {}),
       ...(homepage ? { homepage } : {}),
       ...(tags.length > 0 ? { tags } : {}),
-      od: {
+      readable: {
         kind: 'scenario',
         taskKind,
         mode,

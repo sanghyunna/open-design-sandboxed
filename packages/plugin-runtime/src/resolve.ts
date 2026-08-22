@@ -3,11 +3,11 @@ import type {
   PluginManifest,
   PluginPipeline,
   ResolvedContext,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 // Pure context resolver. Given a parsed PluginManifest and a registry view
 // (skills/design-systems/craft already discovered by the daemon), turn
-// `od.context.*` refs into the typed ContextItem chips the UI / CLI render.
+// `readable.context.*` refs into the typed ContextItem chips the UI / CLI render.
 //
 // This module never reads the filesystem; the daemon passes the registry
 // snapshots in. Tests and the web preview sandbox can supply mocks.
@@ -18,11 +18,11 @@ export interface RegistryView {
   craft: ReadonlyArray<{ id: string; title?: string }>;
   atoms: ReadonlyArray<{ id: string; label?: string }>;
   // Project-level design-system override for SKILL.md authors that wrote
-  // `od.design_system.requires: true` without a concrete ref. Daemon
+  // `readable.design_system.requires: true` without a concrete ref. Daemon
   // supplies the active project's design system here.
   activeProjectDesignSystem?: { id: string; title?: string } | undefined;
   // Spec §23.3.3: bundled scenario plugins. When a non-scenario plugin
-  // omits `od.pipeline`, apply consults this list and uses the
+  // omits `readable.pipeline`, apply consults this list and uses the
   // matching scenario's pipeline (chosen by `taskKind`). The first
   // entry that matches wins; later entries are ignored. Daemons that
   // don't bundle scenarios pass an empty list — apply then leaves the
@@ -31,14 +31,14 @@ export interface RegistryView {
 }
 
 export interface ScenarioRegistryEntry {
-  // The scenario plugin's id (e.g. 'od-code-migration'). Used by tests
+  // The scenario plugin's id (e.g. 'readable-code-migration'). Used by tests
   // and audits to attribute the fallback choice.
   id: string;
   // The taskKind enum value this scenario claims to default for. Apply
-  // matches against `manifest.od.taskKind` (or 'new-generation' when
+  // matches against `manifest.readable.taskKind` (or 'new-generation' when
   // absent).
   taskKind: 'new-generation' | 'figma-migration' | 'code-migration' | 'tune-collab';
-  // The scenario plugin's `od.pipeline`. Copied verbatim into the
+  // The scenario plugin's `readable.pipeline`. Copied verbatim into the
   // applied snapshot when the consumer plugin lacks one of its own.
   pipeline: PluginPipeline;
 }
@@ -64,7 +64,7 @@ export function resolveContext(manifest: PluginManifest, opts: ResolveOptions): 
   const items: ContextItem[] = [];
   const digestRefs: Array<{ kind: string; ref: string }> = [];
 
-  const ctx = manifest.od?.context;
+  const ctx = manifest.readable?.context;
   const registry = opts.registry;
 
   if (ctx) {
@@ -157,7 +157,7 @@ export function resolveContext(manifest: PluginManifest, opts: ResolveOptions): 
   // Pipeline stages flag additional atoms that may not have appeared in
   // ctx.atoms; record them as digest refs so two manifests with different
   // pipelines produce distinct digests.
-  for (const stage of manifest.od?.pipeline?.stages ?? []) {
+  for (const stage of manifest.readable?.pipeline?.stages ?? []) {
     for (const atomId of stage.atoms) {
       digestRefs.push({ kind: 'pipeline-atom', ref: `${stage.id}:${atomId}` });
     }

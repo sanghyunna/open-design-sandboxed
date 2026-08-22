@@ -12,7 +12,7 @@ triggers:
   - "pastel insight dashboard"
   - "premium editorial report template"
   - "cream and pastel data report"
-od:
+readable:
   mode: template
   surface: video
   type: hyperframes

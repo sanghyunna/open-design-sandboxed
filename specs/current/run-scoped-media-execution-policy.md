@@ -2,36 +2,36 @@
 
 ## Purpose
 
-Define the smallest Open Design patch that lets an upstream orchestrator call
-OD as a creative runtime adapter while the upstream orchestrator keeps authority
+Define the smallest Readable Studio patch that lets an upstream orchestrator call
+Readable Studio as a creative runtime adapter while the upstream orchestrator keeps authority
 over media provider use.
 
 The proposed patch adds a run-scoped media execution policy. The policy tells
-OD whether a run may generate media bytes, emit structured media requests
+Readable Studio whether a run may generate media bytes, emit structured media requests
 without executing them, or delegate those requests to a generic external media
-executor. The default preserves current OD behavior.
+executor. The default preserves current Readable Studio behavior.
 
 This is a strategy and implementation-shape document. It is intended to be the
 first review artifact before code lands, following the maintainer pattern from
 recent architecture threads:
 
-- Issue [#2146](https://github.com/nexu-io/open-design/issues/2146) accepted a
+- Issue [#2146](https://github.com/nexu-io/readable-studio/issues/2146) accepted a
   focused contract proposal before implementation.
-- Issue [#1969](https://github.com/nexu-io/open-design/issues/1969) asked for a
+- Issue [#1969](https://github.com/nexu-io/readable-studio/issues/1969) asked for a
   focused design note with schema, fixture, and comparison criteria before a
   multi-mode export implementation.
-- Issue [#1637](https://github.com/nexu-io/open-design/issues/1637), PR
-  [#1746](https://github.com/nexu-io/open-design/pull/1746), and PR
-  [#3021](https://github.com/nexu-io/open-design/pull/3021) established that a
+- Issue [#1637](https://github.com/nexu-io/readable-studio/issues/1637), PR
+  [#1746](https://github.com/nexu-io/readable-studio/pull/1746), and PR
+  [#3021](https://github.com/nexu-io/readable-studio/pull/3021) established that a
   broad prototype should become a doc-only integration-shape review surface
   before implementation is treated as mergeable.
 
 The same shape applies here: land the integration contract first, keep the
-first code patch small, and do not make OD a provider router or account owner.
+first code patch small, and do not make Readable Studio a provider router or account owner.
 
 ## Background
 
-Open Design already has a media dispatcher. It is local-first and daemon-owned:
+Readable Studio already has a media dispatcher. It is local-first and daemon-owned:
 
 - `apps/daemon/src/media-routes.ts` exposes the project media endpoints,
   including `POST /api/projects/:id/media/generate`.
@@ -40,28 +40,28 @@ Open Design already has a media dispatcher. It is local-first and daemon-owned:
 - `apps/daemon/src/media-config.ts` owns local provider credentials and config.
 - `apps/daemon/src/media-tasks.ts` owns task snapshots, progress, waits, and
   persistence.
-- `apps/daemon/src/cli.ts` exposes `od media generate` and `od media wait` as
+- `apps/daemon/src/cli.ts` exposes `readable media generate` and `readable media wait` as
   the shell-callable surface used by agents.
 - `apps/daemon/src/prompts/media-contract.ts` instructs media-surface agents to
-  call `"$OD_NODE_BIN" "$OD_BIN" media generate ...`.
+  call `"$READABLE_NODE_BIN" "$READABLE_BIN" media generate ...`.
 - `apps/daemon/src/prompts/system.ts` adds the media contract and also contains
   a Codex imagegen override for selected image models.
 
 The run layer already has a scoped tool-token primitive:
 
-- `apps/daemon/src/tool-tokens.ts` mints `OD_TOOL_TOKEN` grants tied to
+- `apps/daemon/src/tool-tokens.ts` mints `READABLE_TOOL_TOKEN` grants tied to
   `runId`, `projectId`, endpoint allowlists, operation allowlists, TTL, and
   plugin trust/capabilities.
-- `apps/daemon/src/server.ts` injects `OD_TOOL_TOKEN`, `OD_BIN`,
-  `OD_NODE_BIN`, `OD_DAEMON_URL`, `OD_PROJECT_ID`, and `OD_PROJECT_DIR` into
+- `apps/daemon/src/server.ts` injects `READABLE_TOOL_TOKEN`, `READABLE_BIN`,
+  `READABLE_NODE_BIN`, `READABLE_DAEMON_URL`, `READABLE_PROJECT_ID`, and `READABLE_PROJECT_DIR` into
   agent runtimes.
 - Existing `/api/tools/*` endpoints are the precedent for run-scoped, token
   gated wrapper commands.
 
-The current media path is correct for normal OD use. It is too permissive for
+The current media path is correct for normal Readable Studio use. It is too permissive for
 an externally orchestrated creative execution path because an agent inside a
-run can shell out to `od media generate`, causing OD to spend provider budget
-and use OD-held credentials. For this integration shape, OD should contribute
+run can shell out to `readable media generate`, causing Readable Studio to spend provider budget
+and use Readable Studio-held credentials. For this integration shape, Readable Studio should contribute
 creative context, skills, design systems, previews, artifacts, and
 design-aware workflow, while the external orchestrator owns caller auth,
 admission, orchestration, provider policy, retries, budgets, accounting,
@@ -69,14 +69,14 @@ webhooks, and external artifact manifests.
 
 ## Non-goals
 
-- Do not replace OD's existing local media dispatcher for normal OD users.
-- Do not make OD a model router, provider account pool, media budget authority,
+- Do not replace Readable Studio's existing local media dispatcher for normal Readable Studio users.
+- Do not make Readable Studio a model router, provider account pool, media budget authority,
   or global provider rate-limit service.
 - Do not add an orchestrator-specific provider or import external-service
-  concepts into OD's core media dispatcher.
+  concepts into Readable Studio's core media dispatcher.
 - Do not expose arbitrary daemon/media access to any caller that can reach the
   local daemon.
-- Do not require any external orchestrator for local OD media generation.
+- Do not require any external orchestrator for local Readable Studio media generation.
 - Do not start with a broad provider-refactor PR. The first patch should be a
   focused run-policy and request-capture slice.
 
@@ -89,12 +89,12 @@ in the linked issues and PRs.
 |---|---|
 | #2146: use an authoritative contract, do not silently infer extra children. | `mediaExecution` on the run is the authoritative policy. Agents do not infer permission from project kind, selected model, or provider config. |
 | #2146: keep persisted ids/storage separate from unsafe display ids. | Media requests get daemon-owned ids and project-relative artifact paths. Provider names, external executor ids, and caller labels are metadata, not storage paths. |
-| #1969: decide the user workflow first, then implement modes. | The workflow split is "OD executes local media" vs "OD emits design-aware media requests for an upstream executor." These are separate policy modes, not a hidden fallback. |
+| #1969: decide the user workflow first, then implement modes. | The workflow split is "Readable Studio executes local media" vs "Readable Studio emits design-aware media requests for an upstream executor." These are separate policy modes, not a hidden fallback. |
 | #1969: first useful artifact is design note plus schema/fixture/comparison criteria. | This doc includes the mode schema, media request shape, enforcement points, and tests. Fixtures should cover enabled, disabled, request-only, and external-stub runs. |
 | #1637/#1746: avoid more isolated engine churn when product/pipeline boundary is unresolved. | Do not start by refactoring providers. Start at the run boundary, media command boundary, and request event boundary. |
 | #1637/#3021: use an integration-shape doc with concrete decision points. | This doc names the policy modes, API contracts, event/resource model, owner decisions, and phased implementation sequence. |
 | #3021: keep the doc self-contained and grounded in live daemon contracts. | The background section names the live files and primitives this patch should change. It does not depend on a parked branch. |
-| #3021: preserve the current data-root/runtime contract exactly. | New persistent state should follow daemon runtime data ownership under `OD_DATA_DIR` if set, else `<projectRoot>/.od`. `OD_MEDIA_CONFIG_DIR` remains media-config-only and should not own request state. |
+| #3021: preserve the current data-root/runtime contract exactly. | New persistent state should follow daemon runtime data ownership under `READABLE_DATA_DIR` if set, else `<projectRoot>/.readable-studio`. `READABLE_MEDIA_CONFIG_DIR` remains media-config-only and should not own request state. |
 
 ## Decision summary
 
@@ -104,7 +104,7 @@ in the linked issues and PRs.
 4. Treat `external` as a generic executor contract and either document it in
    the first PR or ship it as a second patch after request-only is reviewed.
 5. Move agent-driven media generation behind a run-scoped `/api/tools/media/*`
-   endpoint guarded by `OD_TOOL_TOKEN`.
+   endpoint guarded by `READABLE_TOOL_TOKEN`.
 6. Keep the existing `/api/projects/:id/media/generate` endpoint for UI/legacy
    CLI use, but do not let an in-run agent bypass the run policy through it.
 7. Add first-class media requests. Do not model request-only output as only a
@@ -115,7 +115,7 @@ in the linked issues and PRs.
 10. Suppress direct media-provider prompt instructions, including the Codex
     imagegen override, unless the policy permits byte generation.
 11. Gate external MCP media tools in non-enabled modes so connected MCP servers
-    cannot bypass OD's own media policy.
+    cannot bypass Readable Studio's own media policy.
 12. Keep provider credentials and budgets outside the new policy object.
 
 ## Policy model
@@ -148,22 +148,22 @@ export interface ExternalMediaExecutorRef {
 }
 ```
 
-`enabled` means current OD behavior. Provider credentials, local media config,
+`enabled` means current Readable Studio behavior. Provider credentials, local media config,
 and task execution work as they do today.
 
 `disabled` means this run must not generate media bytes or create media
 requests. Attempts fail with a structured policy error. The prompt should not
-tell the agent to call `od media generate`.
+tell the agent to call `readable media generate`.
 
-`request-only` means the agent may create structured media requests. OD stores
+`request-only` means the agent may create structured media requests. Readable Studio stores
 the request and emits events, but does not call providers or write media bytes.
 This is the safest first step for external orchestration because the upstream
 service can read/poll/subscribe to the request, execute it under its own
 creative policy, and fulfill it later.
 
-`external` means OD can synchronously or asynchronously submit a media request
+`external` means Readable Studio can synchronously or asynchronously submit a media request
 to a generic HTTP executor. This should stay generic. A particular deployment
-can provide one executor implementation, but OD should not add
+can provide one executor implementation, but Readable Studio should not add
 orchestrator-specific code to the provider dispatcher.
 
 Open question: whether the first code PR should include `external`. The
@@ -204,7 +204,7 @@ Add a token-gated endpoint for agent wrapper commands:
 
 ```text
 POST /api/tools/media/generate
-Authorization: Bearer <OD_TOOL_TOKEN>
+Authorization: Bearer <READABLE_TOOL_TOKEN>
 ```
 
 The request body should be the existing media generation body plus optional
@@ -229,8 +229,8 @@ Behavior by mode:
 | `request-only` | Create a `MediaRequest`, emit an event, return request metadata. |
 | `external` | Create a `MediaRequest`, submit it to the external executor, and update status from executor response. |
 
-`od media generate` should prefer this endpoint when `OD_TOOL_TOKEN` is present.
-Outside a run, it can continue using the existing project endpoint so normal OD
+`readable media generate` should prefer this endpoint when `READABLE_TOOL_TOKEN` is present.
+Outside a run, it can continue using the existing project endpoint so normal Readable Studio
 and current UI flows remain compatible.
 
 ### Media request resource
@@ -252,12 +252,12 @@ layer.
 
 ### CLI
 
-The CLI already has `od media generate` and `od media wait`. The first patch
+The CLI already has `readable media generate` and `readable media wait`. The first patch
 should add:
 
 ```text
-od media requests list --run <runId> --json
-od media requests fulfill <requestId> --file <project-relative-path> --json
+readable media requests list --run <runId> --json
+readable media requests fulfill <requestId> --file <project-relative-path> --json
 ```
 
 If maintainers prefer a smaller first patch, list/fulfill can be hidden behind
@@ -366,7 +366,7 @@ slot:
 ```
 
 When fulfilled, the request points at the actual project file/artifact metadata.
-This keeps OD's artifact structure useful without pretending a request is a
+This keeps Readable Studio's artifact structure useful without pretending a request is a
 generated image/video/audio file.
 
 Do not store media requests only as files under the project directory. The
@@ -406,9 +406,9 @@ provider work.
 Keep `/api/projects/:id/media/generate` for existing UI and outside-run CLI
 use. Add a stricter path for in-run calls:
 
-- If `OD_TOOL_TOKEN` is present, `od media generate` posts to
+- If `READABLE_TOOL_TOKEN` is present, `readable media generate` posts to
   `/api/tools/media/generate`.
-- If no token is present, `od media generate` keeps posting to the legacy
+- If no token is present, `readable media generate` keeps posting to the legacy
   project endpoint.
 - If a token is present but invalid or disallowed, fail closed instead of
   falling back to the legacy endpoint.
@@ -425,19 +425,19 @@ mode:
 | Mode | Prompt guidance |
 |---|---|
 | `enabled` | Current media generation contract. |
-| `disabled` | State that media generation is disabled for this run and the agent must not call `od media generate` or external media tools. |
-| `request-only` | Instruct the agent to create media requests through the OD wrapper. State that OD will not execute provider calls. |
-| `external` | Instruct the agent to create/delegate media requests through OD wrapper only. Do not name provider credentials or direct provider APIs. |
+| `disabled` | State that media generation is disabled for this run and the agent must not call `readable media generate` or external media tools. |
+| `request-only` | Instruct the agent to create media requests through the Readable Studio wrapper. State that Readable Studio will not execute provider calls. |
+| `external` | Instruct the agent to create/delegate media requests through Readable Studio wrapper only. Do not name provider credentials or direct provider APIs. |
 
 The Codex built-in imagegen override must render only when the effective policy
-is `enabled`. Otherwise Codex can bypass OD's dispatcher and violate the run
+is `enabled`. Otherwise Codex can bypass Readable Studio's dispatcher and violate the run
 policy.
 
 ### External MCP tools
 
 `apps/daemon/src/server.ts` injects connected external MCP instructions into
 the run prompt. In `disabled`, `request-only`, and non-generic `external` modes,
-the prompt should block direct media-provider MCP tools unless OD can gate them
+the prompt should block direct media-provider MCP tools unless Readable Studio can gate them
 through the same policy. Otherwise a connected MCP server can become an
 untracked provider route.
 
@@ -452,14 +452,14 @@ they should fail. In `enabled`, current behavior stays.
 Existing media tasks own polling/wait loops. Media requests should have a
 separate lifecycle because request-only mode has no provider task to poll.
 
-In `external`, OD should model cancellation as best-effort:
+In `external`, Readable Studio should model cancellation as best-effort:
 
-- mark OD request `cancelled` if it has not been submitted,
+- mark Readable Studio request `cancelled` if it has not been submitted,
 - call executor cancel endpoint if the executor declared one,
 - otherwise record cancellation requested and stop waiting locally.
 
-Retries should not be OD's responsibility in the externally orchestrated path.
-OD can expose the request and failure details; the upstream service decides
+Retries should not be Readable Studio's responsibility in the externally orchestrated path.
+Readable Studio can expose the request and failure details; the upstream service decides
 whether to retry.
 
 ## External executor contract
@@ -501,34 +501,34 @@ Recommended response:
 
 Auth representation:
 
-- OD may read a bearer token or header value from an environment variable named
+- Readable Studio may read a bearer token or header value from an environment variable named
   in `externalExecutor.auth`.
-- OD must not store provider credentials, provider account ids, budgets, or
+- Readable Studio must not store provider credentials, provider account ids, budgets, or
   provider rate-limit policy in the run policy.
-- The executor token authenticates OD to the executor, not OD to a concrete
+- The executor token authenticates Readable Studio to the executor, not Readable Studio to a concrete
   media provider.
 
 Artifact storage:
 
-- Preferred: executor returns or posts bytes/files to OD fulfillment endpoint,
-  and OD writes the final artifact into the project using daemon project-file
+- Preferred: executor returns or posts bytes/files to Readable Studio fulfillment endpoint,
+  and Readable Studio writes the final artifact into the project using daemon project-file
   APIs.
-- Alternate: executor returns a durable URL and OD records a manifest entry
+- Alternate: executor returns a durable URL and Readable Studio records a manifest entry
   without importing bytes. This should be explicit because local-first users
   may expect project artifacts to remain available offline.
 
-Open question: whether OD should allow the alternate URL-only fulfillment in
+Open question: whether Readable Studio should allow the alternate URL-only fulfillment in
 the first external implementation. For externally orchestrated use, imported
-bytes are safer because OD previews remain stable.
+bytes are safer because Readable Studio previews remain stable.
 
 ## Backward compatibility
 
-- Omitted policy means `enabled`, so existing OD users see no behavior change.
+- Omitted policy means `enabled`, so existing Readable Studio users see no behavior change.
 - Existing media config and provider credentials continue to work for normal
-  OD media projects.
+  Readable Studio media projects.
 - Existing UI calls to `/api/projects/:id/media/generate` keep working.
-- `od media generate` outside a run keeps working.
-- In-run `od media generate` becomes stricter only when `OD_TOOL_TOKEN` exists.
+- `readable media generate` outside a run keeps working.
+- In-run `readable media generate` becomes stricter only when `READABLE_TOOL_TOKEN` exists.
   This is intentional because the run has an explicit policy.
 - `request-only` and `disabled` are opt-in. An external orchestrator must ask
   for them.
@@ -560,11 +560,11 @@ bytes are safer because OD previews remain stable.
 
 ### CLI tests
 
-- `od media generate` uses `/api/tools/media/generate` when `OD_TOOL_TOKEN` is
+- `readable media generate` uses `/api/tools/media/generate` when `READABLE_TOOL_TOKEN` is
   set.
-- `od media generate` fails closed on a bad token rather than falling back.
-- `od media requests list --run ... --json` returns machine-readable output.
-- `od media requests fulfill ... --json` writes or records the fulfilled file
+- `readable media generate` fails closed on a bad token rather than falling back.
+- `readable media requests list --run ... --json` returns machine-readable output.
+- `readable media requests fulfill ... --json` writes or records the fulfilled file
   through the API, not by directly mutating daemon state.
 
 ### E2E tests
@@ -572,7 +572,7 @@ bytes are safer because OD previews remain stable.
 Use the existing fake-agent harness:
 
 - Extend `e2e/lib/fake-agents.ts` with a fake agent that calls
-  `"$OD_NODE_BIN" "$OD_BIN" media generate`.
+  `"$READABLE_NODE_BIN" "$READABLE_BIN" media generate`.
 - Add run tests using `e2e/lib/vitest/runs.ts` to start request-only and
   disabled runs.
 - Assert request-only emits a structured media request event and no media task
@@ -580,7 +580,7 @@ Use the existing fake-agent harness:
 - Assert disabled fails with a policy error and does not create request/task
   state.
 - Add a fake HTTP executor for the external follow-up. It should record submit
-  payloads, simulate async fulfillment, and verify OD writes the fulfilled file.
+  payloads, simulate async fulfillment, and verify Readable Studio writes the fulfilled file.
 
 ## Implementation sequence
 
@@ -595,13 +595,13 @@ Use the existing fake-agent harness:
    `shouldRenderMediaContract`, and `shouldRenderCodexImagegenOverrideForPolicy`.
 5. Extend `apps/daemon/src/tool-tokens.ts` with media endpoint/operation grants.
 6. Add `/api/tools/media/generate` and media request CRUD/fulfill routes.
-7. Update `apps/daemon/src/cli.ts` so in-run `od media generate` uses the
+7. Update `apps/daemon/src/cli.ts` so in-run `readable media generate` uses the
    token-gated endpoint and fails closed on token errors.
 8. Update prompt rendering to distinguish enabled, disabled, request-only, and
    external modes.
 9. Add request persistence under daemon-owned runtime data, backed by SQLite if
    the adjacent media task tables already make that easiest. Do not use
-   `OD_MEDIA_CONFIG_DIR`.
+   `READABLE_MEDIA_CONFIG_DIR`.
 10. Add focused daemon and CLI tests.
 11. Add e2e fake-agent tests for disabled and request-only.
 12. Ship external executor support as a second PR unless maintainers explicitly
@@ -657,7 +657,7 @@ Docs:
 
 ### Risk: policy bypass through legacy endpoint
 
-If in-run `od media generate` falls back to `/api/projects/:id/media/generate`
+If in-run `readable media generate` falls back to `/api/projects/:id/media/generate`
 after token failure, the policy is ineffective. The CLI must fail closed when a
 token is present.
 
@@ -674,20 +674,20 @@ reconcile artifacts. Use a first-class request resource plus SSE.
 
 ### Risk: external executor becomes provider routing by another name
 
-Keep the executor contract generic and request-level. OD submits a design-aware
+Keep the executor contract generic and request-level. Readable Studio submits a design-aware
 media request to one executor. It does not choose OpenAI vs Runway vs Kling,
 rotate credentials, manage budgets, or retry provider-specific failures.
 
 ### Alternative: env var only
 
-An `OD_MEDIA_EXECUTION=request-only` env var is too weak. It does not survive
+An `READABLE_MEDIA_EXECUTION=request-only` env var is too weak. It does not survive
 HTTP run creation, cannot be shown in run status, cannot be validated by
 contracts, and does not give external orchestrators a stable API.
 
 ### Alternative: project-level policy
 
 Project-level policy is too broad for external orchestration. One project may
-be opened locally with OD-owned media enabled and later run under an external
+be opened locally with Readable Studio-owned media enabled and later run under an external
 orchestrator with media disabled or request-only. The policy should be
 run-scoped.
 
@@ -707,11 +707,11 @@ daemon must still enforce at the tool/media endpoint.
 4. Should the fulfill endpoint require the same run-scoped tool token, a
    separate fulfillment token, or only local/same-origin access in v1?
 5. Should URL-only fulfillment be allowed, or must fulfilled requests import
-   bytes into the OD project?
+   bytes into the Readable Studio project?
 6. Should connected MCP media tools be fully hidden in non-enabled modes, or
    shown with explicit "not allowed by run policy" guidance?
 7. Should allowed models be advisory hints for the upstream orchestrator, or
-   hard validation in OD request-only mode?
+   hard validation in Readable Studio request-only mode?
 8. Should `disabled` allow placeholder slots, or should slots require
    `request-only`?
 9. Where should media request status appear in the web UI for the first patch:
@@ -724,12 +724,12 @@ daemon must still enforce at the tool/media endpoint.
 ```bash
 pnpm guard
 pnpm typecheck
-pnpm --filter @open-design/daemon test
-pnpm --filter @open-design/web test
+pnpm --filter @readable-studio/daemon test
+pnpm --filter @readable-studio/web test
 ```
 
 Add e2e validation for the first PR that changes run behavior:
 
 ```bash
-pnpm --filter @open-design/e2e test -- <new-media-policy-spec>
+pnpm --filter @readable-studio/e2e test -- <new-media-policy-spec>
 ```

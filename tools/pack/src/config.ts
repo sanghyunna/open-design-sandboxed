@@ -4,18 +4,16 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import {
-  OPEN_DESIGN_SIDECAR_CONTRACT,
+  SIDECAR_CONTRACT,
   SIDECAR_DEFAULTS,
-} from "@open-design/sidecar-proto";
-import { resolveNamespace } from "@open-design/sidecar";
+} from "@readable-studio/sidecar-proto";
+import { resolveNamespace } from "@readable-studio/sidecar";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const WORKSPACE_ROOT = resolve(__dirname, "../../..");
 
-export type ToolPackPlatform = "mac" | "win" | "linux";
-export type ToolPackBuildOutput = "all" | "app" | "appimage" | "dir" | "dmg" | "nsis" | "zip";
-export type ToolPackMacCompression = "store" | "normal" | "maximum";
+export type ToolPackPlatform = "win";
 export type ToolPackWebOutputMode = "server" | "standalone";
 export type ToolPackAmrProfile = "prod" | "test" | "local";
 type ToolPackPrereleaseChannel = "beta" | "nightly" | "preview";
@@ -23,25 +21,17 @@ type ToolPackPrereleaseChannel = "beta" | "nightly" | "preview";
 export type ToolPackCliOptions = {
   appVersion?: string;
   cacheDir?: string;
-  containerized?: boolean;
   dir?: string;
   expr?: string;
-  headless?: boolean;
   json?: boolean;
-  macCompression?: string;
-  notarize?: boolean;
   namespace?: string;
   path?: string;
-  portable?: boolean;
   removeData?: boolean;
   removeLogs?: boolean;
   removeProductUserData?: boolean;
   removeSidecars?: boolean;
-  requireVelaCli?: boolean;
   signed?: boolean;
   silent?: boolean;
-  to?: string;
-  updateAction?: string;
 };
 
 export type ToolPackRoots = {
@@ -61,43 +51,22 @@ export type ToolPackRoots = {
 
 export type ToolPackConfig = {
   appVersion?: string;
-  containerized: boolean;
   electronBuilderCliPath: string;
   electronDistPath: string;
   electronVersion: string;
-  macCompression: ToolPackMacCompression;
-  macNotarize?: boolean;
   namespace: string;
   platform: ToolPackPlatform;
-  portable: boolean;
   removeData: boolean;
   removeLogs: boolean;
   removeProductUserData: boolean;
   removeSidecars: boolean;
-  requireVelaCli: boolean;
   roots: ToolPackRoots;
-  silent: boolean;
   signed: boolean;
+  silent: boolean;
   amrProfile?: ToolPackAmrProfile;
-  updateMetadataUrl?: string;
-  to: ToolPackBuildOutput;
   webOutputMode: ToolPackWebOutputMode;
   workspaceRoot: string;
 };
-
-function resolveToolPackBuildOutput(platform: ToolPackPlatform, value: string | undefined): ToolPackBuildOutput {
-  if (value == null || value.length === 0) return platform === "win" ? "nsis" : "all";
-  if (platform === "mac" && (value === "all" || value === "app" || value === "dmg" || value === "zip")) return value;
-  if (platform === "win" && (value === "all" || value === "dir" || value === "nsis" || value === "zip")) return value;
-  if (platform === "linux" && (value === "all" || value === "appimage" || value === "dir")) return value;
-  throw new Error(`unsupported ${platform} --to target: ${value}`);
-}
-
-function resolveToolPackMacCompression(value: string | undefined): ToolPackMacCompression {
-  if (value == null || value.length === 0) return "normal";
-  if (value === "store" || value === "normal" || value === "maximum") return value;
-  throw new Error(`unsupported mac --mac-compression value: ${value}`);
-}
 
 function resolveToolPackAppVersion(value: string | undefined): string | undefined {
   if (value == null) return undefined;
@@ -115,21 +84,16 @@ function channelFromAppVersion(value: string | undefined): ToolPackPrereleaseCha
   return null;
 }
 
-function defaultNamespaceForAppVersion(platform: ToolPackPlatform, appVersion: string | undefined): string {
+function defaultNamespaceForAppVersion(appVersion: string | undefined): string {
   const channel = channelFromAppVersion(appVersion);
   if (channel == null) return SIDECAR_DEFAULTS.namespace;
-
-  const namespace = `release-${channel}`;
-  return platform === "mac" ? namespace : `${namespace}-${platform}`;
+  return `release-${channel}-win`;
 }
 
-function resolveToolPackWebOutputMode(platform: ToolPackPlatform, value: string | undefined): ToolPackWebOutputMode {
-  // Standalone web output is wired for desktop packaged platforms; Linux stays on
-  // the existing server output until its AppImage resource path is optimized.
-  if (platform === "linux") return "server";
+function resolveToolPackWebOutputMode(value: string | undefined): ToolPackWebOutputMode {
   if (value == null || value.length === 0) return "standalone";
   if (value === "server" || value === "standalone") return value;
-  throw new Error(`unsupported OD_WEB_OUTPUT_MODE value: ${value}`);
+  throw new Error(`unsupported READABLE_WEB_OUTPUT_MODE value: ${value}`);
 }
 
 function resolveToolPackAmrProfile(value: string | undefined): ToolPackAmrProfile | undefined {
@@ -137,23 +101,7 @@ function resolveToolPackAmrProfile(value: string | undefined): ToolPackAmrProfil
   const normalized = value.trim();
   if (normalized.length === 0) return undefined;
   if (normalized === "prod" || normalized === "test" || normalized === "local") return normalized;
-  throw new Error(`OPEN_DESIGN_AMR_PROFILE must be prod, test, or local: ${value}`);
-}
-
-function resolveToolPackUpdateMetadataUrl(value: string | undefined): string | undefined {
-  if (value == null) return undefined;
-  const normalized = value.trim();
-  if (normalized.length === 0) return undefined;
-  let parsed: URL;
-  try {
-    parsed = new URL(normalized);
-  } catch {
-    throw new Error(`OD_UPDATE_METADATA_URL must be an absolute URL: ${value}`);
-  }
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    throw new Error(`OD_UPDATE_METADATA_URL must use http(s): ${value}`);
-  }
-  return normalized;
+  throw new Error(`READABLE_AMR_PROFILE must be prod, test, or local: ${value}`);
 }
 
 function resolveElectronVersion(workspaceRoot: string): string {
@@ -185,9 +133,9 @@ export function resolveToolPackConfig(
 ): ToolPackConfig {
   const appVersion = resolveToolPackAppVersion(options.appVersion);
   const namespace = resolveNamespace({
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
     env: process.env,
-    namespace: options.namespace ?? defaultNamespaceForAppVersion(platform, appVersion),
+    namespace: options.namespace ?? defaultNamespaceForAppVersion(appVersion),
   });
   const toolPackRoot = resolve(options.dir ?? join(WORKSPACE_ROOT, ".tmp", "tools-pack"));
   const cacheRoot = resolve(options.cacheDir ?? join(toolPackRoot, "cache"));
@@ -198,15 +146,11 @@ export function resolveToolPackConfig(
 
   return {
     appVersion,
-    containerized: options.containerized === true,
     electronBuilderCliPath: resolveElectronBuilderCliPath(),
     electronDistPath: resolveElectronDistPath(WORKSPACE_ROOT),
     electronVersion: resolveElectronVersion(WORKSPACE_ROOT),
-    macCompression: resolveToolPackMacCompression(options.macCompression),
-    macNotarize: options.notarize === true,
     namespace,
     platform,
-    portable: options.portable === true,
     roots: {
       output: {
         appBuilderRoot: join(outputNamespaceRoot, "builder"),
@@ -225,13 +169,10 @@ export function resolveToolPackConfig(
     removeLogs: options.removeLogs === true,
     removeProductUserData: options.removeProductUserData === true,
     removeSidecars: options.removeSidecars === true,
-    requireVelaCli: options.requireVelaCli === true,
-    silent: options.silent !== false,
     signed: options.signed === true,
-    amrProfile: resolveToolPackAmrProfile(process.env.OPEN_DESIGN_AMR_PROFILE),
-    updateMetadataUrl: resolveToolPackUpdateMetadataUrl(process.env.OD_UPDATE_METADATA_URL),
-    to: resolveToolPackBuildOutput(platform, options.to),
-    webOutputMode: resolveToolPackWebOutputMode(platform, process.env.OD_WEB_OUTPUT_MODE),
+    silent: options.silent !== false,
+    amrProfile: resolveToolPackAmrProfile(process.env.READABLE_AMR_PROFILE),
+    webOutputMode: resolveToolPackWebOutputMode(process.env.READABLE_WEB_OUTPUT_MODE),
     workspaceRoot: WORKSPACE_ROOT,
   };
 }

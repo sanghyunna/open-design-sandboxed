@@ -15,7 +15,7 @@
  * and an explicit `translate(tx, ty) scale(s)` whose factor is recomputed
  * on every resize. The shell is intentionally NOT a grid/flex container —
  * any extra centering layer would stack with the explicit translate and
- * push the scaled stage off-screen (see the OD srcdoc bridge's deck-fix
+ * push the scaled stage off-screen (see the Readable Studio srcdoc bridge's deck-fix
  * placement note in `apps/web/src/runtime/srcdoc.ts:injectDeckBridge`).
  * Slides are `<section class="slide">` inside the stage, only
  * `.slide.active` is visible. Prev/next + counter live OUTSIDE the scaled
@@ -32,7 +32,7 @@
  *   - `transform-origin: top left` with an explicit
  *     `translate(tx, ty) scale(s)`. The shell is plain block flow (no
  *     grid/flex/place-content), so the stage's natural top-left is (0, 0)
- *     and the translate centers it correctly even inside the OD viewer's
+ *     and the translate centers it correctly even inside the Readable Studio viewer's
  *     nested transform wrapper.
  *   - Capture-phase keydown on BOTH window and document so iframe focus
  *     quirks can't swallow arrow keys.
@@ -271,7 +271,7 @@ export const DECK_SKELETON_HTML = `<!doctype html>
       // so the stage's natural top-left is (0, 0). We scale via transform
       // with transform-origin:top-left, then translate by the remainder to
       // center the scaled box in the viewport. This survives nested
-      // transforms (e.g. when the OD viewer wraps the iframe in its own
+      // transforms (e.g. when the Readable Studio viewer wraps the iframe in its own
       // scale wrapper at zoom != 100%).
       function fit() {
         var sw = window.innerWidth;
@@ -305,13 +305,13 @@ export const DECK_SKELETON_HTML = `<!doctype html>
         // Yield trusted arrow keys to manual-edit object nudging: with a
         // selected object (and no active inline edit session) arrows move the
         // object, not the slide. Synthetic host-driven keys keep navigating.
-        if (e.isTrusted && (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown') && document.documentElement.hasAttribute('data-od-edit-mode') && document.querySelector('[data-od-edit-selected]') && !document.querySelector('[data-od-editing="true"]')) return;
+        if (e.isTrusted && (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown') && document.documentElement.hasAttribute('data-readable-edit-mode') && document.querySelector('[data-readable-edit-selected]') && !document.querySelector('[data-readable-editing="true"]')) return;
         if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); go(idx + 1); }
         else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(idx - 1); }
         else if (e.key === 'Home') { e.preventDefault(); go(0); }
         else if (e.key === 'End') { e.preventDefault(); go(slides.length - 1); }
       }
-      // Capture phase + listen on both targets — inside the OD iframe,
+      // Capture phase + listen on both targets — inside the Readable Studio iframe,
       // focus may be on window OR document; a single non-capture listener
       // silently misses presses. The same keydown therefore fires onKey on
       // BOTH targets, so onKey bails on e.defaultPrevented (set by the first
@@ -380,9 +380,9 @@ You may edit only inside slots marked \`SLOT:\`:
 
 These are the failure patterns we just spent days debugging. Each one looks "equivalent" but breaks something specific:
 
-- ❌ Don't write your own \`fit()\` function or \`transform: scale()\` script. The framework already does it, and ad-hoc versions drift inside the OD viewer's nested transform wrapper.
+- ❌ Don't write your own \`fit()\` function or \`transform: scale()\` script. The framework already does it, and ad-hoc versions drift inside the Readable Studio viewer's nested transform wrapper.
 - ❌ Don't use \`transform-origin: center center\` on the stage. The framework uses \`top left\` plus an explicit translate so scaled content lands at the same place every render.
-- ❌ Don't use \`document.addEventListener('keydown', …)\` alone, and don't drop the dedupe guard. Inside an iframe, focus is sometimes on window, so the framework adds capture-phase \`keydown\` listeners on **both** \`window\` and \`document\`. Because one physical key press then fires \`onKey\` twice (once per target), \`onKey\` MUST start with \`if (e.defaultPrevented) return;\` — the first call runs \`preventDefault()\`, so the duplicate bails and a press advances exactly one slide. Replace the dual listener with a single one and the iframe silently swallows arrow keys; drop the guard and every arrow press jumps two slides. The manual-edit yield guard right below it (\`e.isTrusted && … data-od-edit-mode … data-od-edit-selected …\`) is load-bearing too: it is what lets arrow keys nudge a selected object in the OD manual-edit overlay instead of advancing slides. Removing it makes every object nudge also change the slide.
+- ❌ Don't use \`document.addEventListener('keydown', …)\` alone, and don't drop the dedupe guard. Inside an iframe, focus is sometimes on window, so the framework adds capture-phase \`keydown\` listeners on **both** \`window\` and \`document\`. Because one physical key press then fires \`onKey\` twice (once per target), \`onKey\` MUST start with \`if (e.defaultPrevented) return;\` — the first call runs \`preventDefault()\`, so the duplicate bails and a press advances exactly one slide. Replace the dual listener with a single one and the iframe silently swallows arrow keys; drop the guard and every arrow press jumps two slides. The manual-edit yield guard right below it (\`e.isTrusted && … data-readable-edit-mode … data-readable-edit-selected …\`) is load-bearing too: it is what lets arrow keys nudge a selected object in the Readable Studio manual-edit overlay instead of advancing slides. Removing it makes every object nudge also change the slide.
 - ❌ Don't replace the localStorage key, the slide-visibility toggle (\`.slide.active\`), or the counter element IDs (\`#deck-cur\`, \`#deck-total\`, \`#deck-prev\`, \`#deck-next\`). The framework reads them by ID.
 - ❌ Don't put the prev/next buttons or the counter **inside** \`.deck-stage\`. They must live outside the scaled element so they stay legible at any viewport size.
 - ❌ Don't redefine \`.slide\`, \`.slide.active\`, or \`.slide:not(.active)\` directly. The framework owns the visibility toggle through those exact selectors. If you want a non-flex layout on a slide, **add a variant class to the same \`<section class="slide …">\` element** (e.g. \`.s-cold\`, \`.s-magazine\`) and declare \`display: grid\` / \`display: block\` on the variant. The framework's active default is wrapped in \`:where(...)\` so it has zero specificity — your variant always wins for the active slide. Variant classes do NOT need to be more specific than \`.slide.active\`. (The inactive-hide rule still wins because it uses \`:not(.active) { display: none !important; }\`.)
@@ -390,7 +390,7 @@ These are the failure patterns we just spent days debugging. Each one looks "equ
 
 ## Why this matters (so you can judge edge cases)
 
-The framework is a contract with the host viewer. The OD iframe sits inside a transformed wrapper (the zoom control); the keyboard handler needs capture phase + dual targets; "Share → PDF" reads the print stylesheet; the position survives reloads via localStorage. If a turn rewrites any of these — even with "equivalent" code — the next turn diverges, and three turns in the deck has subtly broken nav and a one-page PDF. Treat the framework as load-bearing infrastructure.
+The framework is a contract with the host viewer. The Readable Studio iframe sits inside a transformed wrapper (the zoom control); the keyboard handler needs capture phase + dual targets; "Share → PDF" reads the print stylesheet; the position survives reloads via localStorage. If a turn rewrites any of these — even with "equivalent" code — the next turn diverges, and three turns in the deck has subtly broken nav and a one-page PDF. Treat the framework as load-bearing infrastructure.
 
 If the user asks for something the framework genuinely doesn't support (vertical decks, custom slide transitions, multi-column simultaneous slides), say so and ask before forking. **Default answer: keep the framework, change the slide content.**
 

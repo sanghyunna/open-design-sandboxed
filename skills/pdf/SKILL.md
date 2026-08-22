@@ -8,7 +8,7 @@ triggers:
   - "pdf form"
   - "branded pdf"
   - "one pager"
-od:
+readable:
   mode: prototype
   category: documents
   upstream: "https://github.com/anthropics/skills/tree/main/skills/pdf"
@@ -29,7 +29,7 @@ Extract text, create PDFs, and handle forms. Useful for press releases, branded 
 
 ## How to use
 
-This catalogue entry advertises the skill in Open Design so the agent
+This catalogue entry advertises the skill in Readable Studio so the agent
 discovers it during planning. To run the full upstream workflow with
 its original assets, scripts, and references, install the upstream
 bundle into your active agent's skills directory:

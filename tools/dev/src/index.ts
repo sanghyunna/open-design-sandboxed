@@ -6,7 +6,7 @@ import { cac } from "cac";
 
 import {
   APP_KEYS,
-  OPEN_DESIGN_SIDECAR_CONTRACT,
+  SIDECAR_CONTRACT,
   SIDECAR_ENV,
   SIDECAR_MESSAGES,
   SIDECAR_SOURCES,
@@ -16,10 +16,9 @@ import {
   type DesktopEvalResult,
   type DesktopScreenshotResult,
   type DesktopStatusSnapshot,
-  type DesktopUpdateResult,
   type WebStatusSnapshot,
-} from "@open-design/sidecar-proto";
-import { createSidecarLaunchEnv, requestJsonIpc } from "@open-design/sidecar";
+} from "@readable-studio/sidecar-proto";
+import { createSidecarLaunchEnv, requestJsonIpc } from "@readable-studio/sidecar";
 import {
   collectProcessTreePids,
   createPackageManagerInvocation,
@@ -30,7 +29,7 @@ import {
   spawnBackgroundProcess,
   stopProcesses,
   type StopProcessesResult,
-} from "@open-design/platform";
+} from "@readable-studio/platform";
 
 import {
   ALL_APPS,
@@ -81,7 +80,6 @@ type CliOptions = ToolDevOptions & {
   path?: string;
   selector?: string;
   timeout?: string;
-  updateAction?: string;
 };
 
 const TOOLS_DEV_PARENT_PID_ENV = SIDECAR_ENV.TOOLS_DEV_PARENT_PID;
@@ -278,7 +276,7 @@ function printRunForegroundResult(started: Partial<Record<ToolDevAppName, unknow
   const daemonUrl = stringField(daemonStatus ?? {}, "url");
 
   if (webUrl != null || daemonUrl != null) {
-    process.stdout.write("\n  Open Design dev server ready\n\n");
+    process.stdout.write("\n  Readable Studio dev server ready\n\n");
     if (webUrl != null) process.stdout.write(`  ➜  Web:    ${colorizeLink(normalizeDisplayUrl(webUrl))}\n`);
     if (daemonUrl != null) process.stdout.write(`  ➜  Daemon: ${colorizeLink(normalizeDisplayUrl(daemonUrl))}\n`);
     process.stdout.write("\n  Press Ctrl+C to stop\n\n");
@@ -357,10 +355,10 @@ function createAppStamp(config: ToolDevConfig, appName: ToolDevAppName) {
   };
 
   return {
-    args: createProcessStampArgs(stamp, OPEN_DESIGN_SIDECAR_CONTRACT),
+    args: createProcessStampArgs(stamp, SIDECAR_CONTRACT),
     env: createSidecarLaunchEnv({
       base: config.toolsDevRoot,
-      contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+      contract: SIDECAR_CONTRACT,
       stamp,
     }),
     stamp,
@@ -376,7 +374,7 @@ async function findAppProcessTree(config: ToolDevConfig, appName: ToolDevAppName
         mode: "dev",
         namespace: config.namespace,
         source: SIDECAR_SOURCES.TOOLS_DEV,
-      }, OPEN_DESIGN_SIDECAR_CONTRACT),
+      }, SIDECAR_CONTRACT),
     )
     .map((processInfo) => processInfo.pid);
   const pids = collectProcessTreePids(processes, rootPids);
@@ -440,7 +438,7 @@ async function spawnDaemonRuntime(
         log: async (message) => { await logHandle.write(message); },
         runBuild: async () => {
           const invocation = createPackageManagerInvocation(
-            ["--filter", "@open-design/platform", "build:native:win32"],
+            ["--filter", "@readable-studio/platform", "build:native:win32"],
             process.env,
           );
           await runLoggedCommand({
@@ -476,7 +474,7 @@ async function spawnDaemonRuntime(
         [SIDECAR_ENV.DAEMON_PORT]: String(daemonPort ?? 0),
         ...(webPort == null ? {} : { [SIDECAR_ENV.WEB_PORT]: String(webPort) }),
         ...(options.parentPid == null ? {} : { [TOOLS_DEV_PARENT_PID_ENV]: String(options.parentPid) }),
-        ...(spawnOptions.requireDesktopAuth ? { OD_REQUIRE_DESKTOP_AUTH: "1" } : {}),
+        ...(spawnOptions.requireDesktopAuth ? { READABLE_REQUIRE_DESKTOP_AUTH: "1" } : {}),
       },
       logHandle,
     });
@@ -514,7 +512,7 @@ async function spawnWebRuntime(config: ToolDevConfig, options: CliOptions): Prom
         PORT: String(webPort ?? 0),
         ...(options.parentPid == null ? {} : { [TOOLS_DEV_PARENT_PID_ENV]: String(options.parentPid) }),
         ...(options.prod === true
-          ? { NODE_ENV: "production", OD_WEB_OUTPUT_MODE: "server", OD_WEB_PROD: "1" }
+          ? { NODE_ENV: "production", READABLE_WEB_OUTPUT_MODE: "server", READABLE_WEB_PROD: "1" }
           : {}),
       },
       logHandle,
@@ -525,8 +523,8 @@ async function spawnWebRuntime(config: ToolDevConfig, options: CliOptions): Prom
 }
 
 async function buildDesktop(config: ToolDevConfig, logHandle: FileHandle): Promise<void> {
-  await logHandle.write(`\n[tools-dev] building @open-design/desktop at ${new Date().toISOString()}\n`);
-  const invocation = createPackageManagerInvocation(["--filter", "@open-design/desktop", "build"], process.env);
+  await logHandle.write(`\n[tools-dev] building @readable-studio/desktop at ${new Date().toISOString()}\n`);
+  const invocation = createPackageManagerInvocation(["--filter", "@readable-studio/desktop", "build"], process.env);
   await runLoggedCommand({
     args: invocation.args,
     command: invocation.command,
@@ -563,8 +561,8 @@ async function ensureDaemonCliBuild(config: ToolDevConfig, logHandle: FileHandle
   if (distMtime > 0 && distMtime >= sourceMtime) return;
 
   const reason = distMtime > 0 ? "source is newer than apps/daemon/dist/cli.js" : "apps/daemon/dist/cli.js is missing";
-  await logHandle.write(`\n[tools-dev] building @open-design/daemon because ${reason} at ${new Date().toISOString()}\n`);
-  const invocation = createPackageManagerInvocation(["--filter", "@open-design/daemon", "build"], process.env);
+  await logHandle.write(`\n[tools-dev] building @readable-studio/daemon because ${reason} at ${new Date().toISOString()}\n`);
+  const invocation = createPackageManagerInvocation(["--filter", "@readable-studio/daemon", "build"], process.env);
   await runLoggedCommand({
     args: invocation.args,
     command: invocation.command,
@@ -1054,18 +1052,6 @@ async function inspectDesktop(config: ToolDevConfig, target: string | undefined,
       );
     case "console":
       return await requestJsonIpc<DesktopConsoleResult>(config.apps.desktop.ipcPath, { type: SIDECAR_MESSAGES.CONSOLE }, { timeoutMs });
-    case "update":
-      if (
-        options.updateAction != null &&
-        !["status", "check", "download", "install"].includes(options.updateAction)
-      ) {
-        throw new Error("--update-action must be status, check, download, or install");
-      }
-      return await requestJsonIpc<DesktopUpdateResult>(
-        config.apps.desktop.ipcPath,
-        { input: { action: options.updateAction ?? "status" }, type: SIDECAR_MESSAGES.UPDATE },
-        { timeoutMs },
-      );
     case "click":
       if (options.selector == null) throw new Error("--selector is required for desktop click");
       return await requestJsonIpc<DesktopClickResult>(
@@ -1169,7 +1155,7 @@ async function runForeground(config: ToolDevConfig, appName: string | undefined,
       if (shuttingDown) return;
       shuttingDown = true;
       clearInterval(keepAlive);
-      process.stderr.write("\nStopping Open Design dev server...\n");
+      process.stderr.write("\nStopping Readable Studio dev server...\n");
       void runSequential(stopOrderFor(requestedTargets), (target) => stopApp(config, target)).finally(() => {
         for (const sig of ["SIGINT", "SIGTERM"] as const) {
           process.off(sig, shutdown);
@@ -1197,7 +1183,7 @@ function addPortOptions(command: ReturnType<typeof cli.command>) {
   return command
     .option("--daemon-port <port>", "force daemon port; conflict quick-fails")
     .option("--web-port <port>", "force web port; conflict quick-fails")
-    .option("--prod", "use production build (requires pnpm --filter @open-design/web build first)");
+    .option("--prod", "use production build (requires pnpm --filter @readable-studio/web build first)");
 }
 
 addPortOptions(addSharedOptions(cli.command("start [app]", "Start daemon, web, desktop, or all when app is omitted"))).action(
@@ -1269,7 +1255,6 @@ addSharedOptions(
   .option("--path <file>", "Output path for desktop screenshot")
   .option("--selector <css>", "CSS selector for desktop click")
   .option("--timeout <seconds>", "Desktop inspect timeout in seconds")
-  .option("--update-action <action>", "Desktop update action: status|check|download|install")
   .action(async (appName: string, target: string | undefined, options: CliOptions) => {
     output(await inspect(resolveToolDevConfig(options), appName, target, options), options);
   });

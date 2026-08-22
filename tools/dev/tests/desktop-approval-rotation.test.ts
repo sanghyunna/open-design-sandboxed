@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { APP_KEYS } from "@open-design/sidecar-proto";
+import { APP_KEYS } from "@readable-studio/sidecar-proto";
 
 import { planDesktopApprovalLifecycle } from "../src/desktop-approval-rotation.js";
 

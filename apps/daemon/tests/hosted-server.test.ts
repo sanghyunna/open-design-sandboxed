@@ -3,7 +3,7 @@ import http from 'node:http';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { startHostedServer } from '../src/hosted-server.js';
 
-const PUBLIC_ORIGIN = 'https://hosted.open-design.test';
+const PUBLIC_ORIGIN = 'https://hosted.readable-studio.test';
 const ANTHROPIC_MODEL = 'claude-sonnet-4-5-20250929';
 const GATEWAY_MODEL = 'anthropic/claude-sonnet-4.5';
 const USER_A = 'test-user-a';
@@ -214,7 +214,7 @@ describe('provider-only hosted server', () => {
     const sessionB = await getSession(started, USER_B);
     const body = JSON.stringify({ provider: 'anthropic', key: SECRET_A });
 
-    for (const origin of [undefined, 'null', 'https://preview.open-design.test', 'https://attacker.test']) {
+    for (const origin of [undefined, 'null', 'https://preview.readable-studio.test', 'https://attacker.test']) {
       await expectError(
         fetch(`${started.url}/api/hosted/provider`, {
           method: 'PUT',
@@ -548,7 +548,7 @@ function jsonHeaders(
   return {
     ...auth(user),
     'content-type': 'application/json',
-    ...(csrfToken === undefined ? {} : { 'x-open-design-csrf': csrfToken }),
+    ...(csrfToken === undefined ? {} : { 'x-readable-studio-csrf': csrfToken }),
     ...(origin === undefined ? {} : { origin }),
   };
 }

@@ -84,13 +84,13 @@ Every external project this spec leans on. Three questions per entry: what is it
 
 [genericagent]: https://github.com/lsdefine/GenericAgent
 - **What it is:** Minimal self-evolving autonomous agent framework that crystallizes solved tasks into a personal skill tree for direct reuse.
-- **Why it matters:** It names the core loop OD needs for design work: solve once, verify, save the execution path, and recall it with less context next time.
+- **Why it matters:** It names the core loop Readable Studio needs for design work: solve once, verify, save the execution path, and recall it with less context next time.
 - **What we borrow:**
   - Skill crystallization from successful tasks.
   - Layered memory and direct recall to reduce prompt size.
   - A bias toward small composable primitives instead of a heavy agent framework.
 - **What we don't:**
-  - Broad uncontrolled desktop authority. OD keeps daemon, filesystem, and review gates explicit.
+  - Broad uncontrolled desktop authority. Readable Studio keeps daemon, filesystem, and review gates explicit.
 
 ### [cc-switch][ccsw] (farion1231)
 - **Repo:** [github.com/farion1231/cc-switch][ccsw]
@@ -115,8 +115,8 @@ Every external project this spec leans on. Three questions per entry: what is it
 - **Related URLs:** claude.ai/design, getdesign.md, Discord community
 - **Why it matters:** Defines the de-facto portable design-system format for AI agents.
 - **What we borrow:**
-  - **The entire `DESIGN.md` format, unchanged.** We adopt their 9-section schema as OD's canonical design-system format.
-  - Ecosystem compatibility: any of their 68 DESIGN.md files works as an OD active design system out of the box.
+  - **The entire `DESIGN.md` format, unchanged.** We adopt their 9-section schema as Readable Studio's canonical design-system format.
+  - Ecosystem compatibility: any of their 68 DESIGN.md files works as an Readable Studio active design system out of the box.
 - **What we don't:**
   - Their curated list itself — we don't fork their 68 files; we reference upstream.
   - Their Discord / community layer — not our product.
@@ -128,10 +128,10 @@ Every external project this spec leans on. Three questions per entry: what is it
 - **What it is:** A Claude Code skill producing magazine-style, horizontal-swipe web decks. Structure: `SKILL.md` + `assets/template.html` + `references/{components,layouts,themes,checklist}.md`. 6-step workflow. Single-file HTML output with embedded CSS/WebGL. Keyboard/scroll/touch navigation.
 - **Why it matters:** Reference implementation of a high-quality Claude skill, and our default deck skill.
 - **What we borrow:**
-  - **The whole skill, unmodified.** It's our default v1 `deck-skill`. A user runs `od skill add https://github.com/op7418/guizang-ppt-skill` and it works.
+  - **The whole skill, unmodified.** It's our default v1 `deck-skill`. A user runs `readable skill add https://github.com/op7418/guizang-ppt-skill` and it works.
   - Skill directory convention (`assets/` + `references/` + `SKILL.md`) as the pattern we document for skill authors.
   - The "6-step workflow + quality-checklist rubric" pattern for authoring new skills.
-- **What we don't:** Nothing — this is pure reuse. We add an `od:` block to its front-matter only if we want to expose theme sliders; the skill works without it.
+- **What we don't:** Nothing — this is pure reuse. We add an `readable:` block to its front-matter only if we want to expose theme sliders; the skill works without it.
 
 ---
 
@@ -152,7 +152,7 @@ Every external project this spec leans on. Three questions per entry: what is it
 
 ## Compatibility & differentiation matrix
 
-| Dimension | [Claude Design][cd] | [Open CoDesign][ocod] | [multica][multica] | [cc-switch][ccsw] | **OD** |
+| Dimension | [Claude Design][cd] | [Open CoDesign][ocod] | [multica][multica] | [cc-switch][ccsw] | **Readable Studio** |
 |---|---|---|---|---|---|
 | Open source | ❌ | ✅ | ✅ | ✅ | ✅ |
 | Primary form factor | Web (hosted) | Electron | Web + Go daemon | Tauri | **Next.js web + Node daemon + Electron shells** |

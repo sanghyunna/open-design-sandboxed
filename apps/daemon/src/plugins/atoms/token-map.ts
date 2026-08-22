@@ -3,7 +3,7 @@
 // SKILL.md fragment ships at plugins/_official/atoms/token-map/.
 // The runner crosswalks an extracted token bag (output of
 // `design-extract` for code-migration, or `figma-extract` for
-// figma-migration) onto the active OD design system's token
+// figma-migration) onto the active Readable Studio design system's token
 // vocabulary and writes the canonical mapping the SKILL.md fragment
 // promises:
 //

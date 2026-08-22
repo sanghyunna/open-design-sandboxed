@@ -1,46 +1,28 @@
 import {
-  OPEN_DESIGN_HOST_GLOBAL,
-  OPEN_DESIGN_HOST_VERSION,
-  type OpenDesignHostBridge,
-  type OpenDesignHostGlobalScope,
-  type OpenDesignHostUpdaterStatusSnapshot,
+  READABLE_STUDIO_HOST_GLOBAL,
+  READABLE_STUDIO_HOST_VERSION,
+  type ReadableStudioHostBridge,
+  type ReadableStudioHostGlobalScope,
 } from "./index.js";
 
-export type MockOpenDesignHost = Partial<Omit<OpenDesignHostBridge, "capture" | "client" | "pdf" | "pet" | "project" | "shell" | "updater">> & {
-  browser?: Partial<OpenDesignHostBridge["browser"]>;
-  capture?: Partial<OpenDesignHostBridge["capture"]>;
-  client?: Partial<OpenDesignHostBridge["client"]>;
-  pdf?: Partial<OpenDesignHostBridge["pdf"]>;
-  pet?: Partial<OpenDesignHostBridge["pet"]>;
-  project?: Partial<OpenDesignHostBridge["project"]>;
-  shell?: Partial<OpenDesignHostBridge["shell"]>;
-  updater?: Partial<OpenDesignHostBridge["updater"]>;
+export type MockReadableStudioHost = Partial<Omit<ReadableStudioHostBridge, "capture" | "client" | "pdf" | "pet" | "project" | "shell">> & {
+  browser?: Partial<ReadableStudioHostBridge["browser"]>;
+  capture?: Partial<ReadableStudioHostBridge["capture"]>;
+  client?: Partial<ReadableStudioHostBridge["client"]>;
+  pdf?: Partial<ReadableStudioHostBridge["pdf"]>;
+  pet?: Partial<ReadableStudioHostBridge["pet"]>;
+  project?: Partial<ReadableStudioHostBridge["project"]>;
+  shell?: Partial<ReadableStudioHostBridge["shell"]>;
 };
 
-export type MockOpenDesignHostOptions = {
-  host?: MockOpenDesignHost;
-  scope?: OpenDesignHostGlobalScope;
+export type MockReadableStudioHostOptions = {
+  host?: MockReadableStudioHost;
+  scope?: ReadableStudioHostGlobalScope;
 };
 
-function defaultHost(): OpenDesignHostBridge {
-  const updaterStatus: OpenDesignHostUpdaterStatusSnapshot = {
-    arch: "arm64",
-    capabilities: {
-      canApplyInPlace: false,
-      canDownload: true,
-      canOpenInstaller: true,
-      requiresManualInstall: true,
-    },
-    channel: "beta",
-    currentVersion: "1.0.0-beta.0",
-    enabled: true,
-    mode: "package-launcher",
-    platform: "darwin",
-    state: "idle",
-    supported: true,
-  };
+function defaultHost(): ReadableStudioHostBridge {
   return {
-    version: OPEN_DESIGN_HOST_VERSION,
+    version: READABLE_STUDIO_HOST_VERSION,
     browser: {
       clearData: async () => ({ ok: true }),
     },
@@ -64,7 +46,7 @@ function defaultHost(): OpenDesignHostBridge {
       }),
       pickAndReplaceWorkingDir: async () => ({
         ok: true,
-        baseDir: "/tmp/open-design-test",
+        baseDir: "/tmp/readable-studio-test",
         entryFile: null,
       }),
     },
@@ -74,18 +56,10 @@ function defaultHost(): OpenDesignHostBridge {
     pet: {
       setVisible: () => undefined,
     },
-    updater: {
-      check: async () => updaterStatus,
-      download: async () => updaterStatus,
-      install: async () => updaterStatus,
-      quit: async () => ({ ok: true }),
-      status: async () => updaterStatus,
-      subscribe: () => () => undefined,
-    },
   };
 }
 
-export function createMockOpenDesignHost(overrides: MockOpenDesignHost = {}): OpenDesignHostBridge {
+export function createMockReadableStudioHost(overrides: MockReadableStudioHost = {}): ReadableStudioHostBridge {
   const base = defaultHost();
   return {
     ...base,
@@ -97,28 +71,27 @@ export function createMockOpenDesignHost(overrides: MockOpenDesignHost = {}): Op
     project: { ...base.project, ...overrides.project },
     pdf: { ...base.pdf, ...overrides.pdf },
     pet: { ...base.pet, ...overrides.pet },
-    updater: { ...base.updater, ...overrides.updater },
   };
 }
 
-export function installMockOpenDesignHost(options: MockOpenDesignHostOptions = {}): () => void {
-  const scope = (options.scope ?? globalThis) as OpenDesignHostGlobalScope;
-  const host = createMockOpenDesignHost(options.host);
+export function installMockReadableStudioHost(options: MockReadableStudioHostOptions = {}): () => void {
+  const scope = (options.scope ?? globalThis) as ReadableStudioHostGlobalScope;
+  const host = createMockReadableStudioHost(options.host);
   const windowValue = scope.window;
   const targets = [
     scope,
     ...(typeof windowValue === "object" && windowValue != null && windowValue !== scope
-      ? [windowValue as OpenDesignHostGlobalScope]
+      ? [windowValue as ReadableStudioHostGlobalScope]
       : []),
   ];
   const previous = targets.map((target) => ({
-    had: Object.prototype.hasOwnProperty.call(target, OPEN_DESIGN_HOST_GLOBAL),
+    had: Object.prototype.hasOwnProperty.call(target, READABLE_STUDIO_HOST_GLOBAL),
     target,
-    value: target[OPEN_DESIGN_HOST_GLOBAL],
+    value: target[READABLE_STUDIO_HOST_GLOBAL],
   }));
 
   for (const target of targets) {
-    Object.defineProperty(target, OPEN_DESIGN_HOST_GLOBAL, {
+    Object.defineProperty(target, READABLE_STUDIO_HOST_GLOBAL, {
       configurable: true,
       value: host,
       writable: true,
@@ -128,13 +101,13 @@ export function installMockOpenDesignHost(options: MockOpenDesignHostOptions = {
   return () => {
     for (const entry of previous) {
       if (entry.had) {
-        Object.defineProperty(entry.target, OPEN_DESIGN_HOST_GLOBAL, {
+        Object.defineProperty(entry.target, READABLE_STUDIO_HOST_GLOBAL, {
           configurable: true,
           value: entry.value,
           writable: true,
         });
       } else {
-        delete entry.target[OPEN_DESIGN_HOST_GLOBAL];
+        delete entry.target[READABLE_STUDIO_HOST_GLOBAL];
       }
     }
   };

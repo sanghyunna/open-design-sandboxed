@@ -42,7 +42,7 @@ let velaWrapperDir: string | undefined;
 function velaBin(): string {
   if (process.platform !== 'win32') return FAKE_VELA;
   if (!velaWrapperPath) {
-    velaWrapperDir = mkdtempSync(path.join(tmpdir(), 'od-vela-wrapper-'));
+    velaWrapperDir = mkdtempSync(path.join(tmpdir(), 'readable-vela-wrapper-'));
     velaWrapperPath = path.join(velaWrapperDir, 'vela.cmd');
     writeFileSync(
       velaWrapperPath,
@@ -143,7 +143,7 @@ beforeAll(async () => {
   // so we have to persist the fake binary path through the app-config file
   // before any test calls /login. Without this the route would fall through
   // to `resolveOnPath('vela')` and spawn the developer's real vela.
-  const dataDir = process.env.OD_DATA_DIR as string;
+  const dataDir = process.env.READABLE_DATA_DIR as string;
   const config = await readAppConfig(dataDir);
   await writeAppConfig(dataDir, {
     ...config,
@@ -165,10 +165,10 @@ afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
 beforeEach(() => {
   originalHome = process.env.HOME;
   originalUserProfile = process.env.USERPROFILE;
-  tmpHome = mkdtempSync(path.join(tmpdir(), 'od-vela-routes-'));
+  tmpHome = mkdtempSync(path.join(tmpdir(), 'readable-vela-routes-'));
   process.env.HOME = tmpHome;
   process.env.USERPROFILE = tmpHome;
-  process.env.OPEN_DESIGN_AMR_PROFILE = 'local';
+  process.env.READABLE_AMR_PROFILE = 'local';
   process.env.VELA_PROFILE = 'prod';
 });
 
@@ -177,7 +177,7 @@ afterEach(() => {
   else process.env.HOME = originalHome;
   if (originalUserProfile === undefined) delete process.env.USERPROFILE;
   else process.env.USERPROFILE = originalUserProfile;
-  delete process.env.OPEN_DESIGN_AMR_PROFILE;
+  delete process.env.READABLE_AMR_PROFILE;
   delete process.env.VELA_PROFILE;
   delete process.env.FAKE_VELA_LOGIN_DELAY_MS;
   delete process.env.FAKE_VELA_LOGIN_FAIL;
@@ -240,7 +240,7 @@ describe('GET /api/integrations/vela/status', () => {
   });
 
   it('reports Settings-configured AMR env credentials as logged in', async () => {
-    const dataDir = process.env.OD_DATA_DIR as string;
+    const dataDir = process.env.READABLE_DATA_DIR as string;
     const previous = await readAppConfig(dataDir);
     await writeAppConfig(dataDir, {
       ...previous,
@@ -283,7 +283,7 @@ describe('GET /api/integrations/vela/status', () => {
   });
 
   it('reports status for the Settings-configured AMR profile', async () => {
-    const dataDir = process.env.OD_DATA_DIR as string;
+    const dataDir = process.env.READABLE_DATA_DIR as string;
     const previous = await readAppConfig(dataDir);
     seedLogin('local', {
       user: { id: 'local-user', email: 'settings-local@example.com' },
@@ -291,7 +291,7 @@ describe('GET /api/integrations/vela/status', () => {
     const cfg = JSON.parse(readFileSync(configPath(), 'utf8'));
     cfg.profiles.prod = {};
     writeFileSync(configPath(), JSON.stringify(cfg, null, 2), 'utf8');
-    process.env.OPEN_DESIGN_AMR_PROFILE = 'prod';
+    process.env.READABLE_AMR_PROFILE = 'prod';
     await writeAppConfig(dataDir, {
       ...previous,
       agentCliEnv: {
@@ -299,7 +299,7 @@ describe('GET /api/integrations/vela/status', () => {
         amr: {
           ...((previous.agentCliEnv?.amr as Record<string, string>) ?? {}),
           VELA_BIN: FAKE_VELA,
-          OPEN_DESIGN_AMR_PROFILE: 'local',
+          READABLE_AMR_PROFILE: 'local',
         },
       },
     });
@@ -378,7 +378,7 @@ describe('POST /api/integrations/vela/login', () => {
   });
 
   it('passes the resolved AMR profile to vela login even when VELA_PROFILE is set differently', async () => {
-    process.env.OPEN_DESIGN_AMR_PROFILE = 'test';
+    process.env.READABLE_AMR_PROFILE = 'test';
     process.env.VELA_PROFILE = 'local';
     process.env.FAKE_VELA_LOGIN_USER_EMAIL = 'login-test@example.com';
 
@@ -400,9 +400,9 @@ describe('POST /api/integrations/vela/login', () => {
   });
 
   it('passes the Settings-configured AMR profile to vela login', async () => {
-    const dataDir = process.env.OD_DATA_DIR as string;
+    const dataDir = process.env.READABLE_DATA_DIR as string;
     const previous = await readAppConfig(dataDir);
-    process.env.OPEN_DESIGN_AMR_PROFILE = 'prod';
+    process.env.READABLE_AMR_PROFILE = 'prod';
     process.env.VELA_PROFILE = 'prod';
     process.env.FAKE_VELA_LOGIN_USER_EMAIL = 'settings-login@example.com';
     await writeAppConfig(dataDir, {
@@ -412,7 +412,7 @@ describe('POST /api/integrations/vela/login', () => {
         amr: {
           ...((previous.agentCliEnv?.amr as Record<string, string>) ?? {}),
           VELA_BIN: velaBin(),
-          OPEN_DESIGN_AMR_PROFILE: 'local',
+          READABLE_AMR_PROFILE: 'local',
         },
       },
     });
@@ -439,9 +439,9 @@ describe('POST /api/integrations/vela/login', () => {
 
 
   it('uses the same Settings-configured AMR env for login and subsequent status reads', async () => {
-    const dataDir = process.env.OD_DATA_DIR as string;
+    const dataDir = process.env.READABLE_DATA_DIR as string;
     const previous = await readAppConfig(dataDir);
-    process.env.OPEN_DESIGN_AMR_PROFILE = 'prod';
+    process.env.READABLE_AMR_PROFILE = 'prod';
     process.env.VELA_PROFILE = 'prod';
     process.env.FAKE_VELA_LOGIN_USER_EMAIL = 'settings-roundtrip@example.com';
     await writeAppConfig(dataDir, {
@@ -451,7 +451,7 @@ describe('POST /api/integrations/vela/login', () => {
         amr: {
           ...((previous.agentCliEnv?.amr as Record<string, string>) ?? {}),
           VELA_BIN: velaBin(),
-          OPEN_DESIGN_AMR_PROFILE: 'local',
+          READABLE_AMR_PROFILE: 'local',
         },
       },
     });
@@ -649,7 +649,7 @@ describe('POST /api/integrations/vela/logout', () => {
   });
 
   it('clears Settings-backed AMR auth env while preserving executable config', async () => {
-    const dataDir = process.env.OD_DATA_DIR as string;
+    const dataDir = process.env.READABLE_DATA_DIR as string;
     const previous = await readAppConfig(dataDir);
     await writeAppConfig(dataDir, {
       agentCliEnv: {
@@ -692,7 +692,7 @@ describe('POST /api/integrations/vela/logout', () => {
   });
 
   it('clears both Settings-backed AMR env credentials and same-profile ~/.amr credentials on logout', async () => {
-    const dataDir = process.env.OD_DATA_DIR as string;
+    const dataDir = process.env.READABLE_DATA_DIR as string;
     const previous = await readAppConfig(dataDir);
     seedLogin('local', {
       user: { id: 'local-user', email: 'local@example.com' },
@@ -705,7 +705,7 @@ describe('POST /api/integrations/vela/logout', () => {
           ...((previous.agentCliEnv?.amr as Record<string, string>) ?? {}),
           VELA_BIN: FAKE_VELA,
           VELA_OPENCODE_BIN: '/tmp/opencode',
-          OPEN_DESIGN_AMR_PROFILE: 'local',
+          READABLE_AMR_PROFILE: 'local',
           VELA_RUNTIME_KEY: 'rt-env-secret',
           VELA_LINK_URL: 'https://openrouter.example/v1',
         },
@@ -743,7 +743,7 @@ describe('POST /api/integrations/vela/logout', () => {
   });
 
   it('logs out the Settings-configured AMR profile from the AMR config file', async () => {
-    const dataDir = process.env.OD_DATA_DIR as string;
+    const dataDir = process.env.READABLE_DATA_DIR as string;
     const previous = await readAppConfig(dataDir);
     seedLogin('local');
     const cfg = JSON.parse(readFileSync(configPath(), 'utf8'));
@@ -752,7 +752,7 @@ describe('POST /api/integrations/vela/logout', () => {
       user: { id: 'prod-user', email: 'prod@example.com' },
     };
     writeFileSync(configPath(), JSON.stringify(cfg, null, 2), 'utf8');
-    process.env.OPEN_DESIGN_AMR_PROFILE = 'prod';
+    process.env.READABLE_AMR_PROFILE = 'prod';
     await writeAppConfig(dataDir, {
       ...previous,
       agentCliEnv: {
@@ -760,7 +760,7 @@ describe('POST /api/integrations/vela/logout', () => {
         amr: {
           ...((previous.agentCliEnv?.amr as Record<string, string>) ?? {}),
           VELA_BIN: FAKE_VELA,
-          OPEN_DESIGN_AMR_PROFILE: 'local',
+          READABLE_AMR_PROFILE: 'local',
         },
       },
     });

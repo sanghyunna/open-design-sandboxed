@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  READABLE_STUDIO_OFFICIAL_REGISTRY_ID,
+  READABLE_STUDIO_REGISTRY_MANIFEST_NAME,
   RegistryEntrySchema,
   RegistryPublishOutcomeSchema,
   type RegistryBackend,
@@ -14,6 +16,11 @@ const entry = RegistryEntrySchema.parse({
 });
 
 describe('registry protocol', () => {
+  it('publishes the Readable Studio registry identifiers', () => {
+    expect(READABLE_STUDIO_REGISTRY_MANIFEST_NAME).toBe('readable-studio-marketplace.json');
+    expect(READABLE_STUDIO_OFFICIAL_REGISTRY_ID).toBe('readable-studio-official');
+  });
+
   it('requires stable vendor/plugin-name ids', () => {
     expect(() => RegistryEntrySchema.parse({ ...entry, name: 'example' })).toThrow();
     expect(RegistryEntrySchema.parse(entry).name).toBe('vendor/example');

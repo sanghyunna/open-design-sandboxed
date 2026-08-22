@@ -6,8 +6,8 @@
 #   - real CLI changes a field name (e.g. `sessionID` → `sessionId`)
 #   - real CLI's usage object gains/loses a sub-key
 #
-# When mocks drift toward "satisfy the current OD parser" instead of
-# "mimic the actual CLI protocol", the OD-level smoke tests stay green
+# When mocks drift toward "satisfy the current Readable Studio parser" instead of
+# "mimic the actual CLI protocol", the product-level smoke tests stay green
 # but real-world behavior diverges. Periodic runs of this script (manual
 # or scheduled in CI on a real-CLI-available runner) surface that drift
 # before it becomes a real-PR debugging session.
@@ -38,7 +38,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 MOCKS_DIR="$(cd "$HERE/.." && pwd -P)"
 
 # Fixed deterministic prompt — small, no creative variability, costs
-# pennies. Picked to be a realistic OD-shaped task: 1-2 tool calls.
+# pennies. Picked to be a realistic Readable Studio task: 1-2 tool calls.
 PROMPT='List the entries of the current working directory and tell me how many JSON files are present. Reply with just the count, like "N JSON files".'
 
 real_out="$(mktemp -t contract-real.XXXX).jsonl"
@@ -81,7 +81,7 @@ esac
 echo "-> invoking mock $AGENT..."
 (
   export PATH="$MOCKS_DIR/bin:$PATH"
-  export OD_MOCKS_NO_DELAY=1
+  export READABLE_MOCKS_NO_DELAY=1
   case "$AGENT" in
     claude)
       printf '%s' "$PROMPT" | claude -p --output-format=stream-json --verbose >"$mock_out" 2>&1 ;;

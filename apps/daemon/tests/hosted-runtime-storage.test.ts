@@ -35,7 +35,7 @@ afterEach(() => {
 });
 
 function tempRoot(): string {
-  const root = mkdtempSync(path.join(tmpdir(), 'od-hosted-storage-'));
+  const root = mkdtempSync(path.join(tmpdir(), 'readable-hosted-storage-'));
   tempRoots.push(root);
   return root;
 }

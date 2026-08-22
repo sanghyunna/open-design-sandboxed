@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { MarketplaceManifest } from '@open-design/contracts';
+import type { MarketplaceManifest } from '@readable-studio/contracts';
 import { StaticRegistryBackend } from '../src/registry/static-backend.js';
 
 const manifest: MarketplaceManifest = {

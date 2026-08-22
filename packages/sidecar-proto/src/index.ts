@@ -1,3 +1,20 @@
+import { PRODUCT_IDENTITY, type ProductIdentity } from "@readable-studio/product-identity";
+
+export {
+  createRuntimeDescriptor,
+  normalizeRuntimeDescriptor,
+  PRODUCT_DESCRIPTOR_HASH,
+  PRODUCT_DESCRIPTOR_IDENTITY,
+  RUNTIME_APP_ID,
+  RUNTIME_DESCRIPTOR_PROTOCOL_VERSION,
+  RUNTIME_DESCRIPTOR_VERSION,
+  RUNTIME_PRODUCT_ID,
+  RuntimeDescriptorError,
+  serializeProductDescriptorIdentity,
+  serializeRuntimeDescriptor,
+  type RuntimeDescriptor,
+} from "./runtime-descriptor.js";
+
 // @dsp func-a62f84e4
 export const APP_KEYS = Object.freeze({
   DAEMON: "daemon",
@@ -24,39 +41,53 @@ export const SIDECAR_SOURCES = Object.freeze({
 
 export type SidecarSource = (typeof SIDECAR_SOURCES)[keyof typeof SIDECAR_SOURCES];
 
+
+function createSidecarEnv(identity: ProductIdentity) {
+  return Object.freeze({
+    BASE: `${identity.envPrefix}SIDECAR_BASE`,
+    DAEMON_CLI_PATH: `${identity.envPrefix}DAEMON_CLI_PATH`,
+    DAEMON_PORT: `${identity.envPrefix}PORT`,
+    DESKTOP_APPROVAL_TOKEN: `${identity.envPrefix}DESKTOP_APPROVAL_TOKEN`,
+    IPC_BASE: `${identity.envPrefix}SIDECAR_IPC_BASE`,
+    IPC_PATH: `${identity.envPrefix}SIDECAR_IPC_PATH`,
+    NAMESPACE: `${identity.envPrefix}SIDECAR_NAMESPACE`,
+    SOURCE: `${identity.envPrefix}SIDECAR_SOURCE`,
+    TOOLS_DEV_PARENT_PID: `${identity.envPrefix}TOOLS_DEV_PARENT_PID`,
+    WEB_DIST_DIR: `${identity.envPrefix}WEB_DIST_DIR`,
+    WEB_PORT: `${identity.envPrefix}WEB_PORT`,
+    WEB_TSCONFIG_PATH: `${identity.envPrefix}WEB_TSCONFIG_PATH`,
+  } as const);
+}
+
+function createSidecarRuntimeEnv(env: ReturnType<typeof createSidecarEnv>) {
+  return Object.freeze({
+    base: env.BASE,
+    ipcBase: env.IPC_BASE,
+    ipcPath: env.IPC_PATH,
+    namespace: env.NAMESPACE,
+    source: env.SOURCE,
+  } as const);
+}
+
+function createSidecarStampFlags(identity: ProductIdentity) {
+  const prefix = `--${identity.productId}-stamp-`;
+  return Object.freeze({
+    app: `${prefix}app`,
+    ipc: `${prefix}ipc`,
+    mode: `${prefix}mode`,
+    namespace: `${prefix}namespace`,
+    source: `${prefix}source`,
+  } as const);
+}
+
 // @dsp func-ab30f711
-export const SIDECAR_ENV = Object.freeze({
-  BASE: "OD_SIDECAR_BASE",
-  DAEMON_CLI_PATH: "OD_DAEMON_CLI_PATH",
-  DAEMON_PORT: "OD_PORT",
-  DESKTOP_APPROVAL_TOKEN: "OD_DESKTOP_APPROVAL_TOKEN",
-  IPC_BASE: "OD_SIDECAR_IPC_BASE",
-  IPC_PATH: "OD_SIDECAR_IPC_PATH",
-  NAMESPACE: "OD_SIDECAR_NAMESPACE",
-  SOURCE: "OD_SIDECAR_SOURCE",
-  TOOLS_DEV_PARENT_PID: "OD_TOOLS_DEV_PARENT_PID",
-  WEB_DIST_DIR: "OD_WEB_DIST_DIR",
-  WEB_PORT: "OD_WEB_PORT",
-  WEB_TSCONFIG_PATH: "OD_WEB_TSCONFIG_PATH",
-} as const);
+export const SIDECAR_ENV = createSidecarEnv(PRODUCT_IDENTITY);
 
 // @dsp func-73f5a6da
-export const SIDECAR_RUNTIME_ENV = Object.freeze({
-  base: SIDECAR_ENV.BASE,
-  ipcBase: SIDECAR_ENV.IPC_BASE,
-  ipcPath: SIDECAR_ENV.IPC_PATH,
-  namespace: SIDECAR_ENV.NAMESPACE,
-  source: SIDECAR_ENV.SOURCE,
-} as const);
+export const SIDECAR_RUNTIME_ENV = createSidecarRuntimeEnv(SIDECAR_ENV);
 
 // @dsp func-0c7ed02e
-export const SIDECAR_STAMP_FLAGS = Object.freeze({
-  app: "--od-stamp-app",
-  ipc: "--od-stamp-ipc",
-  mode: "--od-stamp-mode",
-  namespace: "--od-stamp-namespace",
-  source: "--od-stamp-source",
-} as const);
+export const SIDECAR_STAMP_FLAGS = createSidecarStampFlags(PRODUCT_IDENTITY);
 
 // @dsp func-a39fe218
 export const STAMP_APP_FLAG = SIDECAR_STAMP_FLAGS.app;
@@ -72,29 +103,6 @@ export const STAMP_SOURCE_FLAG = SIDECAR_STAMP_FLAGS.source;
 // @dsp func-d79ee8a7
 export const SIDECAR_STAMP_FIELDS = ["app", "mode", "namespace", "ipc", "source"] as const;
 
-// @dsp func-e847aaf5
-export const SIDECAR_DEFAULTS = Object.freeze({
-  host: "127.0.0.1",
-  ipcBase: "/tmp/open-design/ipc",
-  namespace: "default",
-  projectTmpDirName: ".tmp",
-  windowsPipePrefix: "open-design",
-} as const);
-
-// @dsp func-03549bc7
-export const OPEN_DESIGN_PRODUCT_NAME = "Open Design";
-
-// @dsp func-018389a7
-export function resolveWindowsReleaseNamespaceToken(value: string): string {
-  return value.replace(/[^A-Za-z0-9._-]+/g, "-");
-}
-
-// @dsp func-5b66036b
-export function resolveWindowsUninstallRegistryKey(namespace: string): string {
-  const namespaceToken = resolveWindowsReleaseNamespaceToken(namespace);
-  return `Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${OPEN_DESIGN_PRODUCT_NAME}-${namespaceToken}`;
-}
-
 // @dsp func-f6bb5bc3
 export const SIDECAR_MESSAGES = Object.freeze({
   CLICK: "click",
@@ -107,51 +115,7 @@ export const SIDECAR_MESSAGES = Object.freeze({
   SHUTDOWN: "shutdown",
   SHOW: "show",
   STATUS: "status",
-  UPDATE: "update",
 } as const);
-
-// @dsp func-b6e7a66b
-export const DESKTOP_UPDATE_ACTIONS = Object.freeze({
-  CHECK: "check",
-  DOWNLOAD: "download",
-  INSTALL: "install",
-  STATUS: "status",
-} as const);
-
-export type DesktopUpdateAction = (typeof DESKTOP_UPDATE_ACTIONS)[keyof typeof DESKTOP_UPDATE_ACTIONS];
-
-// @dsp func-5dc22883
-export const DESKTOP_UPDATE_MODES = Object.freeze({
-  JS_INCREMENTAL: "js-incremental",
-  PACKAGE_LAUNCHER: "package-launcher",
-} as const);
-
-export type DesktopUpdateMode = (typeof DESKTOP_UPDATE_MODES)[keyof typeof DESKTOP_UPDATE_MODES];
-
-// @dsp func-c43d4b22
-export const DESKTOP_UPDATE_CHANNELS = Object.freeze({
-  BETA: "beta",
-  NIGHTLY: "nightly",
-  PREVIEW: "preview",
-  STABLE: "stable",
-} as const);
-
-export type DesktopUpdateChannel = (typeof DESKTOP_UPDATE_CHANNELS)[keyof typeof DESKTOP_UPDATE_CHANNELS];
-
-// @dsp func-e106568f
-export const DESKTOP_UPDATE_STATES = Object.freeze({
-  AVAILABLE: "available",
-  CHECKING: "checking",
-  DOWNLOADED: "downloaded",
-  DOWNLOADING: "downloading",
-  ERROR: "error",
-  IDLE: "idle",
-  INSTALLING: "installing",
-  NOT_AVAILABLE: "not-available",
-  UNSUPPORTED: "unsupported",
-} as const);
-
-export type DesktopUpdateState = (typeof DESKTOP_UPDATE_STATES)[keyof typeof DESKTOP_UPDATE_STATES];
 
 // @dsp func-e8ace095
 export const SIDECAR_ERROR_CODES = Object.freeze({
@@ -175,6 +139,7 @@ export class SidecarContractError extends Error {
 export type ServiceRuntimeState = "idle" | "running" | "starting" | "stopped" | "unknown";
 
 export type DaemonStatusSnapshot = {
+  descriptor?: import("./runtime-descriptor.js").RuntimeDescriptor;
   pid?: number | null;
   state: ServiceRuntimeState;
   trustedWebOriginPort?: number | null;
@@ -184,7 +149,7 @@ export type DaemonStatusSnapshot = {
    * PR #974 round 6 (mrcfps): true when the daemon's
    * `/api/import/folder` route refuses tokenless requests. Surfaced
    * over IPC so `tools-dev start desktop` can detect a daemon that
-   * was spawned without `OD_REQUIRE_DESKTOP_AUTH=1` (the split-start
+   * was spawned without `READABLE_REQUIRE_DESKTOP_AUTH=1` (the split-start
    * dev flow `start daemon` -> `start desktop`) and restart it
    * before launching desktop main, instead of letting a renderer
    * race the registration handshake. Mirrors
@@ -195,6 +160,7 @@ export type DaemonStatusSnapshot = {
 };
 
 export type WebStatusSnapshot = {
+  descriptor?: import("./runtime-descriptor.js").RuntimeDescriptor;
   pid?: number | null;
   state: ServiceRuntimeState;
   updatedAt?: string;
@@ -204,10 +170,10 @@ export type WebStatusSnapshot = {
 export type DesktopRuntimeState = "idle" | "running" | "unknown";
 
 export type DesktopStatusSnapshot = {
+  descriptor?: import("./runtime-descriptor.js").RuntimeDescriptor;
   pid?: number | null;
   state: DesktopRuntimeState;
   title?: string | null;
-  update?: DesktopUpdateStatusSnapshot;
   updatedAt?: string;
   url?: string | null;
   windowVisible?: boolean;
@@ -265,138 +231,6 @@ export type DesktopExportPdfResult = {
   path?: string;
 };
 
-export type DesktopUpdateCapabilitySet = {
-  canApplyInPlace: boolean;
-  canDownload: boolean;
-  canOpenInstaller: boolean;
-  requiresManualInstall: boolean;
-};
-
-export type DesktopUpdatePathSnapshot = {
-  downloadRoot?: string;
-  manifestPath?: string;
-};
-
-export type DesktopUpdateChecksumSnapshot = {
-  algorithm: "sha256" | "sha512";
-  url?: string;
-  value?: string;
-};
-
-export type DesktopUpdateArtifactSnapshot = {
-  name?: string;
-  platformKey?: string;
-  size?: number;
-  type?: string;
-  url: string;
-};
-
-export type DesktopUpdateProgressSnapshot = {
-  receivedBytes: number;
-  totalBytes?: number;
-};
-
-export type DesktopUpdateErrorSnapshot = {
-  code: string;
-  details?: unknown;
-  message: string;
-};
-
-export type DesktopUpdateInstallResult = {
-  activeVersion?: string;
-  artifactPath?: string;
-  dryRun?: boolean;
-  helperLogPath?: string;
-  launcherRuntimePath?: string;
-  launchPath?: string;
-  openedAt: string;
-  path: string;
-};
-
-export type DesktopUpdateReleaseSnapshot = {
-  arch: string;
-  artifact: DesktopUpdateArtifactSnapshot;
-  checksum: DesktopUpdateChecksumSnapshot;
-  channel: DesktopUpdateChannel;
-  downloadedAt: string;
-  key: string;
-  metadata?: Record<string, unknown>;
-  path: string;
-  platformKey: string;
-  version: string;
-};
-
-export type DesktopUpdateIncomingSnapshot = {
-  arch: string;
-  artifact: DesktopUpdateArtifactSnapshot;
-  channel: DesktopUpdateChannel;
-  key?: string;
-  metadata?: Record<string, unknown>;
-  progress?: DesktopUpdateProgressSnapshot;
-  startedAt: string;
-  version: string;
-};
-
-export type DesktopUpdateCacheLifecycleTrigger = "cold-start" | "next-version-ready";
-
-export type DesktopUpdateReleaseLifecycleState =
-  | "cleanup-deferred"
-  | "cleanup-removed"
-  | "deprecated"
-  | "retained"
-  | "unknown";
-
-export type DesktopUpdateCacheLifecycleSummary = {
-  lastRunAt?: string;
-  lastTrigger?: DesktopUpdateCacheLifecycleTrigger;
-  platform: string;
-  releases: {
-    cleanupDeferred: number;
-    cleanupRemoved: number;
-    deprecated: number;
-    errors: number;
-    retained: number;
-    total: number;
-    unknown: number;
-  };
-};
-
-export type DesktopUpdateCacheSnapshot = {
-  lifecycle?: DesktopUpdateCacheLifecycleSummary;
-};
-
-export type DesktopUpdateStatusSnapshot = {
-  active?: DesktopUpdateReleaseSnapshot;
-  arch: string;
-  artifact?: DesktopUpdateArtifactSnapshot;
-  artifactUrl?: string;
-  availableVersion?: string;
-  cache?: DesktopUpdateCacheSnapshot;
-  capabilities: DesktopUpdateCapabilitySet;
-  channel: DesktopUpdateChannel;
-  checksum?: DesktopUpdateChecksumSnapshot;
-  currentVersion: string;
-  downloadPath?: string;
-  enabled: boolean;
-  error?: DesktopUpdateErrorSnapshot;
-  incoming?: DesktopUpdateIncomingSnapshot;
-  installResult?: DesktopUpdateInstallResult;
-  lastCheckedAt?: string;
-  metadata?: Record<string, unknown>;
-  mode: DesktopUpdateMode;
-  paths?: DesktopUpdatePathSnapshot;
-  platform: string;
-  progress?: DesktopUpdateProgressSnapshot;
-  state: DesktopUpdateState;
-  supported: boolean;
-};
-
-export type DesktopUpdateInput = {
-  action: DesktopUpdateAction;
-};
-
-export type DesktopUpdateResult = DesktopUpdateStatusSnapshot;
-
 export type SidecarStatusMessage = { type: typeof SIDECAR_MESSAGES.STATUS };
 export type SidecarShutdownMessage = { type: typeof SIDECAR_MESSAGES.SHUTDOWN };
 export type DesktopEvalMessage = { input: DesktopEvalInput; type: typeof SIDECAR_MESSAGES.EVAL };
@@ -405,7 +239,6 @@ export type DesktopConsoleMessage = { type: typeof SIDECAR_MESSAGES.CONSOLE };
 export type DesktopShowMessage = { type: typeof SIDECAR_MESSAGES.SHOW };
 export type DesktopClickMessage = { input: DesktopClickInput; type: typeof SIDECAR_MESSAGES.CLICK };
 export type DesktopExportPdfMessage = { input: DesktopExportPdfInput; type: typeof SIDECAR_MESSAGES.EXPORT_PDF };
-export type DesktopUpdateMessage = { input: DesktopUpdateInput; type: typeof SIDECAR_MESSAGES.UPDATE };
 
 // Sent by the desktop main process to the daemon over its sidecar IPC at
 // startup, before the BrowserWindow is created. The base64 string is a
@@ -457,8 +290,7 @@ export type DesktopSidecarMessage =
   | DesktopConsoleMessage
   | DesktopShowMessage
   | DesktopClickMessage
-  | DesktopExportPdfMessage
-  | DesktopUpdateMessage;
+  | DesktopExportPdfMessage;
 
 export type ShutdownResult = {
   accepted: true;
@@ -475,25 +307,30 @@ export type SidecarStamp = {
 export type SidecarStampInput = Partial<Record<(typeof SIDECAR_STAMP_FIELDS)[number], unknown>>;
 export type SidecarStampCriteria = Partial<SidecarStamp>;
 
-export type OpenDesignSidecarContract = {
-  appKeys: typeof APP_KEYS;
-  defaults: typeof SIDECAR_DEFAULTS;
-  env: typeof SIDECAR_RUNTIME_ENV;
-  errorCodes: typeof SIDECAR_ERROR_CODES;
-  messages: typeof SIDECAR_MESSAGES;
-  modes: typeof SIDECAR_MODES;
-  normalizeApp: typeof normalizeAppKey;
-  normalizeNamespace: typeof normalizeNamespace;
-  normalizeSource: typeof normalizeSidecarSource;
-  normalizeStamp: typeof normalizeSidecarStamp;
-  normalizeStampCriteria: typeof normalizeSidecarStampCriteria;
-  sources: typeof SIDECAR_SOURCES;
-  stampFields: typeof SIDECAR_STAMP_FIELDS;
-  stampFlags: typeof SIDECAR_STAMP_FLAGS;
-  updateActions: typeof DESKTOP_UPDATE_ACTIONS;
-  updateChannels: typeof DESKTOP_UPDATE_CHANNELS;
-  updateModes: typeof DESKTOP_UPDATE_MODES;
-  updateStates: typeof DESKTOP_UPDATE_STATES;
+export type SidecarDefaults = {
+  readonly host: "127.0.0.1";
+  readonly ipcBase: string;
+  readonly namespace: "default";
+  readonly projectTmpDirName: ".tmp";
+  readonly windowsPipePrefix: string;
+};
+
+export type SidecarContract = {
+  readonly appKeys: typeof APP_KEYS;
+  readonly defaults: SidecarDefaults;
+  readonly env: typeof SIDECAR_RUNTIME_ENV;
+  readonly errorCodes: typeof SIDECAR_ERROR_CODES;
+  readonly messages: typeof SIDECAR_MESSAGES;
+  readonly modes: typeof SIDECAR_MODES;
+  readonly normalizeApp: typeof normalizeAppKey;
+  readonly normalizeNamespace: typeof normalizeNamespace;
+  readonly normalizeSource: typeof normalizeSidecarSource;
+  readonly normalizeStamp: typeof normalizeSidecarStamp;
+  readonly normalizeStampCriteria: typeof normalizeSidecarStampCriteria;
+  readonly rejectedEnvNames: readonly string[];
+  readonly sources: typeof SIDECAR_SOURCES;
+  readonly stampFields: typeof SIDECAR_STAMP_FIELDS;
+  readonly stampFlags: typeof SIDECAR_STAMP_FLAGS;
 };
 
 function assertObject(value: unknown, label: string): Record<string, unknown> {
@@ -675,19 +512,6 @@ function normalizeDesktopExportPdfInput(input: unknown): DesktopExportPdfInput {
   };
 }
 
-function isDesktopUpdateAction(value: unknown): value is DesktopUpdateAction {
-  return Object.values(DESKTOP_UPDATE_ACTIONS).includes(value as DesktopUpdateAction);
-}
-
-function normalizeDesktopUpdateInput(input: unknown): DesktopUpdateInput {
-  const value = assertObject(input, "desktop update input");
-  assertKnownKeys(value, ["action"], "desktop update input");
-  if (!isDesktopUpdateAction(value.action)) {
-    throw new Error(`unsupported desktop update action: ${String(value.action)}`);
-  }
-  return { action: value.action };
-}
-
 function normalizeMessageType(value: unknown, label: string): string {
   if (typeof value !== "string" || value.length === 0) {
     throw new SidecarContractError(SIDECAR_ERROR_CODES.INVALID_MESSAGE, `${label} type must be a non-empty string`);
@@ -748,32 +572,40 @@ export function normalizeDesktopSidecarMessage(input: unknown): DesktopSidecarMe
     case SIDECAR_MESSAGES.EXPORT_PDF:
       assertKnownKeys(value, ["input", "type"], "desktop sidecar message");
       return { input: normalizeDesktopExportPdfInput(value.input), type };
-    case SIDECAR_MESSAGES.UPDATE:
-      assertKnownKeys(value, ["input", "type"], "desktop sidecar message");
-      return { input: normalizeDesktopUpdateInput(value.input), type };
     default:
       throw new SidecarContractError(SIDECAR_ERROR_CODES.UNKNOWN_MESSAGE, `unknown desktop sidecar message: ${type}`);
   }
 }
 
 // @dsp func-e67eab33
-export const OPEN_DESIGN_SIDECAR_CONTRACT = Object.freeze({
-  appKeys: APP_KEYS,
-  defaults: SIDECAR_DEFAULTS,
-  env: SIDECAR_RUNTIME_ENV,
-  errorCodes: SIDECAR_ERROR_CODES,
-  messages: SIDECAR_MESSAGES,
-  modes: SIDECAR_MODES,
-  normalizeApp: normalizeAppKey,
-  normalizeNamespace,
-  normalizeSource: normalizeSidecarSource,
-  normalizeStamp: normalizeSidecarStamp,
-  normalizeStampCriteria: normalizeSidecarStampCriteria,
-  sources: SIDECAR_SOURCES,
-  stampFields: SIDECAR_STAMP_FIELDS,
-  stampFlags: SIDECAR_STAMP_FLAGS,
-  updateActions: DESKTOP_UPDATE_ACTIONS,
-  updateChannels: DESKTOP_UPDATE_CHANNELS,
-  updateModes: DESKTOP_UPDATE_MODES,
-  updateStates: DESKTOP_UPDATE_STATES,
-} as const satisfies OpenDesignSidecarContract);
+export function createSidecarContract(identity: ProductIdentity): SidecarContract {
+  const env = createSidecarEnv(identity);
+  const defaults = Object.freeze({
+    host: "127.0.0.1",
+    ipcBase: `/tmp/${identity.productId}/ipc`,
+    namespace: "default",
+    projectTmpDirName: ".tmp",
+    windowsPipePrefix: identity.productId,
+  } as const satisfies SidecarDefaults);
+
+  return Object.freeze({
+    appKeys: APP_KEYS,
+    defaults,
+    env: createSidecarRuntimeEnv(env),
+    errorCodes: SIDECAR_ERROR_CODES,
+    messages: SIDECAR_MESSAGES,
+    modes: SIDECAR_MODES,
+    normalizeApp: normalizeAppKey,
+    normalizeNamespace,
+    normalizeSource: normalizeSidecarSource,
+    normalizeStamp: normalizeSidecarStamp,
+    normalizeStampCriteria: normalizeSidecarStampCriteria,
+    rejectedEnvNames: [],
+    sources: SIDECAR_SOURCES,
+    stampFields: SIDECAR_STAMP_FIELDS,
+    stampFlags: createSidecarStampFlags(identity),
+  } as const satisfies SidecarContract);
+}
+
+export const SIDECAR_CONTRACT = createSidecarContract(PRODUCT_IDENTITY);
+export const SIDECAR_DEFAULTS = SIDECAR_CONTRACT.defaults;

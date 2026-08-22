@@ -19,7 +19,7 @@ example_tagline: "cyan / magenta chromatic aberration + CRT scanlines"
 example_desc: "Giant title + data-corruption artifacts + corner ASCII noise chunks"
 example_source_url: "https://github.com/nexu-io/html-anything"
 example_source_label: "html-frames · glitch"
-od:
+readable:
   mode: video
   surface: video
   scenario: video

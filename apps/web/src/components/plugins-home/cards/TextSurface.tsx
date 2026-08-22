@@ -1,5 +1,5 @@
 // Fallback preview surface — used by scenario plugins without any
-// declared preview material (no `od.preview`, no example outputs).
+// declared preview material (no `readable.preview`, no example outputs).
 //
 // We render a typographic patch with the plugin's first-letter
 // glyph centered over a soft gradient. Visually quiet so it

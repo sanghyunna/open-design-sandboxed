@@ -27,7 +27,7 @@ parallel agents, and resumable upstream coding-agent sessions.
    from the checkpoint lineage.
 7. Rollback must invalidate future agent resume state so a resumed coding agent
    cannot re-import discarded chat context.
-8. Rollback must have both UI and `od` CLI surfaces, because repository policy
+8. Rollback must have both UI and `readable` CLI surfaces, because repository policy
    requires every user-facing capability to be reachable through both surfaces.
 
 ## Non-goals for the first implementation
@@ -38,7 +38,7 @@ parallel agents, and resumable upstream coding-agent sessions.
 4. Do not try to snapshot huge generated dependency/build directories.
 5. Do not follow symlinked directories outside the project root.
 6. Do not rewrite upstream provider session files such as Claude's own session
-   database. Instead, invalidate Open Design's stored resume pointer.
+   database. Instead, invalidate Readable Studio's stored resume pointer.
 7. Do not add cloud sync for checkpoints.
 
 ## External evidence
@@ -50,17 +50,17 @@ permanent version control.
 
 | Source | Verified claim | Design consequence |
 | --- | --- | --- |
-| VS Code chat checkpoints, https://code.visualstudio.com/docs/chat/chat-checkpoints | VS Code can restore workspace files to a previous chat checkpoint, removes later chat history on restore, shows file changes, supports redo, and explicitly says checkpoints complement Git rather than replace it. | Open Design should expose restore from the chat timeline, show affected files before restore, and create a safety checkpoint for redo-like recovery. |
-| Claude Code checkpointing, https://code.claude.com/docs/en/checkpointing | Claude creates prompt-level checkpoints and exposes separate actions for restoring code and conversation, restoring conversation only, and restoring code only. It also documents limitations around bash/external changes and says checkpoints do not replace version control. | Open Design should ship explicit restore modes and conflict/limitation language instead of one implicit destructive action. |
-| Claude Agent SDK file checkpointing, https://code.claude.com/docs/en/agent-sdk/file-checkpointing | SDK checkpointing can restore file changes made by file-edit tools, but file rewind does not automatically rewind conversation state. | Open Design needs a joint model tying durable chat rows to file snapshots. File metadata alone is insufficient. |
+| VS Code chat checkpoints, https://code.visualstudio.com/docs/chat/chat-checkpoints | VS Code can restore workspace files to a previous chat checkpoint, removes later chat history on restore, shows file changes, supports redo, and explicitly says checkpoints complement Git rather than replace it. | Readable Studio should expose restore from the chat timeline, show affected files before restore, and create a safety checkpoint for redo-like recovery. |
+| Claude Code checkpointing, https://code.claude.com/docs/en/checkpointing | Claude creates prompt-level checkpoints and exposes separate actions for restoring code and conversation, restoring conversation only, and restoring code only. It also documents limitations around bash/external changes and says checkpoints do not replace version control. | Readable Studio should ship explicit restore modes and conflict/limitation language instead of one implicit destructive action. |
+| Claude Agent SDK file checkpointing, https://code.claude.com/docs/en/agent-sdk/file-checkpointing | SDK checkpointing can restore file changes made by file-edit tools, but file rewind does not automatically rewind conversation state. | Readable Studio needs a joint model tying durable chat rows to file snapshots. File metadata alone is insufficient. |
 | Cline checkpoints, https://docs.cline.bot/core-workflows/checkpoints | Cline uses a shadow Git repository separate from the project Git history, keeps user Git clean, captures files not tracked by Git, and offers Restore Files, Restore Task Only, and Restore Files & Task. | Prefer a shadow/content-addressed checkpoint store outside the project over user Git commits. Expose the same three conceptual modes. |
-| Aider Git integration, https://aider.chat/docs/git.html | Aider uses real Git integration, including auto-commits and `/undo`, and can commit dirty files before AI edits. | This is not the right default for Open Design corporate rollback because it mutates Git history and dirty-worktree state. It remains useful prior art for command-line undo semantics. |
-| Gemini CLI checkpointing, https://google-gemini.github.io/gemini-cli/docs/cli/checkpointing.html | Gemini checkpointing uses a shadow Git repository in the user's home directory plus JSON for conversation/tool-call state, and `/restore` restores files plus conversation. | A local shadow store is a validated pattern. Open Design can implement equivalent semantics without requiring Git as the storage engine. |
-| Devin Desktop/Windsurf Cascade overview, https://docs.devin.ai/desktop/cascade/cascade | Cascade exposes prompt-level code reverts and named snapshots, while warning that reverts are irreversible. | Open Design should expose named/safety checkpoints and be explicit about destructive scope. Safety checkpoints reduce the irreversibility problem. |
+| Aider Git integration, https://aider.chat/docs/git.html | Aider uses real Git integration, including auto-commits and `/undo`, and can commit dirty files before AI edits. | This is not the right default for Readable Studio corporate rollback because it mutates Git history and dirty-worktree state. It remains useful prior art for command-line undo semantics. |
+| Gemini CLI checkpointing, https://google-gemini.github.io/gemini-cli/docs/cli/checkpointing.html | Gemini checkpointing uses a shadow Git repository in the user's home directory plus JSON for conversation/tool-call state, and `/restore` restores files plus conversation. | A local shadow store is a validated pattern. Readable Studio can implement equivalent semantics without requiring Git as the storage engine. |
+| Devin Desktop/Windsurf Cascade overview, https://docs.devin.ai/desktop/cascade/cascade | Cascade exposes prompt-level code reverts and named snapshots, while warning that reverts are irreversible. | Readable Studio should expose named/safety checkpoints and be explicit about destructive scope. Safety checkpoints reduce the irreversibility problem. |
 
 ## Local evidence
 
-This section anchors the plan in current Open Design code. Line numbers are from
+This section anchors the plan in current Readable Studio code. Line numbers are from
 the 2026-06-14 inspection pass and should be re-verified before implementation
 if nearby files changed.
 
@@ -118,7 +118,7 @@ if nearby files changed.
 | `apps/daemon/src/projects.ts:748` writes project files with path sanitization and safe realpath resolution. | Restore should reuse or mirror this safety model, while allowing reserved daemon-owned paths where intended. |
 | `apps/daemon/src/projects.ts:931` deletes project files through safe resolution. | Restore deletion should be path-scoped and never recursive at the project root. |
 | `apps/daemon/src/projects.ts:33` reserves `.live-artifacts`. | User file APIs intentionally block `.live-artifacts`; checkpoint service needs an internal path policy. |
-| `apps/daemon/src/project-ignored-dirs.ts:4` excludes `.git`, `node_modules`, `.od`, build outputs, caches, venvs, and other generated dirs. | Snapshot scope must exclude these by default for safety and performance. |
+| `apps/daemon/src/project-ignored-dirs.ts:4` excludes `.git`, `node_modules`, `.readable-studio`, build outputs, caches, venvs, and other generated dirs. | Snapshot scope must exclude these by default for safety and performance. |
 
 ### Project route ownership
 
@@ -145,7 +145,7 @@ if nearby files changed.
 | --- | --- |
 | `apps/daemon/src/agent-session-resume.ts:32` reads stored agent sessions before a run. | A rolled-back conversation could still resume an upstream future session unless cleared. |
 | `apps/daemon/src/agent-session-resume.ts:54` persists or clears captured sessions after a run. | There is already a narrow helper boundary for session state. |
-| `apps/daemon/src/runtimes/defs/claude.ts:76` passes `--resume` or `--session-id`. | Claude can continue its own hidden session beyond Open Design's visible message history. |
+| `apps/daemon/src/runtimes/defs/claude.ts:76` passes `--resume` or `--session-id`. | Claude can continue its own hidden session beyond Readable Studio's visible message history. |
 | `apps/daemon/src/runtimes/defs/claude.ts:93` declares `resumesSessionViaCli: true`. | Rollback must treat resume-capable agents as special stateful actors. |
 
 ### Live artifacts
@@ -159,9 +159,9 @@ if nearby files changed.
 
 | Evidence | Why it matters |
 | --- | --- |
-| `AGENTS.md:91` requires every user-facing capability to be reachable through both web UI and `od` CLI. | Rollback must ship UI and CLI together. |
+| `AGENTS.md:91` requires every user-facing capability to be reachable through both web UI and `readable` CLI. | Rollback must ship UI and CLI together. |
 | `AGENTS.md:94` requires both surfaces to call the same `/api/*` endpoints. | CLI must not manipulate SQLite or checkpoint files directly. |
-| `AGENTS.md:96` requires contract types, daemon endpoint, UI surface, and `od` subcommand for new capabilities. | The implementation must be a full vertical slice. |
+| `AGENTS.md:96` requires contract types, daemon endpoint, UI surface, and `readable` subcommand for new capabilities. | The implementation must be a full vertical slice. |
 | `apps/AGENTS.md:21` says existing daemon domain endpoints belong in matching route files, not `server.ts`, unless bootstrap-wide or without a clear owner. | Rollback endpoints should be in `project-routes.ts` or a project-checkpoint route module registered from there. |
 | `packages/AGENTS.md:7` says `packages/contracts` must remain pure TypeScript and free of Node, Express, SQLite, and browser APIs. | Checkpoint contract DTOs must be pure data only. |
 
@@ -197,7 +197,7 @@ Evidence:
 - Cline and Gemini use shadow stores separate from project Git.
 - Aider's real Git model commits AI changes and dirty files, which is the wrong
   default for corporate rollback.
-- Existing Open Design projects may be managed `.od/projects/<id>` folders or
+- Existing Readable Studio projects may be managed `.readable-studio/projects/<id>` folders or
   imported external `metadata.baseDir` folders.
 
 Consequence:
@@ -210,7 +210,7 @@ Consequence:
 Recommended v1 storage:
 
 ```text
-<OD_DATA_DIR>/checkpoints/
+<READABLE_DATA_DIR>/checkpoints/
   blobs/
     sha256/
       ab/
@@ -275,7 +275,7 @@ Evidence:
 
 - Claude and Cline expose file-only, conversation/task-only, and combined
   restore modes.
-- Current Open Design Fork is chat-only and does not touch files.
+- Current Readable Studio Fork is chat-only and does not touch files.
 - Corporate users need to recover separately from bad code, bad context, or both.
 
 Consequence:
@@ -283,7 +283,7 @@ Consequence:
 - The modal and CLI must force an explicit mode.
 - The response must report exactly what changed in each domain.
 
-### Decision 5: clear Open Design agent sessions after chat rollback
+### Decision 5: clear Readable Studio agent sessions after chat rollback
 
 Any rollback mode that changes chat history must clear `agent_sessions` for the
 conversation.
@@ -292,7 +292,7 @@ Evidence:
 
 - `agent_sessions` stores upstream session ids by conversation and agent.
 - Claude resumes upstream sessions via `--resume`.
-- A rolled-back Open Design conversation can otherwise be paired with a future
+- A rolled-back Readable Studio conversation can otherwise be paired with a future
   Claude session containing discarded tool calls and messages.
 
 Consequence:
@@ -534,7 +534,7 @@ Use the ignored directory set from `project-ignored-dirs.ts`:
 - `.git`
 - `node_modules`
 - `vendor`
-- `.od`
+- `.readable-studio`
 - `debug`
 - `dist`
 - `build`
@@ -555,7 +555,7 @@ Use the ignored directory set from `project-ignored-dirs.ts`:
 
 Also exclude daemon-owned transient launch scaffolding:
 
-- `.od-skills`
+- `.readable-studio-skills`
 - daemon-created managed-project `.mcp.json`
 - checkpoint temp files
 
@@ -620,7 +620,7 @@ If checkpoint capture fails:
 
 Recommendation:
 
-- Default to fail-closed for managed Open Design projects.
+- Default to fail-closed for managed Readable Studio projects.
 - For external imported repositories over a size threshold, fail with actionable
   guidance or require an explicit "run without checkpoint" override.
 
@@ -796,11 +796,11 @@ withProjectCheckpointLock(projectId, async () => {
 Rationale:
 
 - The daemon is currently a single local process.
-- It prevents two Open Design runs/restores from racing within the same process.
+- It prevents two Readable Studio runs/restores from racing within the same process.
 
 Future hardening:
 
-- Add file locks under `OD_DATA_DIR/checkpoints/locks` if multiple daemon
+- Add file locks under `READABLE_DATA_DIR/checkpoints/locks` if multiple daemon
   processes can operate on the same data dir.
 
 Active run behavior:
@@ -812,7 +812,7 @@ Active run behavior:
 
 Parallel external agents:
 
-- Open Design can only coordinate Open Design-owned runs. If another editor or
+- Readable Studio can only coordinate Readable Studio-owned runs. If another editor or
   shell modifies files concurrently, conflict detection should catch hash
   mismatches and fail by default.
 
@@ -878,9 +878,9 @@ Extend `apps/daemon/src/cli.ts` because `AGENTS.md` requires CLI parity.
 Recommended commands:
 
 ```text
-od chat checkpoints --project <projectId> --conversation <conversationId> [--json]
-od chat checkpoint diff --project <projectId> --checkpoint <checkpointId> [--json]
-od chat rollback --project <projectId> --conversation <conversationId> --message <messageId>
+readable chat checkpoints --project <projectId> --conversation <conversationId> [--json]
+readable chat checkpoint diff --project <projectId> --checkpoint <checkpointId> [--json]
+readable chat rollback --project <projectId> --conversation <conversationId> --message <messageId>
                  [--checkpoint <checkpointId>]
                  [--mode files-only|chat-only|files-and-chat]
                  [--conflict-policy fail|overwrite|keep-current]
@@ -1027,10 +1027,10 @@ security posture must be explicit.
 
 Requirements:
 
-1. Store checkpoints locally under `OD_DATA_DIR`.
+1. Store checkpoints locally under `READABLE_DATA_DIR`.
 2. Do not upload checkpoint contents.
 3. Do not include absolute local paths in manifests.
-4. Do not snapshot ignored secret-heavy directories like `.git`, `.od`, and
+4. Do not snapshot ignored secret-heavy directories like `.git`, `.readable-studio`, and
    `.tmp`.
 5. Do not follow symlinks outside root.
 6. Provide a setting to disable checkpoints for sensitive projects if corporate
@@ -1145,9 +1145,9 @@ Add focused tests under `apps/web/tests/`.
 Add CLI tests under `apps/daemon/tests/` if the current CLI test pattern lives
 there.
 
-1. `od chat checkpoints --json` prints API JSON.
-2. `od chat checkpoint diff --json` prints API JSON.
-3. `od chat rollback --mode files-and-chat --json` calls rollback endpoint.
+1. `readable chat checkpoints --json` prints API JSON.
+2. `readable chat checkpoint diff --json` prints API JSON.
+3. `readable chat rollback --mode files-and-chat --json` calls rollback endpoint.
 4. Non-json output includes restored checkpoint and safety checkpoint.
 5. HTTP conflict maps to a non-zero exit and structured JSON when `--json`.
 
@@ -1169,9 +1169,9 @@ High-value scenario:
 After implementation:
 
 ```bash
-pnpm --filter @open-design/contracts typecheck
-pnpm --filter @open-design/daemon test
-pnpm --filter @open-design/web test
+pnpm --filter @readable-studio/contracts typecheck
+pnpm --filter @readable-studio/daemon test
+pnpm --filter @readable-studio/web test
 pnpm guard
 pnpm typecheck
 ```
@@ -1185,7 +1185,7 @@ pnpm install
 If agent stream/parser behavior changes unexpectedly:
 
 ```bash
-export PATH="$PWD/mocks/bin:$PATH" OD_MOCKS_TRACE=<trace> OD_MOCKS_NO_DELAY=1
+export PATH="$PWD/mocks/bin:$PATH" READABLE_MOCKS_TRACE=<trace> READABLE_MOCKS_NO_DELAY=1
 ```
 
 Then replay relevant mock CLI traces per `mocks/README.md`.
@@ -1213,7 +1213,7 @@ Exit criteria:
 
 Exit criteria:
 
-- `pnpm --filter @open-design/contracts typecheck` passes.
+- `pnpm --filter @readable-studio/contracts typecheck` passes.
 
 ### Phase 2: daemon checkpoint service
 
@@ -1254,9 +1254,9 @@ Exit criteria:
 
 ### Phase 5: CLI parity
 
-1. Add `od chat checkpoints`.
-2. Add `od chat checkpoint diff`.
-3. Add `od chat rollback`.
+1. Add `readable chat checkpoints`.
+2. Add `readable chat checkpoint diff`.
+3. Add `readable chat rollback`.
 4. Add JSON and human output.
 
 Exit criteria:

@@ -11,11 +11,11 @@ import {
   isolatedAgentEnv,
   startIsolatedToolBroker,
 } from '../src/isolated-agent-runtime.js';
-import { spawnIsolatedAgent } from '@open-design/platform';
+import { spawnIsolatedAgent } from '@readable-studio/platform';
 
 const roots: string[] = [];
 const nativeHelper = fileURLToPath(
-  new URL('../../../packages/platform/dist/native/win32/od-agent-isolator.exe', import.meta.url),
+  new URL('../../../packages/platform/dist/native/win32/readable-studio-agent-isolator.exe', import.meta.url),
 );
 const nativeAvailable = process.platform === 'win32' && existsSync(nativeHelper);
 
@@ -46,7 +46,7 @@ async function collectChild(child: import('node:child_process').ChildProcess) {
 
 describe('isolated agent tool broker', () => {
   it('rejects host executables inside the agent-writable project', async () => {
-    const fixture = await mkdtemp(path.join(os.tmpdir(), 'od-isolated-broker-overlap-'));
+    const fixture = await mkdtemp(path.join(os.tmpdir(), 'readable-isolated-broker-overlap-'));
     roots.push(fixture);
     await expect(startIsolatedToolBroker({
       agentEnv: {},
@@ -64,7 +64,7 @@ describe('isolated agent tool broker', () => {
   });
 
   it('brokers only the four daemon tool operations without following agent paths', async () => {
-    const fixture = await mkdtemp(path.join(os.tmpdir(), 'od-isolated-broker-test-'));
+    const fixture = await mkdtemp(path.join(os.tmpdir(), 'readable-isolated-broker-test-'));
     roots.push(fixture);
     const project = path.join(fixture, 'project');
     await mkdir(project);
@@ -74,9 +74,9 @@ describe('isolated agent tool broker', () => {
       import { writeFile } from 'node:fs/promises';
       await writeFile(${JSON.stringify(invoked)}, JSON.stringify({ args: process.argv.slice(2) }));
       process.stdout.write(JSON.stringify({
-        hasDaemonUrl: Boolean(process.env.OD_DAEMON_URL),
-        hasToolToken: Boolean(process.env.OD_TOOL_TOKEN),
-        projectId: process.env.OD_PROJECT_ID,
+        hasDaemonUrl: Boolean(process.env.READABLE_DAEMON_URL),
+        hasToolToken: Boolean(process.env.READABLE_TOOL_TOKEN),
+        projectId: process.env.READABLE_PROJECT_ID,
       }));
     `, 'utf8');
     const broker = await startIsolatedToolBroker({
@@ -97,22 +97,22 @@ describe('isolated agent tool broker', () => {
       const agentEnv = isolatedAgentEnv({
         Od_Data_Dir: 'protected',
         Od_Api_Token: 'api-secret',
-        OD_DAEMON_URL: 'http://127.0.0.1:7456',
-        OD_DESKTOP_APPROVAL_TOKEN: 'approval-secret',
-        OD_SIDECAR_IPC_PATH: '\\\\.\\pipe\\privileged',
-        OD_TOOL_TOKEN: 'tool-secret',
+        READABLE_DAEMON_URL: 'http://127.0.0.1:7456',
+        READABLE_DESKTOP_APPROVAL_TOKEN: 'approval-secret',
+        READABLE_SIDECAR_IPC_PATH: '\\\\.\\pipe\\privileged',
+        READABLE_TOOL_TOKEN: 'tool-secret',
       }, broker, 'codex');
-      expect(Object.keys(agentEnv).map((key) => key.toUpperCase())).not.toContain('OD_DATA_DIR');
-      expect(Object.keys(agentEnv).map((key) => key.toUpperCase())).not.toContain('OD_API_TOKEN');
-      expect(agentEnv.OD_DAEMON_URL).toBeUndefined();
-      expect(agentEnv.OD_DESKTOP_APPROVAL_TOKEN).toBeUndefined();
-      expect(agentEnv.OD_SIDECAR_IPC_PATH).toBeUndefined();
-      expect(agentEnv.OD_TOOL_TOKEN).toBeUndefined();
-      expect(agentEnv.OD_BIN).toBe(broker.paths.clientPath);
-      expect(agentEnv.OD_ISOLATED_TOOL_BROKER_ROOT).toBeUndefined();
-      expect(broker.ipc.pipeName).toMatch(/^\\\\\.\\pipe\\LOCAL\\OpenDesign\./);
+      expect(Object.keys(agentEnv).map((key) => key.toUpperCase())).not.toContain('READABLE_DATA_DIR');
+      expect(Object.keys(agentEnv).map((key) => key.toUpperCase())).not.toContain('READABLE_API_TOKEN');
+      expect(agentEnv.READABLE_DAEMON_URL).toBeUndefined();
+      expect(agentEnv.READABLE_DESKTOP_APPROVAL_TOKEN).toBeUndefined();
+      expect(agentEnv.READABLE_SIDECAR_IPC_PATH).toBeUndefined();
+      expect(agentEnv.READABLE_TOOL_TOKEN).toBeUndefined();
+      expect(agentEnv.READABLE_BIN).toBe(broker.paths.clientPath);
+      expect(agentEnv.READABLE_ISOLATED_TOOL_BROKER_ROOT).toBeUndefined();
+      expect(broker.ipc.pipeName).toMatch(/^\\\\\.\\pipe\\LOCAL\\ReadableStudio\./);
 
-      const token = broker.clientEnv.OD_ISOLATED_TOOL_BROKER_TOKEN!;
+      const token = broker.clientEnv.READABLE_ISOLATED_TOOL_BROKER_TOKEN!;
       const allowed = JSON.parse(await broker.ipc.handleRequest(JSON.stringify({
         args: ['tools', 'design-systems', 'read', '--path', 'preview/colors.html'],
         token,
@@ -180,7 +180,7 @@ describe('isolated agent tool broker', () => {
       const result = JSON.parse(await broker.ipc.handleRequest(JSON.stringify({
         args: ['tools', 'media', 'generate', '--input', 'media.json'],
         input: '{"prompt":"draw a circle"}',
-        token: broker.clientEnv.OD_ISOLATED_TOOL_BROKER_TOKEN,
+        token: broker.clientEnv.READABLE_ISOLATED_TOOL_BROKER_TOKEN,
       })));
       expect(result).toMatchObject({ code: 0, stderr: '' });
       expect(JSON.parse(result.stdout)).toEqual({ artifactId: 'media-1' });
@@ -194,8 +194,8 @@ describe('isolated agent tool broker', () => {
     }
   });
 
-  it.skipIf(!nativeAvailable)('brokers an od tools command from a real contained native process', async () => {
-    const fixture = await mkdtemp(path.join(os.tmpdir(), 'od-isolated-native-broker-test-'));
+  it.skipIf(!nativeAvailable)('brokers a readable tools command from a real contained native process', async () => {
+    const fixture = await mkdtemp(path.join(os.tmpdir(), 'readable-isolated-native-broker-test-'));
     roots.push(fixture);
     const project = path.join(fixture, 'project');
     await mkdir(project);
@@ -226,6 +226,8 @@ describe('isolated agent tool broker', () => {
           'tools',
           'design-systems',
           'read',
+          '--path',
+          'preview/colors.html',
         ],
         command: nativeHelper,
         cwd: project,

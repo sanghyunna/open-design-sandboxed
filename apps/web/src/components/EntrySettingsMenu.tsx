@@ -4,7 +4,7 @@ import {
   useState,
 } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { themeIdToTracking } from '@open-design/contracts/analytics';
+import { themeIdToTracking } from '@readable-studio/contracts/analytics';
 import {
   LOCALE_LABEL,
   LOCALES,
@@ -129,7 +129,7 @@ export function EntrySettingsMenu({
       <button
         ref={triggerRef}
         type="button"
-        className="settings-icon-btn od-tooltip"
+        className="settings-icon-btn readable-tooltip"
         onClick={() => {
           onTrackTriggerClick?.();
           setOpen((value) => !value);

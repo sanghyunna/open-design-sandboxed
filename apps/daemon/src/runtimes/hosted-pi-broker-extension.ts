@@ -64,8 +64,8 @@ function responseText(response: BrokerResponse): string {
 }
 
 function callBroker(params: BrokerParams, signal: AbortSignal | undefined): Promise<BrokerResponse> {
-  const socketPath = process.env.OD_HOSTED_PI_BROKER_SOCKET;
-  const token = process.env.OD_HOSTED_PI_BROKER_TOKEN;
+  const socketPath = process.env.READABLE_HOSTED_PI_BROKER_SOCKET;
+  const token = process.env.READABLE_HOSTED_PI_BROKER_TOKEN;
   if (!socketPath || !token) return Promise.reject(new Error('hosted Pi broker is unavailable'));
 
   return new Promise<BrokerResponse>((resolve, reject) => {
@@ -135,9 +135,9 @@ function designSystemRequest(params: BrokerParams): { path: string; designSystem
 }
 
 function designSystemEnvironment(): { readUrl: string; toolToken: string; carrierToken: string } {
-  const readUrl = process.env.OD_HOSTED_DESIGN_SYSTEM_READ_URL;
-  const toolToken = process.env.OD_TOOL_TOKEN;
-  const carrierToken = process.env.OD_HOSTED_PI_BROKER_TOKEN;
+  const readUrl = process.env.READABLE_HOSTED_DESIGN_SYSTEM_READ_URL;
+  const toolToken = process.env.READABLE_TOOL_TOKEN;
+  const carrierToken = process.env.READABLE_HOSTED_PI_BROKER_TOKEN;
   if (
     !readUrl
     || !toolToken
@@ -177,7 +177,7 @@ async function callDesignSystem(
         Accept: 'application/json',
         Authorization: `Bearer ${toolToken}`,
         'Content-Type': 'application/json',
-        'X-Open-Design-Tool-Token': carrierToken,
+        'X-Readable-Studio-Tool-Token': carrierToken,
       },
       body: JSON.stringify(request),
     });
@@ -204,7 +204,7 @@ async function callDesignSystem(
 
 export default function hostedPiBrokerExtension(pi: ExtensionApi): void {
   pi.registerTool({
-    name: 'od_hosted_broker',
+    name: 'readable_hosted_broker',
     label: 'Hosted files',
     description: 'Use the daemon-owned project and design-system file capabilities for the current run.',
     promptSnippet: 'daemon-owned hosted file capabilities',

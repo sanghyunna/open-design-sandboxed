@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Open Design needs imported design systems to satisfy four stakeholders at
+Readable Studio needs imported design systems to satisfy four stakeholders at
 once:
 
 - **Push channel**: system-prompt injection must stay small, dense,
@@ -112,7 +112,7 @@ and source evidence.
 
 ### `tokens.css` and `source/tokens.source.json`
 
-`tokens.css` is the normalized OD token contract. It must use the standard
+`tokens.css` is the normalized Readable Studio token contract. It must use the standard
 schema names such as `--bg`, `--fg`, `--accent`, and the A1/A2/B-slot set.
 This keeps cross-brand artifacts interchangeable.
 
@@ -212,9 +212,9 @@ until later PRs wire the consumer paths.
 
 `importMode` values:
 
-- `normalized`: OD-normalized files only. This is the implicit default for
+- `normalized`: Readable Studio-normalized files only. This is the implicit default for
   bundled and hand-authored systems when the field is absent.
-- `hybrid`: normalized OD files plus source/evidence files. This is the
+- `hybrid`: normalized Readable Studio files plus source/evidence files. This is the
   default for local and GitHub importers.
 - `verbatim`: preserve source naming and structure as much as possible. This
   should be user-selected, not the default importer behavior.

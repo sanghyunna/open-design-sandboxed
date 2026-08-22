@@ -11,18 +11,12 @@ declare global {
 }
 
 type LocalizedContentModule = {
-  localizeDesignSystemCategory: (locale: string, category: string) => string;
   localizeDesignSystemSummary: (locale: string, system: DesignSystemResource) => string;
-  localizePromptTemplateSummary: (
-    locale: string,
-    template: PromptTemplateResource,
-  ) => PromptTemplateResource;
   localizeSkillDescription: (locale: string, skill: SkillResource) => string;
 };
 
 type SkillResource = { id: string; description: string };
 type DesignSystemResource = { id: string; category: string; summary: string | null };
-type PromptTemplateResource = { id: string; category: string; tags: string[]; title: string; summary: string };
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const webContentModules = import.meta.glob<LocalizedContentModule>(
@@ -35,13 +29,8 @@ if (localizedContentModule == null) {
   throw new Error('Failed to load apps/web localized content ids');
 }
 
-const {
-  localizeDesignSystemCategory,
-  localizeDesignSystemSummary,
-  localizePromptTemplateSummary,
-  localizeSkillDescription,
-} = localizedContentModule;
-const COVERAGE_LOCALES = ['de', 'fr', 'ru'] as const;
+const { localizeDesignSystemSummary, localizeSkillDescription } = localizedContentModule;
+const COVERAGE_LOCALES = ['en', 'ko'] as const;
 const RESOURCE_ID_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
 
 function sorted(values: Iterable<string>): string[] {
@@ -231,112 +220,17 @@ async function readDesignSystemResources(): Promise<DesignSystemResource[]> {
   return resources.sort((a, b) => a.id.localeCompare(b.id));
 }
 
-async function readPromptTemplateResources(): Promise<PromptTemplateResource[]> {
-  const templatesRoot = path.join(repoRoot, 'prompt-templates');
-  await assertDirectory(templatesRoot, 'prompt templates');
-
-  const resources: PromptTemplateResource[] = [];
-  for (const surface of ['image', 'video']) {
-    const dir = path.join(templatesRoot, surface);
-    await assertDirectory(dir, `prompt templates/${surface}`);
-    const entries = await readdir(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isFile() || !entry.name.endsWith('.json')) continue;
-      const filePath = path.join(dir, entry.name);
-      let rawText: string;
-      try {
-        rawText = await readFile(filePath, 'utf8');
-      } catch (error) {
-        throw new Error(`Prompt template resource is unreadable: ${filePath}`, { cause: error });
-      }
-
-      let raw: unknown;
-      try {
-        raw = JSON.parse(rawText);
-      } catch (error) {
-        throw new Error(`Prompt template JSON is malformed: ${filePath}`, { cause: error });
-      }
-
-      invariant(
-        Boolean(raw) && typeof raw === 'object' && !Array.isArray(raw),
-        `Prompt template ${filePath} must be a JSON object`,
-      );
-
-      const template = raw as Record<string, unknown>;
-
-      invariant(
-        typeof template.id === 'string' && template.id.trim().length > 0,
-        `Prompt template ${filePath} is missing or has malformed required id`,
-      );
-      const id = template.id.trim();
-      assertResourceId(id, `Prompt template ${filePath}`);
-      invariant(
-        template.surface === surface,
-        `Prompt template ${id} has mismatched surface metadata: expected ${surface}`,
-      );
-      invariant(
-        typeof template.title === 'string' && template.title.trim().length > 0,
-        `Prompt template ${id} is missing required English fallback field: title`,
-      );
-      invariant(
-        typeof template.prompt === 'string' && template.prompt.trim().length >= 20,
-        `Prompt template ${id} is missing or has malformed required prompt`,
-      );
-
-      const source = template.source;
-      invariant(
-        Boolean(source) && typeof source === 'object' && !Array.isArray(source),
-        `Prompt template ${id} is missing or has malformed source metadata`,
-      );
-      const sourceRecord = source as Record<string, unknown>;
-      invariant(
-        typeof sourceRecord.repo === 'string' && typeof sourceRecord.license === 'string',
-        `Prompt template ${id} is missing source.repo or source.license`,
-      );
-
-      const summary = typeof template.summary === 'string' ? normalizeText(template.summary) : '';
-      invariant(
-        summary,
-        `Prompt template ${id} is missing required English fallback field: summary`,
-      );
-      const category =
-        typeof template.category === 'string' ? normalizeText(template.category) || 'General' : 'General';
-      const tags = Array.isArray(template.tags)
-        ? template.tags
-            .filter((tag): tag is string => typeof tag === 'string')
-            .map((tag) => normalizeText(tag))
-            .filter((tag) => tag.length > 0)
-        : [];
-
-      resources.push({
-        id,
-        title: normalizeText(template.title),
-        summary,
-        category,
-        tags,
-      });
-    }
-  }
-
-  return resources.sort((a, b) => a.id.localeCompare(b.id));
-}
-
 describe('localized display content coverage', () => {
   it('[P2] derives displayable resources from discovered English fallback content', async () => {
-    const [skills, designSystems, promptTemplates] = await Promise.all([
+    const [skills, designSystems] = await Promise.all([
       readSkillResources(),
       readDesignSystemResources(),
-      readPromptTemplateResources(),
     ]);
 
     expect(uniqueSorted(skills.map((skill) => skill.id)), 'Expected discovered skills to be readable').not.toEqual([]);
     expect(
       uniqueSorted(designSystems.map((system) => system.id)),
       'Expected discovered design systems to be readable',
-    ).not.toEqual([]);
-    expect(
-      uniqueSorted(promptTemplates.map((template) => template.id)),
-      'Expected discovered prompt templates to be readable',
     ).not.toEqual([]);
 
     for (const locale of COVERAGE_LOCALES) {
@@ -353,41 +247,16 @@ describe('localized display content coverage', () => {
           `${locale} should display a design-system summary for ${system.id}`,
         ).not.toEqual('');
       }
-
-      for (const template of promptTemplates) {
-        const localized = localizePromptTemplateSummary(locale, template);
-        expect(
-          normalizeText(localized.title),
-          `${locale} should display a prompt-template title for ${template.id}`,
-        ).not.toEqual('');
-        expect(
-          normalizeText(localized.summary),
-          `${locale} should display a prompt-template summary for ${template.id}`,
-        ).not.toEqual('');
-      }
     }
   });
 
-  for (const locale of COVERAGE_LOCALES) {
-    it(`[P2] falls back to source design-system and prompt-template metadata for ${locale} when dictionary entries are missing`, () => {
-      const localized = localizePromptTemplateSummary(locale, {
-        id: 'missing-template-translation',
-        category: 'Untranslated Category',
-        tags: ['untranslated-tag', '3d'],
-        title: ' English title from source ',
-        summary: ' English summary from source ',
-      });
+  it('[P2] falls back to source design-system metadata when Korean copy is missing', () => {
+    const system = {
+      id: 'missing-system-translation',
+      category: 'Untranslated Category',
+      summary: ' English summary from source ',
+    };
 
-      expect(localizeDesignSystemCategory(locale, 'Untranslated Category')).toBe(
-        'Untranslated Category',
-      );
-      expect(localized.title).toBe(' English title from source ');
-      expect(localized.summary).toBe(' English summary from source ');
-      expect(localized.category).toBe('Untranslated Category');
-      expect(localized.tags[0]).toBe('untranslated-tag');
-      expect(normalizeText(localized.tags[1] ?? ''), `${locale} should still localize known tags`).not.toEqual(
-        '3d',
-      );
-    });
-  }
+    expect(localizeDesignSystemSummary('ko', system)).toBe(system.summary);
+  });
 });

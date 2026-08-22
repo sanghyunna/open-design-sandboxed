@@ -27,7 +27,7 @@ import { installFromLocalFolder } from '../src/plugins/installer.js';
 import { getInstalledPlugin } from '../src/plugins/registry.js';
 import { createSnapshot, getSnapshot } from '../src/plugins/snapshots.js';
 import { resolvePluginSnapshot, capabilitiesRequiredError } from '../src/plugins/resolve-snapshot.js';
-import { renderPluginBlock } from '@open-design/contracts';
+import { renderPluginBlock } from '@readable-studio/contracts';
 
 import { FIRST_PARTY_ATOMS, type AtomCatalogEntry } from '../src/plugins/atoms.js';
 
@@ -42,13 +42,13 @@ let projectCwd: string;
 async function freshFixture(targetPath: string, version = '1.0.0') {
   await mkdir(targetPath, { recursive: true });
   const manifest = {
-    $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+    $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
     name: 'sample-plugin',
     title: 'Sample Plugin',
     version,
     description: 'Phase 1 fixture',
     license: 'MIT',
-    od: {
+    readable: {
       kind: 'skill',
       taskKind: 'new-generation',
       useCase: { query: 'Make a {{topic}} brief.' },
@@ -56,7 +56,7 @@ async function freshFixture(targetPath: string, version = '1.0.0') {
       capabilities: ['prompt:inject'],
     },
   };
-  await writeFile(path.join(targetPath, 'open-design.json'), JSON.stringify(manifest, null, 2));
+  await writeFile(path.join(targetPath, 'readable-studio.json'), JSON.stringify(manifest, null, 2));
   await writeFile(
     path.join(targetPath, 'SKILL.md'),
     '---\nname: sample-plugin\ndescription: fixture\n---\n# Sample\n',
@@ -71,7 +71,7 @@ const REGISTRY_VIEW = {
 };
 
 beforeEach(async () => {
-  tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'od-dod-'));
+  tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'readable-dod-'));
   pluginsRoot = path.join(tmpRoot, 'plugins');
   projectCwd = path.join(tmpRoot, 'project-cwd');
   await mkdir(projectCwd, { recursive: true });

@@ -16,7 +16,7 @@ triggers:
   - "workspace admin dashboard"
   - "team management admin panel"
   - "interactive admin panel"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: operations

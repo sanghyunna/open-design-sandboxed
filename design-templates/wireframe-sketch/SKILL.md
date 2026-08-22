@@ -17,7 +17,7 @@ triggers:
   - "hand-drawn prototype"
   - "sketch"
   - "wireframe diagram"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: design
@@ -75,7 +75,7 @@ fills, dashed borders, slight rotations.
      Daughter" fonts via Google Fonts; otherwise fall back to italic serif.
    - Slight rotations everywhere (`transform: rotate(-0.6deg)`) to break
      the grid and feel hand-drawn.
-   - `data-od-id` on header, tabs, sidebar, KPIs, chart, bar-chart,
+   - `data-readable-id` on header, tabs, sidebar, KPIs, chart, bar-chart,
      sticky notes.
 5. **Self-check**:
    - The page should *not* look pixel-perfect. If it does, you over-rendered.

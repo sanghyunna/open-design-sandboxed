@@ -9,9 +9,9 @@
  * When `options.deck` is set we also inject a `postMessage` listener that
  * lets the host advance / rewind slides without relying on the iframe
  * having keyboard focus. The host posts:
- *   { type: 'od:slide', action: 'next' | 'prev' | 'first' | 'last' | 'go', index?: number }
+ *   { type: 'readable-studio:slide', action: 'next' | 'prev' | 'first' | 'last' | 'go', index?: number }
  * and the iframe responds with:
- *   { type: 'od:slide-state', active: number, count: number }
+ *   { type: 'readable-studio:slide-state', active: number, count: number }
  * after every navigation so the host can render its own counter / dots.
  */
 import {
@@ -59,12 +59,12 @@ export function buildSrcdoc(
   const withFocusGuard = options.previewFocusGuard ? injectPreviewFocusGuard(withShim) : withShim;
   const withDeck = options.deck ? injectDeckBridge(withFocusGuard, options.initialSlideIndex) : withFocusGuard;
   // Comment + Inspect share an element-selection bridge: both pick a
-  // [data-od-id] / [data-screen-label] node and route the host's reply
+  // [data-readable-id] / [data-screen-label] node and route the host's reply
   // to either the comment popover (annotate) or the inspect panel
   // (live-style overrides). Inject once when either mode is on. Pass the
   // requested modes through so the bridge boots with picking already
   // active — without that initial seed there is a window after each
-  // srcdoc rebuild where the host's `od:*-mode` postMessage races the
+  // srcdoc rebuild where the host's `readable-studio:*-mode` postMessage races the
   // bridge's own listener install and the iframe ignores clicks.
   const withSelection = options.selectionBridge || options.commentBridge || options.inspectBridge
     ? injectSelectionBridge(withDeck, {
@@ -88,9 +88,9 @@ export function buildSrcdoc(
  * Build the lazy transport shell.
  *
  * The shell does two things:
- *   1. Register a listener for `od:srcdoc-transport-activate` that replaces
+ *   1. Register a listener for `readable-studio:srcdoc-transport-activate` that replaces
  *      its own document with the real artifact HTML.
- *   2. Post `od:srcdoc-transport-ready` to the parent as soon as the listener
+ *   2. Post `readable-studio:srcdoc-transport-ready` to the parent as soon as the listener
  *      is installed. This `ready` signal is the only reliable way for the
  *      host to know the listener is live; without it, the host risks posting
  *      `activate` before the iframe's script has executed (e.g. right after a
@@ -104,17 +104,17 @@ export function buildLazySrcdocTransport(): string {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script data-od-lazy-srcdoc-transport>(function(){
+    <script data-readable-lazy-srcdoc-transport>(function(){
       window.addEventListener('message', function(ev){
         var data = ev && ev.data;
-        if (!data || data.type !== 'od:srcdoc-transport-activate' || typeof data.html !== 'string') return;
+        if (!data || data.type !== 'readable-studio:srcdoc-transport-activate' || typeof data.html !== 'string') return;
         document.open();
         document.write(data.html);
         document.close();
       });
       try {
         if (window.parent && window.parent !== window) {
-          window.parent.postMessage({ type: 'od:srcdoc-transport-ready' }, '*');
+          window.parent.postMessage({ type: 'readable-studio:srcdoc-transport-ready' }, '*');
         }
       } catch (_) { /* sandboxed parent — host falls back to onLoad */ }
     })();</script>
@@ -130,7 +130,7 @@ export interface SrcDocActivationInputs {
   useUrlLoadPreview: boolean;
   /** Host's render pipeline is routing through the lazy transport shell. */
   useLazySrcDocTransport: boolean;
-  /** The shell document has loaded AND posted `od:srcdoc-transport-ready`. */
+  /** The shell document has loaded AND posted `readable-studio:srcdoc-transport-ready`. */
   shellReady: boolean;
   /** Which artifact HTML has already been pushed into this shell (dedupe). */
   activatedHtml: string | null;
@@ -138,7 +138,7 @@ export interface SrcDocActivationInputs {
 
 /**
  * Pure decision for whether the host should now post
- * `od:srcdoc-transport-activate` to the shell iframe.
+ * `readable-studio:srcdoc-transport-activate` to the shell iframe.
  *
  * Gating on `shellReady` is the fix for #2253: without it, an activation
  * triggered by `useUrlLoadPreview` flipping to false (e.g. opening the
@@ -158,10 +158,10 @@ export function canActivateSrcDocTransport(state: SrcDocActivationInputs): boole
 }
 
 function injectSrcdocTransportActivationBridge(doc: string): string {
-  const script = `<script data-od-srcdoc-transport-activation>(function(){
+  const script = `<script data-readable-srcdoc-transport-activation>(function(){
   window.addEventListener('message', function(ev){
     var data = ev && ev.data;
-    if (!data || data.type !== 'od:srcdoc-transport-activate' || typeof data.html !== 'string') return;
+    if (!data || data.type !== 'readable-studio:srcdoc-transport-activate' || typeof data.html !== 'string') return;
     document.open();
     document.write(data.html);
     document.close();
@@ -171,7 +171,7 @@ function injectSrcdocTransportActivationBridge(doc: string): string {
 }
 
 function injectSnapshotBridge(doc: string): string {
-  const script = `<script data-od-snapshot-bridge>(function(){
+  const script = `<script data-readable-snapshot-bridge>(function(){
   var SNAPSHOT_STYLE_PROPS = [
     'display','position','box-sizing','width','height','min-width','max-width','min-height','max-height',
     'margin','margin-top','margin-right','margin-bottom','margin-left',
@@ -336,12 +336,12 @@ function injectSnapshotBridge(doc: string): string {
         ctx.fillRect(0, 0, w, h);
         ctx.drawImage(img, 0, 0, w, h);
         if (canvasLooksBlank(ctx, canvas.width, canvas.height)) {
-          window.parent.postMessage({ type: 'od:snapshot:result', id: id, error: 'empty-render' }, '*');
+          window.parent.postMessage({ type: 'readable-studio:snapshot:result', id: id, error: 'empty-render' }, '*');
           return;
         }
-        window.parent.postMessage({ type: 'od:snapshot:result', id: id, dataUrl: canvas.toDataURL('image/png'), w: canvas.width, h: canvas.height }, '*');
+        window.parent.postMessage({ type: 'readable-studio:snapshot:result', id: id, dataUrl: canvas.toDataURL('image/png'), w: canvas.width, h: canvas.height }, '*');
       } catch (err) {
-        window.parent.postMessage({ type: 'od:snapshot:result', id: id, error: String(err && err.message || err) }, '*');
+        window.parent.postMessage({ type: 'readable-studio:snapshot:result', id: id, error: String(err && err.message || err) }, '*');
       }
     };
     function encodedSvgDataUrl(){
@@ -349,13 +349,13 @@ function injectSnapshotBridge(doc: string): string {
       return 'data:image/svg+xml;charset=utf-8,' + encoded;
     }
     img.onerror = function(){
-      window.parent.postMessage({ type: 'od:snapshot:result', id: id, error: 'snapshot image failed' }, '*');
+      window.parent.postMessage({ type: 'readable-studio:snapshot:result', id: id, error: 'snapshot image failed' }, '*');
     };
     img.src = encodedSvgDataUrl();
   }
   window.addEventListener('message', function(ev){
     var data = ev && ev.data;
-    if (!data || data.type !== 'od:snapshot' || !data.id) return;
+    if (!data || data.type !== 'readable-studio:snapshot' || !data.id) return;
     waitForImages().then(function(){ renderSnapshot(String(data.id)); });
   });
 })();</script>`;
@@ -375,7 +375,7 @@ function injectPaletteBridge(
   const initial = options.initialPalette
     ? JSON.stringify(String(options.initialPalette))
     : 'null';
-  const script = `<script data-od-palette-bridge>(function(){
+  const script = `<script data-readable-palette-bridge>(function(){
   var PALETTES = {
     'coral':       { hue: 10,  satFloor: 0.55, mono: false },
     'electric':    { hue: 262, satFloor: 0.55, mono: false },
@@ -384,8 +384,8 @@ function injectPaletteBridge(
     'mono-noir':   { hue: 0,   satFloor: 0,    mono: true  }
   };
   var current = ${initial};
-  var ATTR = 'data-od-palette-fix';
-  var SAVED = '__odPaletteSaved__';
+  var ATTR = 'data-readable-palette-fix';
+  var SAVED = '__readableStudioPaletteSaved__';
   var MIN_SAT = 0.08;
   var WALK_LIMIT = 12000;
   var STYLE_RULE_LIMIT = 5000;
@@ -553,7 +553,7 @@ function injectPaletteBridge(
   }
   window.addEventListener('message', function(ev){
     var data = ev && ev.data;
-    if (!data || data.type !== 'od:palette') return;
+    if (!data || data.type !== 'readable-studio:palette') return;
     apply(data.palette ? String(data.palette) : null);
   });
   function boot(){ if (current) apply(current); }
@@ -597,10 +597,10 @@ function serializeHtmlDocument(doc: Document): string {
 }
 
 /**
- * Auto-annotate structural HTML elements that lack `data-od-id` or
+ * Auto-annotate structural HTML elements that lack `data-readable-id` or
  * `data-screen-label` so that the selection bridge (Picker / Pods /
  * Tweaks) can target them. This fixes imported designs whose HTML was
- * generated outside of Open Design and therefore carries no OD-specific
+ * generated outside of Readable Studio and therefore carries no Readable Studio-specific
  * annotations.
  */
 function annotateMissingOdIds(doc: string): string {
@@ -627,11 +627,11 @@ function annotateMissingOdIds(doc: string): string {
     const skipTags = new Set(['script', 'style', 'template', 'noscript', 'iframe', 'object', 'embed']);
     let fallbackIndex = 0;
     parsed.body.querySelectorAll(selector).forEach((el) => {
-      if (el.hasAttribute('data-od-id') || el.hasAttribute('data-screen-label')) return;
+      if (el.hasAttribute('data-readable-id') || el.hasAttribute('data-screen-label')) return;
       const tag = el.tagName.toLowerCase();
       if (skipTags.has(tag)) return;
       const path = sourcePathForElement(el);
-      el.setAttribute('data-od-id', path || `od-${tag}-${fallbackIndex++}`);
+      el.setAttribute('data-readable-id', path || `readable-${tag}-${fallbackIndex++}`);
     });
     return serializeHtmlDocument(parsed);
   } catch {
@@ -720,7 +720,7 @@ function escapeAttr(value: string): string {
 // Empty hrefs and hash only hrefs will be intercepted and ignored.
 // hrefs leading to an id on the page will be scrolled into view.
 function injectSandboxShim(doc: string): string {
-  const shim = `<script data-od-sandbox-shim>(function(){
+  const shim = `<script data-readable-sandbox-shim>(function(){
   function makeStore(){
     var data = {};
     var api = {
@@ -786,7 +786,7 @@ function injectSandboxShim(doc: string): string {
 }
 
 function injectPreviewFocusGuard(doc: string): string {
-  const script = `<script data-od-preview-focus-guard>(function(){
+  const script = `<script data-readable-preview-focus-guard>(function(){
   var lastTrustedInputAt = 0;
   function userActivated(){
     return Date.now() - lastTrustedInputAt < 1000;
@@ -829,33 +829,33 @@ function injectPreviewFocusGuard(doc: string): string {
 }
 
 // Selection bridge: shared substrate for Comment mode and Inspect mode.
-// Both modes pick a [data-od-id] / [data-screen-label] element on click;
+// Both modes pick a [data-readable-id] / [data-screen-label] element on click;
 // the difference is what the host does with the selection — annotate
 // (Comment) or live-tune basic styles (Inspect).
 //
 // Inspect adds four messages on top of the comment protocol:
-//   in:  { type: 'od:inspect-set', elementId, selector, prop, value }
+//   in:  { type: 'readable-studio:inspect-set', elementId, selector, prop, value }
 //        Apply (or unset, when value === '') a per-element CSS override.
-//   in:  { type: 'od:inspect-reset', elementId? } Clear overrides for one
+//   in:  { type: 'readable-studio:inspect-reset', elementId? } Clear overrides for one
 //        element, or all if elementId is omitted.
-//   in:  { type: 'od:inspect-extract' } Reply with the cumulative
+//   in:  { type: 'readable-studio:inspect-extract' } Reply with the cumulative
 //        override map so the host can persist to source.
-//   in:  { type: 'od:inspect-replay', overrides } Replace the in-memory
+//   in:  { type: 'readable-studio:inspect-replay', overrides } Replace the in-memory
 //        override map with the host's authoritative set so the iframe
 //        preview matches host state after every srcdoc rebuild. Without
 //        this the bridge re-hydrates only the persisted <style> block on
 //        load, so any unsaved edit the host still holds disappears from
 //        the preview while saveInspectToSource() can later commit CSS the
 //        user is no longer seeing. Re-validates every entry under the
-//        same allow-list / value sanitizer applied to od:inspect-set.
-//   out: { type: 'od:inspect-overrides', overrides } The current snapshot,
+//        same allow-list / value sanitizer applied to readable-studio:inspect-set.
+//   out: { type: 'readable-studio:inspect-overrides', overrides } The current snapshot,
 //        sent in reply to extract and after every set/reset/replay. The
 //        host re-derives the persisted CSS body from the structured map
 //        under its own allow-list — the bridge's own stylesheet text is
 //        NOT included in this message because artifact JS can forge a
-//        same-source od:inspect-overrides containing a hostile `css`.
+//        same-source readable-studio:inspect-overrides containing a hostile `css`.
 //
-// Overrides are written into a single <style data-od-inspect-overrides>
+// Overrides are written into a single <style data-readable-inspect-overrides>
 // block in <head>, with `!important` on every property so the bridge
 // can defeat author inline styles (common in agent-generated HTML).
 //
@@ -872,7 +872,7 @@ function injectSelectionBridge(
 ): string {
   const initialComment = options.initialCommentMode ? 'true' : 'false';
   const initialInspect = options.initialInspectMode ? 'true' : 'false';
-  const script = `<script data-od-selection-bridge>(function(){
+  const script = `<script data-readable-selection-bridge>(function(){
   var commentEnabled = ${initialComment};
   var inspectEnabled = ${initialInspect};
   // Comment mode has two sub-tools (kept on the host side as boardTool):
@@ -887,12 +887,12 @@ function injectSelectionBridge(
   var stroke = [];
   var strokeFrame = null;
   var postTargetsTimer = null;
-  // overrides[elementId] = { selector: '[data-od-id="x"]', props: { color: '#fff', ... } }
+  // overrides[elementId] = { selector: '[data-readable-id="x"]', props: { color: '#fff', ... } }
   var overrides = Object.create(null);
   var styleEl = null;
   // Allow-list of CSS properties the host may override. A malicious parent
   // could otherwise smuggle arbitrary CSS (or, with </style>, raw HTML)
-  // through od:inspect-set. Keep this in sync with the InspectPanel UI.
+  // through readable-studio:inspect-set. Keep this in sync with the InspectPanel UI.
   var ALLOWED_PROPS = {
     'color': true,
     'background-color': true,
@@ -915,7 +915,7 @@ function injectSelectionBridge(
   function active(){ return commentEnabled || inspectEnabled; }
   function deckSlideIndexForPayload(){
     try {
-      var state = window.__odDeckSlideState && window.__odDeckSlideState();
+      var state = window.__readableStudioDeckSlideState && window.__readableStudioDeckSlideState();
       if (state && typeof state.active === 'number' && state.count > 1) return state.active;
     } catch (_) {}
     return null;
@@ -933,24 +933,24 @@ function injectSelectionBridge(
   // the inbound message — a forged selector like
   // '} </style><script>...' would otherwise be concatenated into the
   // override <style> sheet verbatim. The hint string is only inspected to
-  // decide which attribute kind (data-od-id vs data-screen-label) was the
+  // decide which attribute kind (data-readable-id vs data-screen-label) was the
   // user's pick at click time, so we tune the same node the host
   // serializer keys off; the hint itself is never written into CSS.
   function safeSelectorFor(elementId, hint){
     var id = String(elementId);
     var kind = null;
     if (typeof hint === 'string') {
-      if (hint.indexOf('[data-od-id=') === 0) kind = 'data-od-id';
+      if (hint.indexOf('[data-readable-id=') === 0) kind = 'data-readable-id';
       else if (hint.indexOf('[data-screen-label=') === 0) kind = 'data-screen-label';
     }
     if (kind === 'data-screen-label' && document.querySelector('[data-screen-label="' + esc(id) + '"]')) {
       return '[data-screen-label="' + esc(id) + '"]';
     }
-    if (kind === 'data-od-id' && document.querySelector('[data-od-id="' + esc(id) + '"]')) {
-      return '[data-od-id="' + esc(id) + '"]';
+    if (kind === 'data-readable-id' && document.querySelector('[data-readable-id="' + esc(id) + '"]')) {
+      return '[data-readable-id="' + esc(id) + '"]';
     }
-    if (document.querySelector('[data-od-id="' + esc(id) + '"]')) {
-      return '[data-od-id="' + esc(id) + '"]';
+    if (document.querySelector('[data-readable-id="' + esc(id) + '"]')) {
+      return '[data-readable-id="' + esc(id) + '"]';
     }
     if (document.querySelector('[data-screen-label="' + esc(id) + '"]')) {
       return '[data-screen-label="' + esc(id) + '"]';
@@ -959,25 +959,25 @@ function injectSelectionBridge(
   }
   function ensureStyleEl(){
     if (styleEl && styleEl.isConnected) return styleEl;
-    styleEl = document.querySelector('style[data-od-inspect-overrides]');
+    styleEl = document.querySelector('style[data-readable-inspect-overrides]');
     if (!styleEl) {
       styleEl = document.createElement('style');
-      styleEl.setAttribute('data-od-inspect-overrides', '');
+      styleEl.setAttribute('data-readable-inspect-overrides', '');
       (document.head || document.documentElement).appendChild(styleEl);
     }
     return styleEl;
   }
   // Hydrate the in-memory override map from any persisted
-  // <style data-od-inspect-overrides> block already in the document.
-  // Without this, the first od:inspect-set rebuilds the sheet from an
+  // <style data-readable-inspect-overrides> block already in the document.
+  // Without this, the first readable-studio:inspect-set rebuilds the sheet from an
   // empty map and silently drops every previously saved rule for other
   // elements — a subsequent Save-to-source would then erase them from
   // the artifact too.
   function hydrateOverridesFromDom(){
-    var existing = document.querySelector('style[data-od-inspect-overrides]');
+    var existing = document.querySelector('style[data-readable-inspect-overrides]');
     if (!existing) return;
     var text = existing.textContent || '';
-    var ruleRe = /(\\[data-(?:od-id|screen-label)="[^"]*"\\])\\s*\\{\\s*([^}]*)\\}/g;
+    var ruleRe = /(\\[data-(?:readable-id|screen-label)="[^"]*"\\])\\s*\\{\\s*([^}]*)\\}/g;
     var match;
     while ((match = ruleRe.exec(text)) !== null) {
       var selector = match[1];
@@ -1028,11 +1028,11 @@ function injectSelectionBridge(
     });
     // Intentionally do NOT include a css string here. Artifact code
     // running inside this iframe shares window.parent and could forge
-    // od:inspect-overrides with a hostile css (e.g. </style><script>...).
+    // readable-studio:inspect-overrides with a hostile css (e.g. </style><script>...).
     // The host re-derives CSS from the structured overrides map under
     // its own allow-list, so any stray css field on the wire would only
     // be a false-trust trap.
-    try { window.parent.postMessage({ type: 'od:inspect-overrides', overrides: clean }, '*'); } catch (_) {}
+    try { window.parent.postMessage({ type: 'readable-studio:inspect-overrides', overrides: clean }, '*'); } catch (_) {}
   }
   function styleSnapshot(el){
     try {
@@ -1054,9 +1054,9 @@ function injectSelectionBridge(
     } catch (_) { return null; }
   }
   function annotatedSelectorFor(el){
-    var id = el.getAttribute('data-od-id') || el.getAttribute('data-screen-label');
+    var id = el.getAttribute('data-readable-id') || el.getAttribute('data-screen-label');
     if (!id) return null;
-    return el.hasAttribute('data-od-id') ? '[data-od-id="' + esc(id) + '"]' : '[data-screen-label="' + esc(id) + '"]';
+    return el.hasAttribute('data-readable-id') ? '[data-readable-id="' + esc(id) + '"]' : '[data-screen-label="' + esc(id) + '"]';
   }
   function domSelectorFor(el){
     if (!el || !el.tagName || el === document.documentElement || el === document.body) return null;
@@ -1145,7 +1145,7 @@ function meaningfulDomFallbackTarget(el) {
     return id === 'path-0' && el && el.parentElement === document.body && el.id === 'root';
   }
   function targetFrom(el, allowDomFallback, clickedEl, clickPoint){
-    var id = el.getAttribute('data-od-id') || el.getAttribute('data-screen-label');
+    var id = el.getAttribute('data-readable-id') || el.getAttribute('data-screen-label');
     if (allowDomFallback && id && generatedRootAnnotation(el, id)) return null;
     var selector = annotatedSelectorFor(el);
     if (!id && allowDomFallback && meaningfulDomFallbackTarget(el)) {
@@ -1161,7 +1161,7 @@ function meaningfulDomFallbackTarget(el) {
     var position = { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) };
     if (!elementVisibleForComment(el, position)) return null;
     var payload = {
-      type: 'od:comment-target',
+      type: 'readable-studio:comment-target',
       elementId: id,
       selector: selector,
       label: tag + cls,
@@ -1186,7 +1186,7 @@ function meaningfulDomFallbackTarget(el) {
     return payload;
   }
   function allTargets(){
-    var annotatedNodes = document.querySelectorAll('[data-od-id], [data-screen-label]');
+    var annotatedNodes = document.querySelectorAll('[data-readable-id], [data-screen-label]');
     var includeDomFallback = canUseDomFallback();
     var nodes = includeDomFallback
       ? document.querySelectorAll('body *')
@@ -1238,7 +1238,7 @@ function meaningfulDomFallbackTarget(el) {
     if (!el) return;
     var frame = document.scrollingElement || document.documentElement;
     window.parent.postMessage({
-      type: 'od:preview-scroll',
+      type: 'readable-studio:preview-scroll',
       canvasLeft: Math.round(el.scrollLeft || 0),
       canvasTop: Math.round(el.scrollTop || 0),
       frameLeft: Math.round(frame.scrollLeft || 0),
@@ -1254,7 +1254,7 @@ function meaningfulDomFallbackTarget(el) {
     });
   }
   function requestPreviewScrollRestore(){
-    window.parent.postMessage({ type: 'od:preview-scroll-request' }, '*');
+    window.parent.postMessage({ type: 'readable-studio:preview-scroll-request' }, '*');
   }
   function findCommentTargetByIdentity(elementId, selector){
     var el = null;
@@ -1264,7 +1264,7 @@ function meaningfulDomFallbackTarget(el) {
     if (!el && elementId) {
       try {
         var id = String(elementId).replace(/"/g, '\\"');
-        el = document.querySelector('[data-od-id="' + id + '"], [data-screen-label="' + id + '"]');
+        el = document.querySelector('[data-readable-id="' + id + '"], [data-screen-label="' + id + '"]');
       } catch (_) { el = null; }
     }
     return el;
@@ -1274,7 +1274,7 @@ function meaningfulDomFallbackTarget(el) {
     var el = findCommentTargetByIdentity(activeCommentElementId, activeCommentSelector);
     if (!el) return;
     var payload = targetFrom(el, commentEnabled && mode === 'picker' && !inspectEnabled);
-    if (payload) window.parent.postMessage(Object.assign({}, payload, { type: 'od:comment-active-target-update' }), '*');
+    if (payload) window.parent.postMessage(Object.assign({}, payload, { type: 'readable-studio:comment-active-target-update' }), '*');
   }
   function schedulePostActiveCommentTarget(){
     if (!active() || !activeCommentElementId || postActiveTargetPending) return;
@@ -1286,7 +1286,7 @@ function meaningfulDomFallbackTarget(el) {
   }
   function postTargets(){
     if (!active()) return;
-    window.parent.postMessage({ type: 'od:comment-targets', targets: allTargets() }, '*');
+    window.parent.postMessage({ type: 'readable-studio:comment-targets', targets: allTargets() }, '*');
   }
   function schedulePostTargets(){
     if (!active() || postTargetsPending) return;
@@ -1308,13 +1308,13 @@ function meaningfulDomFallbackTarget(el) {
   }
   // Coalesce live stroke updates to one post per frame. The stroke array still
   // grows synchronously on every pointermove, but the host (which re-renders
-  // the comment overlay on each od:pod-stroke) only sees ~60 updates/sec
+  // the comment overlay on each readable-studio:pod-stroke) only sees ~60 updates/sec
   // instead of one per raw pointer event.
   function schedulePostStroke(){
     if (strokeFrame !== null) return;
     strokeFrame = requestAnimationFrame(function(){
       strokeFrame = null;
-      postStroke('od:pod-stroke');
+      postStroke('readable-studio:pod-stroke');
     });
   }
   function canUseDomFallback(){
@@ -1365,8 +1365,8 @@ function meaningfulDomFallbackTarget(el) {
         if (allowDomFallback && meaningfulDomFallbackTarget(el)) {
           return { target: el, clicked: clicked };
         }
-        if (el.getAttribute && (el.hasAttribute('data-od-id') || el.hasAttribute('data-screen-label'))) {
-          var id = el.getAttribute('data-od-id') || el.getAttribute('data-screen-label');
+        if (el.getAttribute && (el.hasAttribute('data-readable-id') || el.hasAttribute('data-screen-label'))) {
+          var id = el.getAttribute('data-readable-id') || el.getAttribute('data-screen-label');
           if (allowDomFallback && generatedRootAnnotation(el, id)) {
             el = el.parentElement;
             continue;
@@ -1409,11 +1409,11 @@ function meaningfulDomFallbackTarget(el) {
   window.addEventListener('message', function(ev){
     var data = ev && ev.data;
     if (!data || !data.type) return;
-    if (data.type === 'od:comment-mode') {
+    if (data.type === 'readable-studio:comment-mode') {
       commentEnabled = !!data.enabled;
       mode = data.mode === 'pod' ? 'pod' : 'picker';
-      document.documentElement.toggleAttribute('data-od-comment-mode', commentEnabled);
-      document.documentElement.setAttribute('data-od-comment-mode-kind', mode);
+      document.documentElement.toggleAttribute('data-readable-comment-mode', commentEnabled);
+      document.documentElement.setAttribute('data-readable-comment-mode-kind', mode);
       if (active()) setTimeout(postTargets, 0);
       else {
         hoveredId = null;
@@ -1423,11 +1423,11 @@ function meaningfulDomFallbackTarget(el) {
       if (!commentEnabled || mode !== 'pod') {
         drawing = false;
         stroke = [];
-        try { window.parent.postMessage({ type: 'od:pod-clear' }, '*'); } catch (_) {}
+        try { window.parent.postMessage({ type: 'readable-studio:pod-clear' }, '*'); } catch (_) {}
       }
       return;
     }
-    if (data.type === 'od:preview-scroll-restore') {
+    if (data.type === 'readable-studio:preview-scroll-restore') {
       var frame = document.scrollingElement || document.documentElement;
       var el = previewScrollElement();
       if (frame) frame.scrollTo(Number(data.frameLeft || 0), Number(data.frameTop || 0));
@@ -1435,37 +1435,37 @@ function meaningfulDomFallbackTarget(el) {
       setTimeout(postPreviewScroll, 0);
       return;
     }
-    if (data.type === 'od:comment-active-target') {
+    if (data.type === 'readable-studio:comment-active-target') {
       activeCommentElementId = data.elementId ? String(data.elementId) : null;
       activeCommentSelector = data.selector ? String(data.selector) : null;
       schedulePostActiveCommentTarget();
       return;
     }
-    if (data.type === 'od:preview-scroll-by') {
+    if (data.type === 'readable-studio:preview-scroll-by') {
       previewScrollBy(data.left, data.top);
       return;
     }
 
-    if (data.type === 'od:inspect-mode') {
+    if (data.type === 'readable-studio:inspect-mode') {
       inspectEnabled = !!data.enabled;
-      document.documentElement.toggleAttribute('data-od-inspect-mode', inspectEnabled);
+      document.documentElement.toggleAttribute('data-readable-inspect-mode', inspectEnabled);
       if (active()) setTimeout(postTargets, 0);
       else hoveredId = null;
       return;
     }
-    if (data.type === 'od:inspect-set') {
+    if (data.type === 'readable-studio:inspect-set') {
       applyOverride(data.elementId, data.selector, data.prop, data.value);
       return;
     }
-    if (data.type === 'od:inspect-reset') {
+    if (data.type === 'readable-studio:inspect-reset') {
       resetOverrides(data.elementId);
       return;
     }
-    if (data.type === 'od:inspect-extract') {
+    if (data.type === 'readable-studio:inspect-extract') {
       postOverrides();
       return;
     }
-    if (data.type === 'od:inspect-replay') {
+    if (data.type === 'readable-studio:inspect-replay') {
       // Replace the in-memory map with the host's authoritative set so
       // unsaved edits survive a srcdoc rebuild (toggling inspect off/on,
       // switching to comment, any other reload reloads the iframe from
@@ -1509,7 +1509,7 @@ function meaningfulDomFallbackTarget(el) {
     var payload = targetFrom(result.target, commentEnabled && mode === 'picker' && !inspectEnabled);
     if (!payload || payload.elementId === hoveredId) return;
     hoveredId = payload.elementId;
-    window.parent.postMessage(Object.assign({}, payload, { type: 'od:comment-hover' }), '*');
+    window.parent.postMessage(Object.assign({}, payload, { type: 'readable-studio:comment-hover' }), '*');
   }, true);
   document.addEventListener('mouseout', function(ev){
     if (!pickerActive()) return;
@@ -1521,7 +1521,7 @@ function meaningfulDomFallbackTarget(el) {
       next = next.parentElement;
     }
     hoveredId = null;
-    window.parent.postMessage({ type: 'od:comment-leave' }, '*');
+    window.parent.postMessage({ type: 'readable-studio:comment-leave' }, '*');
   }, true);
   document.addEventListener('click', function(ev){
     if (!pickerActive()) return;
@@ -1540,7 +1540,7 @@ function meaningfulDomFallbackTarget(el) {
       return;
     }
     // Free-pin fallback (comment mode only). Lets users drop a comment
-    // at a click location even when the artifact has no data-od-id
+    // at a click location even when the artifact has no data-readable-id
     // annotations. Skipped for pod mode (drawing) and inspect mode
     // (needs a real selector for live overrides).
     if (!canUseDomFallback() || mode === 'pod') return;
@@ -1563,10 +1563,10 @@ function meaningfulDomFallbackTarget(el) {
     var pinId = 'pin-' + Date.now().toString(36) + '-' + Math.floor(Math.random() * 1e6).toString(36);
     var pinSlideIndex = deckSlideIndexForPayload();
     var pinPayload = {
-      type: 'od:comment-target',
+      type: 'readable-studio:comment-target',
       // Synthetic selector / label so daemon upsert validation (which
       // requires both to be non-empty) accepts the saved free-pin.
-      selector: '[data-od-pin="' + pinId + '"]',
+      selector: '[data-readable-pin="' + pinId + '"]',
       label: 'pin',
       text: '',
       position: { x: pinX - 12, y: pinY - 12, width: 24, height: 24 },
@@ -1586,7 +1586,7 @@ function meaningfulDomFallbackTarget(el) {
     stroke = [relativePoint(ev)];
     ev.preventDefault();
     ev.stopPropagation();
-    postStroke('od:pod-stroke');
+    postStroke('readable-studio:pod-stroke');
   }, true);
   document.addEventListener('pointermove', function(ev){
     if (!drawing || mode !== 'pod') return;
@@ -1606,7 +1606,7 @@ function meaningfulDomFallbackTarget(el) {
       ev.preventDefault();
       ev.stopPropagation();
     }
-    postStroke('od:pod-select');
+    postStroke('readable-studio:preadable-select');
   }
   document.addEventListener('pointerup', finishStroke, true);
   document.addEventListener('pointercancel', finishStroke, true);
@@ -1632,9 +1632,9 @@ function meaningfulDomFallbackTarget(el) {
   textMo.observe(document.documentElement, { subtree: true, characterData: true, attributes: true });
   // Reflect the host-requested initial modes on the documentElement so
   // the cursor/hover styles match what the bridge picks up on click.
-  if (commentEnabled) document.documentElement.toggleAttribute('data-od-comment-mode', true);
-  if (inspectEnabled) document.documentElement.toggleAttribute('data-od-inspect-mode', true);
-  document.documentElement.setAttribute('data-od-comment-mode-kind', mode);
+  if (commentEnabled) document.documentElement.toggleAttribute('data-readable-comment-mode', true);
+  if (inspectEnabled) document.documentElement.toggleAttribute('data-readable-inspect-mode', true);
+  document.documentElement.setAttribute('data-readable-comment-mode-kind', mode);
   hydrateOverridesFromDom();
   // Acknowledge the hydrated overrides to the host as a preview signal so
   // diagnostic listeners (and tests) can observe that the bridge is in sync
@@ -1645,21 +1645,21 @@ function meaningfulDomFallbackTarget(el) {
   setTimeout(requestPreviewScrollRestore, 0);
   setTimeout(requestPreviewScrollRestore, 80);
   setTimeout(requestPreviewScrollRestore, 240);
-  window.__odScheduleCommentTargets = schedulePostTargets;
+  window.__readableStudioScheduleCommentTargets = schedulePostTargets;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', postTargets);
   else setTimeout(postTargets, 0);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', postPreviewScroll);
   else setTimeout(postPreviewScroll, 0);
 })();</script>`;
-  const style = `<style data-od-selection-bridge-style>
-html[data-od-comment-mode] body * { cursor: crosshair !important; }
-html[data-od-inspect-mode] body * { cursor: crosshair !important; }
-html[data-od-comment-mode][data-od-comment-mode-kind="pod"] body * { cursor: cell !important; }
+  const style = `<style data-readable-selection-bridge-style>
+html[data-readable-comment-mode] body * { cursor: crosshair !important; }
+html[data-readable-inspect-mode] body * { cursor: crosshair !important; }
+html[data-readable-comment-mode][data-readable-comment-mode-kind="pod"] body * { cursor: cell !important; }
 /* Nested iframes (e.g. shared device frames) consume clicks in their own browsing context.
    While picker modes are on, disable pointer events on outer-document iframes so the
    hit target resolves to an annotated ancestor (card, shell) in this document. */
-html[data-od-comment-mode] body iframe,
-html[data-od-inspect-mode] body iframe { pointer-events: none !important; }
+html[data-readable-comment-mode] body iframe,
+html[data-readable-inspect-mode] body iframe { pointer-events: none !important; }
 </style>`;
   return injectBeforeBodyEnd(injectBeforeHeadEnd(doc, style), script);
 }
@@ -1704,10 +1704,10 @@ function injectDeckBridge(doc: string, initialSlideIndex = 0): string {
   const isFrameworkDeck = /\bid\s*=\s*["']deck-stage["']/i.test(doc);
   const styleFix = isFrameworkDeck
     ? ''
-    : `<style data-od-deck-fix>
+    : `<style data-readable-deck-fix>
 .stage, .deck-stage, .deck-shell { place-content: center !important; }
 </style>`;
-  const script = `<script data-od-deck-bridge>(function(){
+  const script = `<script data-readable-deck-bridge>(function(){
   var initialSlideIndex = ${safeInitialSlideIndex};
   var didRestoreInitialSlide = initialSlideIndex <= 0;
   function slides(){
@@ -1835,7 +1835,7 @@ function injectDeckBridge(doc: string, initialSlideIndex = 0): string {
     // Mark host-driven synthetic keys so the manual-edit bridge ignores them:
     // they are slide navigation, never user nudges, and must not open (or
     // close) an edit burst while an object is selected.
-    window.__odDeckSynthetic = true;
+    window.__readableStudioDeckSynthetic = true;
     try {
       try {
         window.dispatchEvent(new KeyboardEvent('keydown', init));
@@ -1847,7 +1847,7 @@ function injectDeckBridge(doc: string, initialSlideIndex = 0): string {
         document.dispatchEvent(new KeyboardEvent('keyup', init));
       } catch (_) {}
     } finally {
-      window.__odDeckSynthetic = false;
+      window.__readableStudioDeckSynthetic = false;
     }
   }
   function pad2(n){ return (n < 10 ? '0' : '') + n; }
@@ -2039,7 +2039,7 @@ function injectDeckBridge(doc: string, initialSlideIndex = 0): string {
       var count = list.length;
       var progressWidth = count ? ((i + 1) / count * 100) + '%' : '0';
       window.parent.postMessage({
-        type: 'od:slide-state',
+        type: 'readable-studio:slide-state',
         active: i,
         count: count,
       }, '*');
@@ -2056,12 +2056,12 @@ function injectDeckBridge(doc: string, initialSlideIndex = 0): string {
       if (i !== lastCommentTargetSlideIndex) {
         lastCommentTargetSlideIndex = i;
         try {
-          if (typeof window.__odScheduleCommentTargets === 'function') window.__odScheduleCommentTargets();
+          if (typeof window.__readableStudioScheduleCommentTargets === 'function') window.__readableStudioScheduleCommentTargets();
         } catch (_) {}
       }
     } catch (e) {}
   }
-  window.__odDeckSlideState = function(){
+  window.__readableStudioDeckSlideState = function(){
     var list = slides();
     return { active: activeIndex(list), count: list.length };
   };
@@ -2074,14 +2074,14 @@ function injectDeckBridge(doc: string, initialSlideIndex = 0): string {
   }
   window.addEventListener('message', function(ev){
     var data = ev && ev.data;
-    if (!data || data.type !== 'od:slide') return;
+    if (!data || data.type !== 'readable-studio:slide') return;
     if (data.action === 'go' && typeof data.index === 'number') gotoIndex(data.index);
     else go(data.action);
   });
   function ownDeckButton(id, action){
     var btn = document.getElementById(id);
-    if (!btn || btn.__odDeckOwned) return;
-    btn.__odDeckOwned = true;
+    if (!btn || btn.__readableStudioDeckOwned) return;
+    btn.__readableStudioDeckOwned = true;
     btn.addEventListener('click', function(e){
       e.preventDefault();
       e.stopImmediatePropagation();
@@ -2093,8 +2093,8 @@ function injectDeckBridge(doc: string, initialSlideIndex = 0): string {
   // Report once on load and on every scroll-end so the host stays in sync.
   window.addEventListener('load', function(){ setTimeout(restoreInitialSlide, 200); });
   document.addEventListener('scroll', function(){
-    clearTimeout(window.__odReportT);
-    window.__odReportT = setTimeout(report, 120);
+    clearTimeout(window.__readableStudioReportT);
+    window.__readableStudioReportT = setTimeout(report, 120);
   }, { passive: true, capture: true });
   // Nudge the deck's own fit/resize listener after layout settles. Fixed-canvas
   // decks (e.g. ".canvas { width: 1920px }" + "transform: scale(...)") compute
@@ -2151,8 +2151,8 @@ function injectDeckBridge(doc: string, initialSlideIndex = 0): string {
     if (!list.length) { setTimeout(observeSlides, 150); return; }
     try {
       var mo = new MutationObserver(function(){
-        clearTimeout(window.__odReportT2);
-        window.__odReportT2 = setTimeout(report, 60);
+        clearTimeout(window.__readableStudioReportT2);
+        window.__readableStudioReportT2 = setTimeout(report, 60);
       });
       for (var i = 0; i < list.length; i++) {
         mo.observe(list[i], { attributes: true, attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'] });
@@ -2172,17 +2172,17 @@ function injectDeckBridge(doc: string, initialSlideIndex = 0): string {
   // on `e.defaultPrevented` (their documented dedupe contract), so the key
   // yields to nudging WITHOUT stopping propagation: the edit bridge still
   // receives it at document capture. Host-driven dispatchKey nav is exempted
-  // through the same __odDeckSynthetic flag the edit bridge keys off; arrows
+  // through the same __readableStudioDeckSynthetic flag the edit bridge keys off; arrows
   // with no selection (or during inline editing) keep their deck meaning.
-  const editYield = `<script data-od-deck-edit-yield>(function(){
+  const editYield = `<script data-readable-deck-edit-yield>(function(){
   window.addEventListener('keydown', function(e){
-    if (window.__odDeckSynthetic) return;
+    if (window.__readableStudioDeckSynthetic) return;
     var k = e.key;
     if (k !== 'ArrowRight' && k !== 'ArrowLeft' && k !== 'ArrowUp' && k !== 'ArrowDown') return;
     var de = document.documentElement;
-    if (!de || !de.hasAttribute('data-od-edit-mode')) return;
-    if (!document.querySelector('[data-od-edit-selected]')) return;
-    if (document.querySelector('[data-od-editing="true"]')) return;
+    if (!de || !de.hasAttribute('data-readable-edit-mode')) return;
+    if (!document.querySelector('[data-readable-edit-selected]')) return;
+    if (document.querySelector('[data-readable-editing="true"]')) return;
     e.preventDefault();
   }, true);
 })();</script>`;
@@ -2193,28 +2193,28 @@ function injectDeckBridge(doc: string, initialSlideIndex = 0): string {
 }
 
 // The tweaks bridge lets the host toolbar toggle the visibility of the artifact's
-// native tweaks panel. Bidirectional: host posts `od:tweaks-panel-visible` to
-// drive panel visibility; bridge posts `od:tweaks-panel-state` back whenever the
+// native tweaks panel. Bidirectional: host posts `readable-studio:tweaks-panel-visible` to
+// drive panel visibility; bridge posts `readable-studio:tweaks-panel-state` back whenever the
 // artifact's own `× close` button or `T` shortcut flips the `.tw-hidden` class,
-// so the toolbar toggle stays in sync. Also reports `od:tweaks-available` so the
+// so the toolbar toggle stays in sync. Also reports `readable-studio:tweaks-available` so the
 // host can disable the toggle on artifacts without a `.tw-panel`.
 function injectTweaksBridge(doc: string): string {
   // Hide-state styling mirrors the artifact's own `.tw-hidden` (transform +
   // opacity) so the CSS transition plays in both directions. `.tw-restore` is
   // kept permanently hidden — the host toolbar is the only entry point.
-  const style = `<style data-od-tweaks-bridge-style>
-[data-od-tweaks-hidden] .tw-panel {
+  const style = `<style data-readable-tweaks-bridge-style>
+[data-readable-tweaks-hidden] .tw-panel {
   transform: translateX(calc(100% + 32px)) !important;
   opacity: 0 !important;
   pointer-events: none !important;
 }
 .tw-restore { display: none !important; }
 </style>`;
-  const script = `<script data-od-tweaks-bridge>(function(){
+  const script = `<script data-readable-tweaks-bridge>(function(){
   // Synchronously hide BEFORE the artifact body parses so the panel never
   // flashes on initial paint. The host removes the attribute via postMessage
   // once it knows the desired state.
-  document.documentElement.setAttribute('data-od-tweaks-hidden', '');
+  document.documentElement.setAttribute('data-readable-tweaks-hidden', '');
 
   var suppressEcho = false;
   var observer = null;
@@ -2228,7 +2228,7 @@ function injectTweaksBridge(doc: string): string {
 
   function setPanelVisible(visible){
     suppressEcho = true;
-    document.documentElement.toggleAttribute('data-od-tweaks-hidden', !visible);
+    document.documentElement.toggleAttribute('data-readable-tweaks-hidden', !visible);
     applyClassesToPanel(visible);
     // Clear flag after the MutationObserver has had a chance to fire for this
     // change so we don't echo our own host-driven toggles back to the host.
@@ -2240,7 +2240,7 @@ function injectTweaksBridge(doc: string): string {
     if (!panel) return;
     try {
       parent.postMessage({
-        type: 'od:tweaks-panel-state',
+        type: 'readable-studio:tweaks-panel-state',
         visible: !panel.classList.contains('tw-hidden'),
       }, '*');
     } catch (e) {}
@@ -2249,7 +2249,7 @@ function injectTweaksBridge(doc: string): string {
   function postAvailability(){
     try {
       parent.postMessage({
-        type: 'od:tweaks-available',
+        type: 'readable-studio:tweaks-available',
         available: !!panelEl(),
       }, '*');
     } catch (e) {}
@@ -2267,7 +2267,7 @@ function injectTweaksBridge(doc: string): string {
 
   function onReady(){
     // Capture the panel authored visibility BEFORE we apply the host hidden
-    // attribute. The bridge sets data-od-tweaks-hidden synchronously in head
+    // attribute. The bridge sets data-readable-tweaks-hidden synchronously in head
     // (before the body parses), so on entry to onReady the attribute is
     // always present even though the artifact may have authored the panel
     // as default-visible. Reading the panel class first is the only place
@@ -2277,7 +2277,7 @@ function injectTweaksBridge(doc: string): string {
     // ON. Issue surfaced in PR #1643 review.
     var panel = panelEl();
     var initialVisible = !!panel && !panel.classList.contains('tw-hidden');
-    document.documentElement.toggleAttribute('data-od-tweaks-hidden', !initialVisible);
+    document.documentElement.toggleAttribute('data-readable-tweaks-hidden', !initialVisible);
     applyClassesToPanel(initialVisible);
     attachObserver();
     postAvailability();
@@ -2295,7 +2295,7 @@ function injectTweaksBridge(doc: string): string {
   }
 
   window.addEventListener('message', function(ev){
-    if (!ev.data || ev.data.type !== 'od:tweaks-panel-visible') return;
+    if (!ev.data || ev.data.type !== 'readable-studio:tweaks-panel-visible') return;
     setPanelVisible(!!ev.data.visible);
   });
 })();</script>`;

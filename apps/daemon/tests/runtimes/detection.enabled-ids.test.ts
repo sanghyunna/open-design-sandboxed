@@ -9,6 +9,7 @@
 import { describe, expect, test } from 'vitest';
 
 import { detectAgents } from '../../src/runtimes/detection.js';
+import { shouldRunAgentNetworkDiscovery } from '../../src/runtimes/detection-probe.js';
 import { AGENT_DEFS } from '../../src/runtimes/registry.js';
 import {
   DEFAULT_ENABLED_AGENT_IDS,
@@ -18,6 +19,13 @@ import {
 function ids(agents: { id: string }[]): string[] {
   return agents.map((a) => a.id).sort();
 }
+
+describe('packaged offline discovery', () => {
+  test('skips only network-capable discovery probes when explicitly requested', () => {
+    expect(shouldRunAgentNetworkDiscovery({ READABLE_AGENT_DISCOVERY_OFFLINE: '1' })).toBe(false);
+    expect(shouldRunAgentNetworkDiscovery({})).toBe(true);
+  });
+});
 
 describe('detectAgents enabledAgentIds filter', () => {
   test('default (no options) probes only DEFAULT_ENABLED_AGENT_IDS', async () => {

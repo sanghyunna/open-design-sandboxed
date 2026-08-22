@@ -44,7 +44,7 @@ afterEach(() => {
   }
 });
 
-function tempRoot(prefix = 'od-hosted-snapshot-adversarial-'): string {
+function tempRoot(prefix = 'readable-hosted-snapshot-adversarial-'): string {
   const root = mkdtempSync(path.join(tmpdir(), prefix));
   roots.push(root);
   return root;
@@ -274,7 +274,9 @@ describe('hosted snapshot adversarial boundaries', () => {
     await expect(store.restore()).rejects.toThrow('injected restore staging cleanup failure');
     const liveRoot = path.join(runtimeRoot, 'live', identityA.storageKey);
     const generations = readdirSync(liveRoot).filter((name) => name.startsWith('generation-'));
-    expect(closedLiveDatabases.length).toBe(1);
+    // Readable Studio identity validation opens and closes a read-only probe
+    // before the restored live handle; cleanup must close both handles.
+    expect(closedLiveDatabases.length).toBe(2);
     expect(generations).toEqual([]);
   });
 
@@ -286,7 +288,7 @@ describe('hosted snapshot adversarial boundaries', () => {
     const originalRm = fsp.rm.bind(fsp);
     vi.spyOn(fsp, 'rm').mockImplementation(async (target, options) => {
       await originalRm(target, options);
-      if (path.basename(String(target)).startsWith('od-hosted-snapshot-db-')) {
+      if (path.basename(String(target)).startsWith('readable-hosted-snapshot-db-')) {
         throw new Error('injected validation temp cleanup failure');
       }
     });

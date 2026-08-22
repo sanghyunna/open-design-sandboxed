@@ -8,7 +8,7 @@ triggers:
   - "team report"
   - "business review"
   - "wbr"
-od:
+readable:
   mode: deck
   scenario: operations
   featured: 23

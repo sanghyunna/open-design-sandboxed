@@ -6,21 +6,21 @@ import { BrowserWindow, Menu, app, dialog, globalShortcut, shell, type MenuItemC
 
 import {
   APP_KEYS,
-  OPEN_DESIGN_SIDECAR_CONTRACT,
+  SIDECAR_CONTRACT,
   SIDECAR_ENV,
   SIDECAR_MESSAGES,
   SIDECAR_MODES,
+  createRuntimeDescriptor,
   normalizeDesktopSidecarMessage,
   type DesktopClickInput,
   type DesktopEvalInput,
   type DesktopExportPdfInput,
   type DesktopScreenshotInput,
-  type DesktopUpdateInput,
   type DaemonStatusSnapshot,
   type RegisterDesktopAuthResult,
   type SidecarStamp,
   type WebStatusSnapshot,
-} from "@open-design/sidecar-proto";
+} from "@readable-studio/sidecar-proto";
 import { dirname, join } from "node:path";
 
 import {
@@ -32,8 +32,8 @@ import {
   resolveRuntimeNamespaceRoot,
   type JsonIpcServerHandle,
   type SidecarRuntimeContext,
-} from "@open-design/sidecar";
-import { readProcessStamp } from "@open-design/platform";
+} from "@readable-studio/sidecar";
+import { readProcessStamp } from "@readable-studio/platform";
 
 import { createDesktopRuntime, type DesktopRuntime } from "./runtime.js";
 import {
@@ -42,7 +42,6 @@ import {
   type DesktopApprovalLoop,
 } from "./desktop-approval.js";
 import { attachDesktopProcessErrorFilter } from "./uncaught-exception.js";
-import { createDesktopUpdater, createDesktopUpdaterScheduler, type DesktopUpdaterScheduler } from "./updater.js";
 import {
   exportDiagnosticsToFile,
   registerDesktopDiagnosticsIpc,
@@ -93,10 +92,10 @@ export {
 } from "./runtime.js";
 
 const TOOLS_DEV_PARENT_PID_ENV = SIDECAR_ENV.TOOLS_DEV_PARENT_PID;
-const AMR_PROFILE_ENV_KEY = "OPEN_DESIGN_AMR_PROFILE";
+const AMR_PROFILE_ENV_KEY = "READABLE_AMR_PROFILE";
 const AMR_PROFILE_AGENT_ID = "amr";
 const AMR_ENVIRONMENT_PROFILES = ["prod", "test", "local"] as const;
-const APP_CONFIG_CHANGED_IPC_CHANNEL = "od:app-config-changed";
+const APP_CONFIG_CHANGED_IPC_CHANNEL = "readable-studio:app-config-changed";
 type AmrEnvironmentProfile = (typeof AMR_ENVIRONMENT_PROFILES)[number];
 type DesktopAppConfigPrefs = {
   agentModels?: Record<string, { model?: string; reasoning?: string }>;
@@ -134,7 +133,7 @@ export type DesktopMainOptions = {
   discoverWebUrl?: () => Promise<string | null>;
   /**
    * Round-7 (lefarcen P2 @ runtime.ts:336): packaged builds report the
-   * renderer URL (`od://app/`) over `discoverWebUrl`, but Node-side
+   * renderer URL (`readable-studio://app/`) over `discoverWebUrl`, but Node-side
    * fetch can't resolve a custom Electron protocol. Optional. When
    * provided, runtime API calls (`/api/import/folder`,
    * `/api/projects/:id`) target this URL instead. tools-dev callers
@@ -143,7 +142,7 @@ export type DesktopMainOptions = {
    */
   discoverDaemonUrl?: () => Promise<string | null>;
   preloadPath?: string;
-  onDesktopReady?: (controls: { show(): void }) => void;
+  onDesktopReady?: (controls: { show(): void }) => Promise<void> | void;
   /**
    * Optional pre-created splash window. The packaged entry creates it before
    * awaiting the daemon/web sidecars so the brand animation overlaps the cold
@@ -154,15 +153,7 @@ export type DesktopMainOptions = {
   /** Creation time of `splashWindow` (from `createSplashWindow().startedAt`), so
    * the runtime measures the minimum splash hold from when it actually appeared. */
   splashStartedAt?: number;
-  update?: {
-    currentVersion?: string | null;
-    downloadRoot?: string | null;
-    installerObservationRoot?: string | null;
-    launcherLaunchPath?: string | null;
-    launcherRoot?: string | null;
-    launcherPayloadExtractorPath?: string | null;
-    launcherRuntimePath?: string | null;
-  };
+  appVersion?: string | null;
 };
 
 function isDirectEntry(): boolean {
@@ -201,7 +192,7 @@ function createWebDiscovery(runtime: SidecarRuntimeContext<SidecarStamp>): () =>
   return async () => {
     const webIpc = resolveAppIpcPath({
       app: APP_KEYS.WEB,
-      contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+      contract: SIDECAR_CONTRACT,
       namespace: runtime.namespace,
     });
     const web = await requestJsonIpc<WebStatusSnapshot>(webIpc, { type: SIDECAR_MESSAGES.STATUS }, { timeoutMs: 600 }).catch(() => null);
@@ -213,7 +204,7 @@ function createDaemonDiscovery(runtime: SidecarRuntimeContext<SidecarStamp>): ()
   return async () => {
     const daemonIpc = resolveAppIpcPath({
       app: APP_KEYS.DAEMON,
-      contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+      contract: SIDECAR_CONTRACT,
       namespace: runtime.namespace,
     });
     const daemon = await requestJsonIpc<DaemonStatusSnapshot>(
@@ -289,14 +280,16 @@ export function createAmrEnvironmentProfileMenuItems(
 
 // @dsp func-5fd08ae0
 export function resolveAboutPanelVersion(options: DesktopMainOptions): string | null {
-  const version = options.update?.currentVersion?.trim();
+  const version = options.appVersion?.trim();
   return version == null || version.length === 0 ? null : version;
 }
 
 function configureAboutPanel(options: DesktopMainOptions): void {
   const version = resolveAboutPanelVersion(options);
-  if (version == null) return;
-  app.setAboutPanelOptions({ version });
+  app.setAboutPanelOptions({
+    applicationName: "Readable Studio",
+    ...(version == null ? {} : { version }),
+  });
 }
 
 function appConfigUrl(baseUrl: string): string {
@@ -334,7 +327,7 @@ async function writeAppConfigToDaemon(
   return payload.config;
 }
 
-function installDesktopMenu(
+export function installDesktopMenu(
   runtime: SidecarRuntimeContext<SidecarStamp>,
   options: Pick<DesktopMainOptions, "discoverDaemonUrl" | "discoverWebUrl"> = {},
 ): () => void {
@@ -492,10 +485,12 @@ function installDesktopMenu(
       });
   });
   if (!registered) {
-    showDevelopMenuError("Develop menu shortcut unavailable", new Error(`Failed to register ${accelerator}`));
+    console.warn(`Develop menu shortcut registration failed; continuing without ${accelerator}`);
   }
   return () => {
-    globalShortcut.unregister(accelerator);
+    if (registered) {
+      globalShortcut.unregister(accelerator);
+    }
   };
 }
 
@@ -521,7 +516,7 @@ async function registerDesktopAuthWithDaemon(
 ): Promise<boolean> {
   const daemonIpc = resolveAppIpcPath({
     app: APP_KEYS.DAEMON,
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
     namespace: runtime.namespace,
   });
   const message = {
@@ -572,6 +567,7 @@ export async function runDesktopMain(
   // `apps/packaged/src/index.ts` has already applied the switch before
   // its own `whenReady`; this call is then a no-op for the switch and
   // only recovers the locale string for the BrowserWindow below.
+  app.setName("Readable Studio");
   const osLocale = applyOsLocaleSwitch(app);
 
   await app.whenReady();
@@ -598,26 +594,11 @@ export async function runDesktopMain(
   const registered = await registerDesktopAuthWithDaemon(runtime, desktopAuthSecret);
   if (!registered) {
     console.warn(
-      "[open-design desktop] initial import-token handshake with daemon did not complete; " +
+      "[readable-studio desktop] initial import-token handshake with daemon did not complete; " +
         "first folder-import attempt will lazily retry registration before failing",
     );
   }
 
-  const updater = createDesktopUpdater(
-    {
-      currentVersion: options.update?.currentVersion,
-      downloadRoot: options.update?.downloadRoot,
-      installerObservationRoot: options.update?.installerObservationRoot,
-      launcherLaunchPath: options.update?.launcherLaunchPath,
-      launcherRoot: options.update?.launcherRoot,
-      launcherPayloadExtractorPath: options.update?.launcherPayloadExtractorPath,
-      launcherRuntimePath: options.update?.launcherRuntimePath,
-      namespace: runtime.namespace,
-      runtimeBase: runtime.base,
-      source: runtime.source,
-    },
-    { openPath: (path) => shell.openPath(path) },
-  );
   // Resolve the namespace root the same way the diagnostics export does
   // (apps/desktop/src/main/diagnostics.ts). In packaged builds `runtime.base`
   // is `<namespaceRoot>/runtime`, so re-appending the namespace via
@@ -626,13 +607,13 @@ export async function runDesktopMain(
   // reader never looks in. Keeping both sides on `resolveRuntimeNamespaceRoot`
   // co-locates renderer.log with the desktop log dir AND keeps it captured.
   const namespaceRoot = resolveRuntimeNamespaceRoot({
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
     runtime,
     runtimeMode: SIDECAR_MODES.RUNTIME,
   });
   const desktopLogPath = resolveLogFilePath({
     app: APP_KEYS.DESKTOP,
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
     runtimeRoot: namespaceRoot,
   });
   const rendererLogPath = join(dirname(desktopLogPath), "renderer.log");
@@ -640,7 +621,6 @@ export async function runDesktopMain(
   let desktop: DesktopRuntime | null = null;
   let approvalLoop: DesktopApprovalLoop | null = null;
   let disposeMenu: () => void = () => undefined;
-  let updateScheduler: DesktopUpdaterScheduler | null = null;
   let removeDiagnosticsIpc: () => void = () => undefined;
   let ipcServer: JsonIpcServerHandle | null = null;
   let shuttingDown = false;
@@ -652,7 +632,6 @@ export async function runDesktopMain(
     await options.beforeShutdown?.().catch((error: unknown) => {
       console.error("desktop beforeShutdown failed", error);
     });
-    updateScheduler?.stop("shutdown");
     disposeMenu();
     removeDiagnosticsIpc();
     await ipcServer?.close().catch(() => undefined);
@@ -681,7 +660,6 @@ export async function runDesktopMain(
     requestQuit: shutdownAndExit,
     splashWindow: options.splashWindow,
     splashStartedAt: options.splashStartedAt,
-    updater,
   });
   if (desktopApprovalToken) {
     approvalLoop = startDesktopApprovalLoop({
@@ -691,17 +669,9 @@ export async function runDesktopMain(
       token: desktopApprovalToken,
     });
   }
-  options.onDesktopReady?.({ show: () => desktop?.show() });
+  await options.onDesktopReady?.({ show: () => desktop?.show() });
   disposeMenu = installDesktopMenu(runtime, options);
   removeDiagnosticsIpc = registerDesktopDiagnosticsIpc(runtime);
-  updateScheduler = createDesktopUpdaterScheduler(updater, {
-    backoffInitialMs: updater.config.checkBackoffInitialMs,
-    backoffMaxMs: updater.config.checkBackoffMaxMs,
-    initialDelayMs: updater.config.checkInitialDelayMs,
-    intervalMs: updater.config.checkIntervalMs,
-  });
-  if (updater.shouldAutoCheck()) updateScheduler.start();
-
   attachParentMonitor(shutdown);
 
   app.on("before-quit", (event) => {
@@ -720,7 +690,10 @@ export async function runDesktopMain(
       }
       switch (request.type) {
         case SIDECAR_MESSAGES.STATUS:
-          return { ...activeDesktop.status(), update: await updater.status() };
+          return {
+            ...activeDesktop.status(),
+            descriptor: createRuntimeDescriptor(options.appVersion?.trim() || app.getVersion()),
+          };
         case SIDECAR_MESSAGES.EVAL:
           return await activeDesktop.eval(request.input as DesktopEvalInput);
         case SIDECAR_MESSAGES.SCREENSHOT:
@@ -734,8 +707,6 @@ export async function runDesktopMain(
           return await activeDesktop.click(request.input as DesktopClickInput);
         case SIDECAR_MESSAGES.EXPORT_PDF:
           return await activeDesktop.exportPdf(request.input as DesktopExportPdfInput);
-        case SIDECAR_MESSAGES.UPDATE:
-          return await updater.handle((request.input as DesktopUpdateInput).action);
         case SIDECAR_MESSAGES.SHUTDOWN:
           setImmediate(() => {
             shutdownAndExit();
@@ -767,12 +738,12 @@ export async function runDesktopMain(
 }
 
 if (isDirectEntry()) {
-  const stamp = readProcessStamp(process.argv.slice(2), OPEN_DESIGN_SIDECAR_CONTRACT);
+  const stamp = readProcessStamp(process.argv.slice(2), SIDECAR_CONTRACT);
   if (stamp == null) throw new Error("sidecar stamp is required");
 
   const runtime = bootstrapSidecarRuntime(stamp, process.env, {
     app: APP_KEYS.DESKTOP,
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
   });
 
   void runDesktopMain(runtime).catch((error: unknown) => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { PreviewCommentMember } from '@open-design/contracts';
+import type { PreviewCommentMember } from '@readable-studio/contracts';
 
 import type { PreviewCommentSnapshot } from '../../src/comments';
 import { applyPodMemberRemoval, recomputePodAnchor, removePodMember } from '../../src/lib/pod-members';
@@ -186,28 +186,28 @@ describe('applyPodMemberRemoval', () => {
 
   it('rebuilds selector, label, position, text, htmlHint from the remaining members', () => {
     const hero = member('hero', 'hero', {
-      selector: '[data-od-id="hero"]',
+      selector: '[data-readable-id="hero"]',
       label: 'section.hero',
       text: 'Hero title',
       position: { x: 10, y: 20, width: 200, height: 100 },
-      htmlHint: '<section data-od-id="hero">',
+      htmlHint: '<section data-readable-id="hero">',
     });
     const chart = member('chart', 'chart', {
-      selector: '[data-od-id="chart"]',
+      selector: '[data-readable-id="chart"]',
       label: 'section.chart',
       text: 'Chart value',
       position: { x: 120, y: 80, width: 190, height: 120 },
-      htmlHint: '<section data-od-id="chart">',
+      htmlHint: '<section data-readable-id="chart">',
     });
 
     const result = applyPodMemberRemoval(podSnapshot([hero, chart]), 'hero');
 
     expect(result.next).toMatchObject({
-      selector: '[data-od-id="chart"]',
+      selector: '[data-readable-id="chart"]',
       label: 'section.chart · Chart value',
       text: 'Chart value',
       position: { x: 120, y: 80, width: 190, height: 120 },
-      htmlHint: '<section data-od-id="chart">',
+      htmlHint: '<section data-readable-id="chart">',
       memberCount: 1,
     });
     expect(JSON.stringify(result.next)).not.toContain('hero');

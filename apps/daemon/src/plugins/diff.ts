@@ -17,7 +17,7 @@
 // content) collapse to a single 'changed' summary with the count
 // of additions / removals.
 
-import type { InstalledPluginRecord, PluginManifest } from '@open-design/contracts';
+import type { InstalledPluginRecord, PluginManifest } from '@readable-studio/contracts';
 
 export interface PluginDiffEntry {
   field:    string;
@@ -85,45 +85,45 @@ function diffManifest(out: PluginDiffEntry[], a: PluginManifest, b: PluginManife
   diffScalar(out, 'manifest.description', a.description,  b.description);
   diffScalar(out, 'manifest.license',     a.license,      b.license);
   diffArray (out, 'manifest.tags',        a.tags ?? [],    b.tags ?? []);
-  diffScalar(out, 'od.kind',              a.od?.kind,      b.od?.kind);
-  diffScalar(out, 'od.taskKind',          a.od?.taskKind,  b.od?.taskKind);
-  diffScalar(out, 'od.mode',              a.od?.mode,      b.od?.mode);
-  diffArray (out, 'od.capabilities',      a.od?.capabilities ?? [], b.od?.capabilities ?? []);
-  diffArray (out, 'od.inputs[]',
-    (a.od?.inputs ?? []).map((i) => i?.name).filter(Boolean) as string[],
-    (b.od?.inputs ?? []).map((i) => i?.name).filter(Boolean) as string[]);
-  diffArray (out, 'od.context.skills',
-    (a.od?.context?.skills ?? []).map((s) => s?.ref ?? s?.path ?? '').filter(Boolean),
-    (b.od?.context?.skills ?? []).map((s) => s?.ref ?? s?.path ?? '').filter(Boolean));
-  diffArray (out, 'od.context.craft',
-    (a.od?.context?.craft ?? []).slice() as string[],
-    (b.od?.context?.craft ?? []).slice() as string[]);
-  diffArray (out, 'od.context.assets',
-    (a.od?.context?.assets ?? []).slice() as string[],
-    (b.od?.context?.assets ?? []).slice() as string[]);
-  diffPipeline(out, a.od?.pipeline, b.od?.pipeline);
-  diffArray (out, 'od.genui.surfaces',
-    (a.od?.genui?.surfaces ?? []).map((s) => s?.id ?? '').filter(Boolean),
-    (b.od?.genui?.surfaces ?? []).map((s) => s?.id ?? '').filter(Boolean));
+  diffScalar(out, 'readable.kind',              a.readable?.kind,      b.readable?.kind);
+  diffScalar(out, 'readable.taskKind',          a.readable?.taskKind,  b.readable?.taskKind);
+  diffScalar(out, 'readable.mode',              a.readable?.mode,      b.readable?.mode);
+  diffArray (out, 'readable.capabilities',      a.readable?.capabilities ?? [], b.readable?.capabilities ?? []);
+  diffArray (out, 'readable.inputs[]',
+    (a.readable?.inputs ?? []).map((i) => i?.name).filter(Boolean) as string[],
+    (b.readable?.inputs ?? []).map((i) => i?.name).filter(Boolean) as string[]);
+  diffArray (out, 'readable.context.skills',
+    (a.readable?.context?.skills ?? []).map((s) => s?.ref ?? s?.path ?? '').filter(Boolean),
+    (b.readable?.context?.skills ?? []).map((s) => s?.ref ?? s?.path ?? '').filter(Boolean));
+  diffArray (out, 'readable.context.craft',
+    (a.readable?.context?.craft ?? []).slice() as string[],
+    (b.readable?.context?.craft ?? []).slice() as string[]);
+  diffArray (out, 'readable.context.assets',
+    (a.readable?.context?.assets ?? []).slice() as string[],
+    (b.readable?.context?.assets ?? []).slice() as string[]);
+  diffPipeline(out, a.readable?.pipeline, b.readable?.pipeline);
+  diffArray (out, 'readable.genui.surfaces',
+    (a.readable?.genui?.surfaces ?? []).map((s) => s?.id ?? '').filter(Boolean),
+    (b.readable?.genui?.surfaces ?? []).map((s) => s?.id ?? '').filter(Boolean));
 }
 
 function diffPipeline(
   out: PluginDiffEntry[],
-  a: PluginManifest['od'] extends infer T ? T extends { pipeline?: infer P } ? Exclude<P, undefined> | undefined : never : never,
-  b: PluginManifest['od'] extends infer T ? T extends { pipeline?: infer P } ? Exclude<P, undefined> | undefined : never : never,
+  a: PluginManifest['readable'] extends infer T ? T extends { pipeline?: infer P } ? Exclude<P, undefined> | undefined : never : never,
+  b: PluginManifest['readable'] extends infer T ? T extends { pipeline?: infer P } ? Exclude<P, undefined> | undefined : never : never,
 ): void {
   if (!a && !b) return;
   if (!a && b) {
-    out.push({ field: 'od.pipeline', kind: 'added',
+    out.push({ field: 'readable.pipeline', kind: 'added',
       after: stagesSummary(b!.stages) });
     return;
   }
   if (a && !b) {
-    out.push({ field: 'od.pipeline', kind: 'removed',
+    out.push({ field: 'readable.pipeline', kind: 'removed',
       before: stagesSummary(a.stages) });
     return;
   }
-  diffArray(out, 'od.pipeline.stages',
+  diffArray(out, 'readable.pipeline.stages',
     (a!.stages ?? []).map((s) => s.id),
     (b!.stages ?? []).map((s) => s.id));
   // Per-stage atoms diff. Key by stage id; stages added or removed
@@ -134,10 +134,10 @@ function diffPipeline(
     const sa = aById.get(id);
     const sb = bById.get(id);
     if (!sa || !sb) continue; // covered by stages-array diff above
-    diffArray(out, `od.pipeline.stages[${id}].atoms`,
+    diffArray(out, `readable.pipeline.stages[${id}].atoms`,
       sa.atoms ?? [], sb.atoms ?? []);
-    diffScalar(out, `od.pipeline.stages[${id}].until`, sa.until, sb.until);
-    diffScalar(out, `od.pipeline.stages[${id}].repeat`,
+    diffScalar(out, `readable.pipeline.stages[${id}].until`, sa.until, sb.until);
+    diffScalar(out, `readable.pipeline.stages[${id}].repeat`,
       sa.repeat === undefined ? undefined : String(sa.repeat),
       sb.repeat === undefined ? undefined : String(sb.repeat));
   }

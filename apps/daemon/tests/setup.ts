@@ -31,14 +31,14 @@ function ensureDaemonCliBuilt() {
   });
 }
 
-const TEST_DATA_DIR_SYMBOL = Symbol.for('open-design.daemon.vitestDataDir');
+const TEST_DATA_DIR_SYMBOL = Symbol.for('readable-studio.daemon.vitestDataDir');
 
 const globalState = globalThis as typeof globalThis & {
   [TEST_DATA_DIR_SYMBOL]?: string;
 };
 
 if (!globalState[TEST_DATA_DIR_SYMBOL]) {
-  globalState[TEST_DATA_DIR_SYMBOL] = mkdtempSync(path.join(tmpdir(), 'od-daemon-vitest-'));
+  globalState[TEST_DATA_DIR_SYMBOL] = mkdtempSync(path.join(tmpdir(), 'readable-daemon-vitest-'));
 
   process.once('exit', () => {
     rmSync(globalState[TEST_DATA_DIR_SYMBOL]!, { force: true, recursive: true });
@@ -47,11 +47,11 @@ if (!globalState[TEST_DATA_DIR_SYMBOL]) {
 
 // Server paths are resolved at module import time. Force every daemon test
 // process to use one isolated data directory before any test imports server.ts,
-// so tests can never read or overwrite the developer's real repo `.od` data.
-process.env.OD_DATA_DIR = globalState[TEST_DATA_DIR_SYMBOL];
+// so tests can never read or overwrite the developer's real repo `.readable-studio` data.
+process.env.READABLE_DATA_DIR = globalState[TEST_DATA_DIR_SYMBOL];
 
-// Publish/share endpoints shell out through OD_NODE_BIN + OD_BIN (dist/cli.js).
+// Publish/share endpoints shell out through READABLE_NODE_BIN + READABLE_BIN (dist/cli.js).
 // Build the CLI artifact once per vitest process so package tests do not depend
-// on a prior manual `pnpm --filter @open-design/daemon build`.
+// on a prior manual `pnpm --filter @readable-studio/daemon build`.
 ensureDaemonCliBuilt();
-process.env.OD_DAEMON_CLI_PATH = daemonCliDist;
+process.env.READABLE_DAEMON_CLI_PATH = daemonCliDist;

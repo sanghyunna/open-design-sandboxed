@@ -11,7 +11,7 @@ triggers:
   - "weekly status"
   - "weekly review"
   - "weekly update presentation"
-od:
+readable:
   mode: deck
   scenario: operations
   preview:

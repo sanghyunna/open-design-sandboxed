@@ -76,7 +76,7 @@ export class DeployError extends Error {
 }
 
 export function deployConfigPath(providerId: DeployProviderId = VERCEL_PROVIDER_ID) {
-  const base = process.env.OD_USER_STATE_DIR || path.join(os.homedir(), '.open-design');
+  const base = process.env.READABLE_USER_STATE_DIR || path.join(os.homedir(), '.readable-studio');
   return path.join(base, providerId === CLOUDFLARE_PAGES_PROVIDER_ID ? 'cloudflare-pages.json' : 'vercel.json');
 }
 
@@ -139,8 +139,8 @@ export async function writeCloudflarePagesConfig(input: Partial<DeployConfig>) {
     accountId: typeof input?.accountId === 'string' ? input.accountId.trim() : current.accountId,
     // Legacy installs may already have a saved Cloudflare Pages projectName.
     // New writes intentionally stop treating it as user configuration: the
-    // deploy route derives a Pages project name from the current OD project,
-    // mirroring Vercel's automatic `od-${projectId}` deployment name.
+    // deploy route derives a Pages project name from the current Readable Studio project,
+    // mirroring Vercel's automatic `readable-${projectId}` deployment name.
     projectName: '',
   };
   if (Object.keys(cloudflarePages).length > 0) next.cloudflarePages = cloudflarePages;
@@ -251,7 +251,7 @@ export async function buildDeployFilePlan(projectsRoot: string, projectId: strin
   const entryBase = path.posix.dirname(entryPath);
   const deployHtml = injectDeployHookScript(
     injectStandaloneDeckKeyDedupe(rewriteEntryHtmlReferences(html, entryBase)),
-    options.hookScriptUrl ?? process.env.OD_DEPLOY_HOOK_SCRIPT_URL,
+    options.hookScriptUrl ?? process.env.READABLE_DEPLOY_HOOK_SCRIPT_URL,
   );
   const files = new Map<string, DeployFile>();
   files.set('index.html', {
@@ -433,7 +433,7 @@ export async function deployToVercel({ config, files, projectId }: { config: Dep
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      name: safeVercelProjectName(`od-${projectId}`),
+      name: safeVercelProjectName(`readable-${projectId}`),
       files: files.map((f) => ({
         file: f.file,
         data: Buffer.from(f.data).toString('base64'),
@@ -1518,7 +1518,7 @@ export function injectDeployHookScript(html: string, scriptUrl: unknown) {
 
   const tag =
     `<script src="${escapeHtmlAttribute(normalized)}" defer ` +
-    'data-open-design-deploy-hook="true" data-closeable="true"></script>';
+    'data-readable-studio-deploy-hook="true" data-closeable="true"></script>';
   if (/<\/body\s*>/i.test(html)) {
     return html.replace(/<\/body\s*>/i, `${tag}</body>`);
   }
@@ -1864,9 +1864,9 @@ function cloudflareZoneDnsRecordsUrl(zoneId: string) {
 export function cloudflarePagesProjectNameForProject(projectId: string, projectName = '') {
   const idSuffix = safeDnsLabel(projectId).slice(0, 12) || randomUUID().slice(0, 8);
   const nameBase = safeDnsLabel(projectName) || 'project';
-  const fixedLength = 'od--'.length + idSuffix.length;
+  const fixedLength = 'readable--'.length + idSuffix.length;
   const baseLength = Math.max(1, 63 - fixedLength);
-  return safeDnsLabel(`od-${nameBase.slice(0, baseLength)}-${idSuffix}`);
+  return safeDnsLabel(`readable-${nameBase.slice(0, baseLength)}-${idSuffix}`);
 }
 
 function cloudflareHeaders(config: DeployConfig, extra: Record<string, string> = {}) {
@@ -2011,7 +2011,7 @@ function normalizeCloudflareDomainPrefix(raw: unknown) {
 }
 
 function cloudflarePagesDnsMarker(projectId: string, projectName: string, pagesTarget: string) {
-  return `od:cfp:${shortCloudflareHash(projectId || projectName)}:${shortCloudflareHash(pagesTarget || projectName)}`;
+  return `readable:cfp:${shortCloudflareHash(projectId || projectName)}:${shortCloudflareHash(pagesTarget || projectName)}`;
 }
 
 function shortCloudflareHash(value: unknown) {
@@ -2019,7 +2019,7 @@ function shortCloudflareHash(value: unknown) {
 }
 
 function safeVercelProjectName(raw: unknown) {
-  return safeProjectLabel(raw, 80) || `od-${randomUUID().slice(0, 8)}`;
+  return safeProjectLabel(raw, 80) || `readable-${randomUUID().slice(0, 8)}`;
 }
 
 function safeDnsLabel(raw: unknown) {

@@ -6,7 +6,7 @@ triggers:
   - "macaron"
   - "lifestyle"
   - "slow living"
-od:
+readable:
   mode: deck
   scenario: personal
   upstream: "https://github.com/lewislulu/html-ppt-skill"

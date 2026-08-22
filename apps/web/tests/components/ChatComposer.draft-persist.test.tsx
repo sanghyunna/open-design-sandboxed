@@ -76,7 +76,7 @@ async function typeAndArm(value: string): Promise<void> {
 
 describe('ChatComposer draft persistence (debounced)', () => {
   it('coalesces rapid typing into a single trailing write after the debounce', async () => {
-    const key = 'od:chat-composer:draft:project-1:conv-1';
+    const key = 'readable:chat-composer:draft:project-1:conv-1';
     await mountWithFakeDebounceTimers({ draftStorageKey: key });
 
     for (const value of ['h', 'he', 'hel', 'hell', 'hello']) {
@@ -99,7 +99,7 @@ describe('ChatComposer draft persistence (debounced)', () => {
   });
 
   it('flushes the pending draft on unmount', async () => {
-    const key = 'od:chat-composer:draft:project-1:conv-1';
+    const key = 'readable:chat-composer:draft:project-1:conv-1';
     const utils = await mountWithFakeDebounceTimers({ draftStorageKey: key });
 
     await typeAndArm('unsaved on unmount');
@@ -112,8 +112,8 @@ describe('ChatComposer draft persistence (debounced)', () => {
   });
 
   it('flushes the pending draft to the OLD key when draftStorageKey changes in place', async () => {
-    const oldKey = 'od:chat-composer:draft:project-1:conv-1';
-    const newKey = 'od:chat-composer:draft:project-1:conv-2';
+    const oldKey = 'readable:chat-composer:draft:project-1:conv-1';
+    const newKey = 'readable:chat-composer:draft:project-1:conv-2';
     const utils = await mountWithFakeDebounceTimers({ draftStorageKey: oldKey });
 
     await typeAndArm('belongs to conv-1');
@@ -150,7 +150,7 @@ describe('ChatComposer draft persistence (debounced)', () => {
   });
 
   it('does not resurrect a sent draft when a debounced write was still pending', async () => {
-    const key = 'od:chat-composer:draft:project-1:conv-1';
+    const key = 'readable:chat-composer:draft:project-1:conv-1';
     const onSend = vi.fn();
     await mountWithFakeDebounceTimers({ draftStorageKey: key, onSend });
 
@@ -174,7 +174,7 @@ describe('ChatComposer draft persistence (debounced)', () => {
   });
 
   it('removes the stored draft synchronously on submit — an unmount in the commit gap cannot resurrect it', async () => {
-    const key = 'od:chat-composer:draft:project-1:conv-1';
+    const key = 'readable:chat-composer:draft:project-1:conv-1';
     const onSend = vi.fn();
     const utils = await mountWithFakeDebounceTimers({ draftStorageKey: key, onSend });
 
@@ -200,7 +200,7 @@ describe('ChatComposer draft persistence (debounced)', () => {
   });
 
   it('removes the stored draft synchronously on submit — a pagehide in the commit gap cannot resurrect it', async () => {
-    const key = 'od:chat-composer:draft:project-1:conv-1';
+    const key = 'readable:chat-composer:draft:project-1:conv-1';
     const onSend = vi.fn();
     await mountWithFakeDebounceTimers({ draftStorageKey: key, onSend });
 
@@ -225,7 +225,7 @@ describe('ChatComposer draft persistence (debounced)', () => {
   });
 
   it('flushes the pending draft on pagehide', async () => {
-    const key = 'od:chat-composer:draft:project-1:conv-1';
+    const key = 'readable:chat-composer:draft:project-1:conv-1';
     await mountWithFakeDebounceTimers({ draftStorageKey: key });
 
     await typeAndArm('open then close the window');
@@ -240,7 +240,7 @@ describe('ChatComposer draft persistence (debounced)', () => {
   });
 
   it('flushes the pending draft when the document is hidden (visibilitychange)', async () => {
-    const key = 'od:chat-composer:draft:project-1:conv-1';
+    const key = 'readable:chat-composer:draft:project-1:conv-1';
     await mountWithFakeDebounceTimers({ draftStorageKey: key });
 
     await typeAndArm('background the tab');

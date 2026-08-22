@@ -15,14 +15,13 @@ const buildTargets = [
   "packages/registry-protocol",
   "packages/agui-adapter",
   "packages/plugin-runtime",
+  "packages/product-identity",
   "packages/sidecar-proto",
-  "packages/launcher-proto",
   "packages/sidecar",
   "packages/diagnostics",
   "apps/daemon",
   "tools/dev",
   "tools/pack",
-  "tools/serve",
 ];
 
 const jsExtensions = new Set([".js", ".cjs", ".mjs"]);
@@ -84,7 +83,7 @@ if (needsRebuild) {
   );
   const rebuild = spawnSync(
     packageManager.command,
-    [...packageManager.argsPrefix, "--filter", "@open-design/daemon", "rebuild", "better-sqlite3"],
+    [...packageManager.argsPrefix, "--filter", "@readable-studio/daemon", "rebuild", "better-sqlite3"],
     { cwd: repoRoot, stdio: "inherit" },
   );
   if (rebuild.error != null) throw rebuild.error;

@@ -25,7 +25,7 @@ describe('resolveAgentResumeContext', () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(path.join(os.tmpdir(), 'od-resume-ctx-'));
+    tempDir = mkdtempSync(path.join(os.tmpdir(), 'readable-resume-ctx-'));
   });
   afterEach(() => {
     closeDatabase();
@@ -92,7 +92,7 @@ describe('persistCapturedAgentSession', () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(path.join(os.tmpdir(), 'od-captured-session-'));
+    tempDir = mkdtempSync(path.join(os.tmpdir(), 'readable-captured-session-'));
   });
   afterEach(() => {
     closeDatabase();

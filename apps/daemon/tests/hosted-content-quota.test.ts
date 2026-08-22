@@ -16,7 +16,7 @@ afterEach(() => {
 });
 
 function fixture(name: string): string {
-  const root = mkdtempSync(path.join(tmpdir(), `od-hosted-quota-${name}-`));
+  const root = mkdtempSync(path.join(tmpdir(), `readable-hosted-quota-${name}-`));
   roots.push(root);
   return root;
 }

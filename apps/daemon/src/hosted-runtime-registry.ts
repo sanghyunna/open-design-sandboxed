@@ -5,7 +5,7 @@ import { performance } from 'node:perf_hooks';
 import {
   createApiError,
   type HostedProviderId,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import {
   createHostedRuntimeStorage,
   type HostedRuntimeStorage,

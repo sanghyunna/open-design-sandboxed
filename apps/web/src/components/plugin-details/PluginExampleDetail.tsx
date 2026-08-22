@@ -1,12 +1,12 @@
 // HTML-preview detail surface for plugins that ship a runnable
-// `od.preview` entry or example output (the same surface ExamplesTab
+// `readable.preview` entry or example output (the same surface ExamplesTab
 // uses for skill cards). Wraps the shared PreviewModal so the user
 // gets the full chrome — sandboxed iframe, Fullscreen, merged Share menu —
 // plus a primary
 // "Use plugin" action that routes through the home applyPlugin flow.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 import { useI18n } from '../../i18n';
 import { localizePluginDescription, localizePluginTitle } from '../plugins-home/localization';
 import {
@@ -90,7 +90,7 @@ export function PluginExampleDetail({
   }, [load]);
 
   const description = localizePluginDescription(locale, record);
-  const isDeck = record.manifest?.od?.mode === 'deck';
+  const isDeck = record.manifest?.readable?.mode === 'deck';
 
   return (
     <PreviewModal
@@ -109,6 +109,11 @@ export function PluginExampleDetail({
             ? { kind: unavailableKind, noun: isDeck ? 'template' : 'plugin' }
             : null,
           deck: isDeck,
+          standaloneSource: {
+            kind: 'plugin',
+            pluginId: record.id,
+            ...(exampleStem ? { exampleName: exampleStem } : {}),
+          },
         },
       ]}
       onView={onView}

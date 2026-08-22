@@ -1,7 +1,8 @@
-export const PRODUCT_NAME = "Open Design";
-export const DESKTOP_LOG_ECHO_ENV = "OD_DESKTOP_LOG_ECHO";
-export const WEB_STANDALONE_HOOK_CONFIG_ENV = "OD_TOOLS_PACK_WEB_STANDALONE_HOOK_CONFIG";
-export const WEB_STANDALONE_RESOURCE_NAME = "open-design-web-standalone";
+export { PRODUCT_NAME } from "@readable-studio/product-identity";
+export const RESOURCE_TREE_NAME = "readable-studio";
+export const DESKTOP_LOG_ECHO_ENV = "READABLE_DESKTOP_LOG_ECHO";
+export const WEB_STANDALONE_HOOK_CONFIG_ENV = "READABLE_TOOLS_PACK_WEB_STANDALONE_HOOK_CONFIG";
+export const WEB_STANDALONE_RESOURCE_NAME = "readable-studio-web-standalone";
 export const ELECTRON_BUILDER_ASAR = false;
 export const ELECTRON_BUILDER_BUILD_DEPENDENCIES_FROM_SOURCE = false;
 export const ELECTRON_BUILDER_NODE_GYP_REBUILD = false;
@@ -24,29 +25,21 @@ export const ELECTRON_BUILDER_FILE_PATTERNS = [
   "!**/node_modules/better-sqlite3/deps",
   "!**/node_modules/better-sqlite3/deps/**",
 ] as const;
-export const NSIS_INSTALLER_LANGUAGE_BY_WEB_LOCALE = {
-  en: "en_US",
-  fa: "fa_IR",
-  "pt-BR": "pt_BR",
-  ru: "ru_RU",
-  "zh-CN": "zh_CN",
-  "zh-TW": "zh_TW",
-} as const;
 export const INTERNAL_PACKAGES = [
-  { directory: "packages/components", name: "@open-design/components" },
-  { directory: "packages/contracts", name: "@open-design/contracts" },
-  { directory: "packages/registry-protocol", name: "@open-design/registry-protocol" },
-  { directory: "packages/sidecar-proto", name: "@open-design/sidecar-proto" },
-  { directory: "packages/launcher-proto", name: "@open-design/launcher-proto" },
-  { directory: "packages/sidecar", name: "@open-design/sidecar" },
-  { directory: "packages/platform", name: "@open-design/platform" },
-  { directory: "packages/download", name: "@open-design/download" },
-  { directory: "packages/host", name: "@open-design/host" },
-  { directory: "packages/agui-adapter", name: "@open-design/agui-adapter" },
-  { directory: "packages/plugin-runtime", name: "@open-design/plugin-runtime" },
-  { directory: "packages/diagnostics", name: "@open-design/diagnostics" },
-  { directory: "apps/daemon", name: "@open-design/daemon" },
-  { directory: "apps/web", name: "@open-design/web" },
-  { directory: "apps/desktop", name: "@open-design/desktop" },
-  { directory: "apps/packaged", name: "@open-design/packaged" },
+  { directory: "packages/components", name: "@readable-studio/components" },
+  { directory: "packages/contracts", name: "@readable-studio/contracts" },
+  { directory: "packages/registry-protocol", name: "@readable-studio/registry-protocol" },
+  { directory: "packages/sidecar-proto", name: "@readable-studio/sidecar-proto" },
+  { directory: "packages/sidecar", name: "@readable-studio/sidecar" },
+  { directory: "packages/platform", name: "@readable-studio/platform" },
+  { directory: "packages/download", name: "@readable-studio/download" },
+  { directory: "packages/host", name: "@readable-studio/host" },
+  { directory: "packages/agui-adapter", name: "@readable-studio/agui-adapter" },
+  { directory: "packages/plugin-runtime", name: "@readable-studio/plugin-runtime" },
+  { directory: "packages/product-identity", name: "@readable-studio/product-identity" },
+  { directory: "packages/diagnostics", name: "@readable-studio/diagnostics" },
+  { directory: "apps/daemon", name: "@readable-studio/daemon" },
+  { directory: "apps/web", name: "@readable-studio/web" },
+  { directory: "apps/desktop", name: "@readable-studio/desktop" },
+  { directory: "apps/packaged", name: "@readable-studio/packaged" },
 ] as const;

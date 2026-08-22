@@ -4,8 +4,8 @@
 // localStorage and sessionStorage. This fork keeps the exported functions for
 // existing call sites but returns fixed disabled markers and writes nothing.
 
-import type { AnalyticsClientType } from '@open-design/contracts/analytics';
-import { detectOpenDesignHostClientType } from '@open-design/host';
+import type { AnalyticsClientType } from '@readable-studio/contracts/analytics';
+import { detectReadableStudioHostClientType } from '@readable-studio/host';
 
 export function getAnonymousId(): string {
   return 'telemetry-disabled';
@@ -17,7 +17,7 @@ export function getSessionId(): string {
 
 export function detectClientType(): AnalyticsClientType {
   if (typeof window === 'undefined') return 'web';
-  return detectOpenDesignHostClientType();
+  return detectReadableStudioHostClientType();
 }
 
 export function detectLaunchSource():

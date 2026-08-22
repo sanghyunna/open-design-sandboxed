@@ -9,7 +9,7 @@ without churning code paths.
 
 | File | Responsibility |
 |---|---|
-| `config.ts` | `CritiqueConfig` defaults + `OD_CRITIQUE_*` env-var parsing. The single source of truth for thresholds, weights, max-rounds, timeouts. |
+| `config.ts` | `CritiqueConfig` defaults + `READABLE_CRITIQUE_*` env-var parsing. The single source of truth for thresholds, weights, max-rounds, timeouts. |
 | `orchestrator.ts` | The state machine. Spawns a CLI session, feeds the panelist prompts in order, awaits each round's SHIP / round_end, and decides whether to continue or terminate. |
 | `parser.ts` + `parsers/v1.ts` | Streaming parser that ingests the agent's stdout and yields `PanelEvent`s. Owns the `<CRITIQUE_RUN>`, `<PANELIST>`, `<SHIP>` envelope. |
 | `errors.ts` | Typed parser failures: `MalformedBlockError`, `OversizeBlockError`, `MissingArtifactError`. Each maps to a `DegradedReason` so the wire-level `critique.degraded` event carries the right tag. |
@@ -45,7 +45,7 @@ without churning code paths.
   but every production deployment uses the v1 distribution
   (designer 0 / critic 0.4 / brand 0.2 / a11y 0.2 / copy 0.2). The
   v2 work is cross-package: the daemon adds per-skill weight
-  overrides driven off `od.critique.cast` in `SKILL.md` frontmatter
+  overrides driven off `readable.critique.cast` in `SKILL.md` frontmatter
   (this directory) and the web Settings surface adds a per-project
   weight editor (`apps/web/src/components/Settings/`). Treat the v1
   weights as a wire-shape invariant rather than a tuning knob;

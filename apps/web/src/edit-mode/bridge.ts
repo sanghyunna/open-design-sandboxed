@@ -1,19 +1,19 @@
 export const MANUAL_EDIT_DISCOVERY_SELECTOR = 'main, nav, section, article, header, footer, div, h1, h2, h3, h4, h5, h6, p, li, label, a, button, img, strong, span, small, em, b, i, u, s, mark, code, pre, time, abbr, cite, q, sub, sup, kbd, samp, var, dfn, ins, del, bdi, bdo, figcaption, caption, th, td, dt, dd, summary, output';
 export const MANUAL_EDIT_SEMANTIC_TARGET_SELECTOR = 'svg';
 export const MANUAL_EDIT_TARGET_SELECTOR = `${MANUAL_EDIT_DISCOVERY_SELECTOR}, ${MANUAL_EDIT_SEMANTIC_TARGET_SELECTOR}`;
-export const MANUAL_EDIT_SOURCE_PATH_ATTR = 'data-od-source-path';
-export const MANUAL_EDIT_TRANSIENT_ATTR = 'data-od-edit-transient';
-const MANUAL_EDIT_RUNTIME_HOVER_ATTR = 'data-od-runtime-hovered';
+export const MANUAL_EDIT_SOURCE_PATH_ATTR = 'data-readable-source-path';
+export const MANUAL_EDIT_TRANSIENT_ATTR = 'data-readable-edit-transient';
+const MANUAL_EDIT_RUNTIME_HOVER_ATTR = 'data-readable-runtime-hovered';
 const MANUAL_EDIT_INLINE_TEXT_WRAPPER_SELECTOR = 'strong, span, small, em, b, i, u, s, mark, code, time, abbr, cite, q, sub, sup, kbd, samp, var, dfn, ins, del, bdi, bdo';
 const MANUAL_EDIT_TEXT_PASSAGE_SELECTOR = 'div, h1, h2, h3, h4, h5, h6, p, li, label, a, button, figcaption, caption, th, td, dt, dd, summary, output';
 export const MANUAL_EDIT_HOST_NODE_SELECTOR = [
-  '[data-od-sandbox-shim]',
-  '[data-od-deck-bridge]',
-  '[data-od-comment-bridge]',
-  '[data-od-edit-bridge]',
-  '[data-od-comment-bridge-style]',
-  '[data-od-edit-bridge-style]',
-  '[data-od-deck-fix]',
+  '[data-readable-sandbox-shim]',
+  '[data-readable-deck-bridge]',
+  '[data-readable-comment-bridge]',
+  '[data-readable-edit-bridge]',
+  '[data-readable-comment-bridge-style]',
+  '[data-readable-edit-bridge-style]',
+  '[data-readable-deck-fix]',
 ].join(',');
 
 export function manualEditDomPathForElement(el: Element): string {
@@ -34,10 +34,10 @@ export function isManualEditHostNode(el: Element): boolean {
 }
 
 export function manualEditStableIdForElement(el: Element): string {
-  const explicit = el.getAttribute('data-od-id');
+  const explicit = el.getAttribute('data-readable-id');
   if (explicit) return explicit;
-  const generated = el.getAttribute(MANUAL_EDIT_SOURCE_PATH_ATTR) || el.getAttribute('data-od-runtime-id') || manualEditDomPathForElement(el);
-  if (generated) el.setAttribute('data-od-runtime-id', generated);
+  const generated = el.getAttribute(MANUAL_EDIT_SOURCE_PATH_ATTR) || el.getAttribute('data-readable-runtime-id') || manualEditDomPathForElement(el);
+  if (generated) el.setAttribute('data-readable-runtime-id', generated);
   return generated || 'unknown';
 }
 
@@ -50,7 +50,7 @@ export function isMeaningfulManualEditElement(el: Element, rect: Pick<DOMRect, '
 }
 
 export function isSourceMappableManualEditElement(el: Element): boolean {
-  return el.hasAttribute('data-od-id') || el.hasAttribute(MANUAL_EDIT_SOURCE_PATH_ATTR);
+  return el.hasAttribute('data-readable-id') || el.hasAttribute(MANUAL_EDIT_SOURCE_PATH_ATTR);
 }
 
 export function isManualEditSemanticVisualElement(el: Element): boolean {
@@ -92,7 +92,7 @@ function hasManualEditTextPassageAncestor(el: Element): boolean {
 }
 
 export function buildManualEditBridge(enabled: boolean): string {
-  return `<script data-od-edit-bridge>(function(){
+  return `<script data-readable-edit-bridge>(function(){
   var enabled = ${JSON.stringify(enabled)};
   var discoverySelector = ${JSON.stringify(MANUAL_EDIT_DISCOVERY_SELECTOR)};
   var targetSelector = ${JSON.stringify(MANUAL_EDIT_TARGET_SELECTOR)};
@@ -134,14 +134,14 @@ export function buildManualEditBridge(enabled: boolean): string {
     return parts.length ? 'path-' + parts.join('-') : '';
   }
   function stableId(el){
-    var explicit = el.getAttribute('data-od-id');
+    var explicit = el.getAttribute('data-readable-id');
     if (explicit) return explicit;
-    var generated = el.getAttribute(sourcePathAttr) || el.getAttribute('data-od-runtime-id') || domPath(el);
-    if (generated) el.setAttribute('data-od-runtime-id', generated);
+    var generated = el.getAttribute(sourcePathAttr) || el.getAttribute('data-readable-runtime-id') || domPath(el);
+    if (generated) el.setAttribute('data-readable-runtime-id', generated);
     return generated || 'unknown';
   }
   function isSourceMappable(el){
-    return !!(el && !isTransient(el) && el.hasAttribute && (el.hasAttribute('data-od-id') || el.hasAttribute(sourcePathAttr)));
+    return !!(el && !isTransient(el) && el.hasAttribute && (el.hasAttribute('data-readable-id') || el.hasAttribute(sourcePathAttr)));
   }
   function isSemanticVisualRoot(el){
     if (!el || !el.tagName || el.tagName.toLowerCase() !== 'svg') return false;
@@ -249,7 +249,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     return hasText;
   }
   function inferKind(el){
-    var explicit = el.getAttribute('data-od-edit');
+    var explicit = el.getAttribute('data-readable-edit');
     if (explicit) return explicit;
     if (isSemanticVisualRoot(el)) return 'container';
     var tag = el.tagName ? el.tagName.toLowerCase() : '';
@@ -261,7 +261,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     return 'text';
   }
   function labelFor(el, id, kind){
-    var explicit = el.getAttribute('data-od-label');
+    var explicit = el.getAttribute('data-readable-label');
     if (explicit) return explicit;
     var accessible = isSemanticVisualRoot(el) ? (el.getAttribute('aria-label') || el.getAttribute('title')) : '';
     if (!accessible && isSemanticVisualRoot(el)) {
@@ -286,7 +286,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     var attrs = {};
     for (var i = 0; i < el.attributes.length; i++) {
       var attr = el.attributes[i];
-      if (!attr || attr.name.indexOf('data-od-runtime') === 0 || attr.name === 'data-od-edit-selected') continue;
+      if (!attr || attr.name.indexOf('data-readable-runtime') === 0 || attr.name === 'data-readable-edit-selected') continue;
       attrs[attr.name] = attr.value;
     }
     return attrs;
@@ -366,8 +366,8 @@ export function buildManualEditBridge(enabled: boolean): string {
     // custom property from inheriting onto a target whose width is actually
     // undeclared.
     authoredSizeProbeSeq += 1;
-    var probeName = '--od-authored-size-' + authoredSizeProbeSeq;
-    var markerName = 'data-od-authored-size-probe';
+    var probeName = '--readable-authored-size-' + authoredSizeProbeSeq;
+    var markerName = 'data-readable-authored-size-probe';
     var markerValue = 'p' + authoredSizeProbeSeq;
     var values = [''];
     function declarationRule(selector, declaration){
@@ -408,7 +408,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     var previousProbe = el.style.getPropertyValue(probeName);
     var previousProbePriority = el.style.getPropertyPriority(probeName);
     var probeStyle = document.createElement('style');
-    probeStyle.setAttribute('data-od-authored-size-probe-style', '');
+    probeStyle.setAttribute('data-readable-authored-size-probe-style', '');
     try {
       el.setAttribute(markerName, markerValue);
       var css = ':where([' + markerName + '=\"' + markerValue + '\"]){' + probeName + ':0;}';
@@ -538,7 +538,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       isLayoutContainer: isLayoutContainer(el),
       isHidden: hidden,
       isConnected: el.isConnected,
-      outerHtml: includeOuterHtml ? (el.outerHTML || '').replace(/\\sdata-od-runtime-id="[^"]*"/g, '').replace(/\\sdata-od-runtime-hovered="[^"]*"/g, '').replace(/\\sdata-od-source-path="[^"]*"/g, '').replace(/\\sdata-od-edit-selected="[^"]*"/g, '') : ''
+      outerHtml: includeOuterHtml ? (el.outerHTML || '').replace(/\\sdata-readable-runtime-id="[^"]*"/g, '').replace(/\\sdata-readable-runtime-hovered="[^"]*"/g, '').replace(/\\sdata-readable-source-path="[^"]*"/g, '').replace(/\\sdata-readable-edit-selected="[^"]*"/g, '') : ''
     };
     // Only selected targets need cascade provenance for the inspector;
     // discovery and hover broadcasts intentionally skip the CSSOM probe.
@@ -561,7 +561,7 @@ export function buildManualEditBridge(enabled: boolean): string {
   }
   function postTargets(){
     if (!enabled) return;
-    postManualMessage({ type: 'od-edit-targets', targets: allTargets() });
+    postManualMessage({ type: 'readable-edit-targets', targets: allTargets() });
   }
   var lastHoverId;
   var hoveredTarget = null;
@@ -581,7 +581,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     var id = el ? stableId(el) : null;
     if (id === lastHoverId) return;
     lastHoverId = id;
-    postManualMessage({ type: 'od-edit-hover', target: el ? targetFrom(el, true, false) : null });
+    postManualMessage({ type: 'readable-edit-hover', target: el ? targetFrom(el, true, false) : null });
   }
   function resolveHoverAtPoint(clientX, clientY, fallback){
     var el = topTargetAtPoint(clientX, clientY, fallback);
@@ -589,14 +589,14 @@ export function buildManualEditBridge(enabled: boolean): string {
     postHoverTarget(el);
   }
   function clearSelectedTarget(){
-    var selected = document.querySelectorAll('[data-od-edit-selected]');
-    for (var i = 0; i < selected.length; i++) selected[i].removeAttribute('data-od-edit-selected');
+    var selected = document.querySelectorAll('[data-readable-edit-selected]');
+    for (var i = 0; i < selected.length; i++) selected[i].removeAttribute('data-readable-edit-selected');
   }
   function setSelectedTarget(id){
     clearSelectedTarget();
     if (!id) return;
     var el = findById(id);
-    if (el) el.setAttribute('data-od-edit-selected', 'true');
+    if (el) el.setAttribute('data-readable-edit-selected', 'true');
   }
   function ancestorTarget(el){
     if (isTransient(el)) return null;
@@ -740,20 +740,20 @@ export function buildManualEditBridge(enabled: boolean): string {
     }
   }
   function richEditingEl(){
-    var el = document.querySelector('[data-od-editing="true"]');
+    var el = document.querySelector('[data-readable-editing="true"]');
     return (el && el.getAttribute('contenteditable') === 'true') ? el : null;
   }
   function postSelectionState(){
     if (!enabled) return;
     var el = richEditingEl();
     if (!el) {
-      window.parent.postMessage({ type: 'od-edit-selection-state', editing: false, hasSelection: false, bold: false, italic: false, underline: false }, '*');
+      window.parent.postMessage({ type: 'readable-edit-selection-state', editing: false, hasSelection: false, bold: false, italic: false, underline: false }, '*');
       return;
     }
     var range = currentSelectedRange();
     var within = !!(range && el.contains(range.startContainer) && el.contains(range.endContainer));
     function q(cmd){ try { return !!document.queryCommandState(cmd); } catch (e) { return false; } }
-    window.parent.postMessage({ type: 'od-edit-selection-state', editing: true, hasSelection: within, bold: q('bold'), italic: q('italic'), underline: q('underline') }, '*');
+    window.parent.postMessage({ type: 'readable-edit-selection-state', editing: true, hasSelection: within, bold: q('bold'), italic: q('italic'), underline: q('underline') }, '*');
   }
   function applyRichFormat(command){
     if (command !== 'bold' && command !== 'italic' && command !== 'underline') return;
@@ -778,7 +778,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     clearSelectedTarget();
     resetClickCycle();
     el.setAttribute('contenteditable', rich ? 'true' : 'plaintext-only');
-    el.setAttribute('data-od-editing', 'true');
+    el.setAttribute('data-readable-editing', 'true');
     // Chromium's execCommand defaults to inline style spans; turning this off
     // once per session makes B/I/U emit <b>/<i>/<u> tags instead.
     if (rich) { try { document.execCommand('styleWithCSS', false, 'false'); } catch (e) {} }
@@ -787,7 +787,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (rich) postSelectionState();
     function finish(commit){
       el.removeAttribute('contenteditable');
-      el.removeAttribute('data-od-editing');
+      el.removeAttribute('data-readable-editing');
       el.removeEventListener('blur', onBlur);
       el.removeEventListener('keydown', onKey);
       postSelectionState();
@@ -808,7 +808,7 @@ export function buildManualEditBridge(enabled: boolean): string {
         var html = el.innerHTML;
         if (html !== originalHtml) {
           window.parent.postMessage({
-            type: 'od-edit-html-commit',
+            type: 'readable-edit-html-commit',
             id: stableId(el),
             html: html
           }, '*');
@@ -818,7 +818,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       var value = (el.textContent || '').trim();
       if (value !== originalText.trim()) {
         window.parent.postMessage({
-          type: 'od-edit-text-commit',
+          type: 'readable-edit-text-commit',
           id: stableId(el),
           value: value
         }, '*');
@@ -861,8 +861,8 @@ export function buildManualEditBridge(enabled: boolean): string {
       }
       return null;
     }
-    var el = firstLive('[data-od-id="' + cssEscapeId(id) + '"]')
-          || firstLive('[data-od-runtime-id="' + cssEscapeId(id) + '"]')
+    var el = firstLive('[data-readable-id="' + cssEscapeId(id) + '"]')
+          || firstLive('[data-readable-runtime-id="' + cssEscapeId(id) + '"]')
           || firstLive('[' + sourcePathAttr + '="' + cssEscapeId(id) + '"]');
     if (el && isSourceMappable(el)) return el;
     if (typeof id === 'string' && id.indexOf('path-') === 0) {
@@ -882,13 +882,13 @@ export function buildManualEditBridge(enabled: boolean): string {
   function applyPreviewStyles(id, styles, version, includeAuthoredSize, resizeRequest){
     var el = findById(id);
     if (!el) {
-      window.parent.postMessage({ type: 'od-edit-preview-style-applied', id: id || '', version: Number(version) || 0, ok: false, error: 'Target not found' }, '*');
+      window.parent.postMessage({ type: 'readable-edit-preview-style-applied', id: id || '', version: Number(version) || 0, ok: false, error: 'Target not found' }, '*');
       return;
     }
     var keys = Object.keys(styles || {});
     // Mute window: live preview streams one inline-style write per frame during
     // a drag; without it the layout observer below would echo a full
-    // od-edit-targets post per frame. queuePostTargets DEFERS (not drops) the
+    // readable-edit-targets post per frame. queuePostTargets DEFERS (not drops) the
     // muted echo, so one coalesced re-broadcast still lands after the stream
     // quiets; mid-drag the per-frame ack below carries the fresh rect instead.
     suppressObservedLayoutUntil = Date.now() + 64;
@@ -905,7 +905,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       // requested size), so every ack feeds the applied geometry back.
       var applied = el.getBoundingClientRect();
       var appliedMessage = {
-        type: 'od-edit-preview-style-applied',
+        type: 'readable-edit-preview-style-applied',
         id: id,
         version: Number(version) || 0,
         ok: true,
@@ -917,7 +917,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       if (resize) appliedMessage.resize = resize;
       window.parent.postMessage(appliedMessage, '*');
     } catch (e) {
-      window.parent.postMessage({ type: 'od-edit-preview-style-applied', id: id, version: Number(version) || 0, ok: false, error: e && e.message ? String(e.message) : 'Could not apply preview styles' }, '*');
+      window.parent.postMessage({ type: 'readable-edit-preview-style-applied', id: id, version: Number(version) || 0, ok: false, error: e && e.message ? String(e.message) : 'Could not apply preview styles' }, '*');
     }
   }
   var duplicateForbiddenTags = {
@@ -949,13 +949,13 @@ export function buildManualEditBridge(enabled: boolean): string {
           name.indexOf('on') === 0
           || name === 'srcdoc'
           || name === transientAttr
-          || name === 'data-od-source-path'
-          || name.indexOf('data-od-runtime-') === 0
-          || name === 'data-od-edit-selected'
-          || name === 'data-od-editing'
-          || name === 'data-od-edit-mode'
-          || name === 'data-od-authored-size-probe'
-          || name === 'data-od-authored-size-probe-style'
+          || name === 'data-readable-source-path'
+          || name.indexOf('data-readable-runtime-') === 0
+          || name === 'data-readable-edit-selected'
+          || name === 'data-readable-editing'
+          || name === 'data-readable-edit-mode'
+          || name === 'data-readable-authored-size-probe'
+          || name === 'data-readable-authored-size-probe-style'
         ) return 'Unsafe duplicate attribute.';
         if (
           name === 'autofocus'
@@ -1154,7 +1154,7 @@ export function buildManualEditBridge(enabled: boolean): string {
   }
   function postDuplicatePreview(command, ok, error, rect, naturalRect, placementOffset, sequence){
     var message = {
-      type: 'od-edit-duplicate-preview',
+      type: 'readable-edit-duplicate-preview',
       transactionId: command.transactionId,
       ok: ok
     };
@@ -1165,7 +1165,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     postManualMessage(message, sequence);
   }
   function postDuplicateRemoved(command, sequence){
-    postManualMessage({ type: 'od-edit-duplicate-removed', transactionId: command.transactionId }, sequence);
+    postManualMessage({ type: 'readable-edit-duplicate-removed', transactionId: command.transactionId }, sequence);
   }
   function rejectDuplicate(command, error, root){
     removeDuplicateRoot(root);
@@ -1178,7 +1178,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     for (var i = 0; i < documentElements.length; i++) {
       var existing = documentElements[i];
       if (isTransient(existing)) continue;
-      var manualId = existing.getAttribute('data-od-id');
+      var manualId = existing.getAttribute('data-readable-id');
       var nativeId = existing.getAttribute('id');
       if (manualId) existingManualIds[manualId] = existing;
       if (nativeId) existingNativeIds[nativeId] = existing;
@@ -1188,7 +1188,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     var ownNativeIds = Object.create(null);
     for (var j = 0; j < elements.length; j++) {
       var el = elements[j];
-      var manual = el.getAttribute('data-od-id');
+      var manual = el.getAttribute('data-readable-id');
       var nativeIdValue = el.getAttribute('id');
       if (manual) {
         if (ownManualIds[manual] || existingManualIds[manual]) return false;
@@ -1313,7 +1313,7 @@ export function buildManualEditBridge(enabled: boolean): string {
   var hostSelectedTargetId = null;
   var hostRevision = 0;
   // Arrow keys currently held for a nudge burst. keyup does not cross the iframe
-  // boundary, so the bridge tracks them here and posts od-edit-nudge-commit once
+  // boundary, so the bridge tracks them here and posts readable-edit-nudge-commit once
   // the set empties, giving the host the burst-end signal it cannot observe.
   var heldNudgeKeys = {};
   // Arrow keys whose burst Escape cancelled while they were physically held.
@@ -1330,7 +1330,7 @@ export function buildManualEditBridge(enabled: boolean): string {
   function finalizeHeldNudgeBurst(){
     if (!hasHeldNudgeKeys()) return;
     heldNudgeKeys = {};
-    window.parent.postMessage({ type: 'od-edit-nudge-commit', targetId: hostSelectedTargetId, revision: hostRevision }, '*');
+    window.parent.postMessage({ type: 'readable-edit-nudge-commit', targetId: hostSelectedTargetId, revision: hostRevision }, '*');
   }
   function clearDeferredOverlayClick(){
     if (deferredOverlayClick !== null) {
@@ -1344,7 +1344,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     var id = stableId(el);
     setSelectedTarget(id);
     hostSelectedTargetId = id;
-    window.parent.postMessage({ type: 'od-edit-select', target: targetFrom(el, true, true) }, '*');
+    window.parent.postMessage({ type: 'readable-edit-select', target: targetFrom(el, true, true) }, '*');
     resolveHoverAtPoint(event.clientX, event.clientY, event.target);
     // Only enter inline edit on a fresh, non-modified click on the topmost
     // text/link target. Cycled clicks are explicitly drilling the z-stack;
@@ -1358,14 +1358,14 @@ export function buildManualEditBridge(enabled: boolean): string {
       resetClickCycle();
       // Clicking empty canvas (no source-mapped ancestor) is the gesture for
       // page-level styles; the host decides whether to surface the card.
-      window.parent.postMessage({ type: 'od-edit-background' }, '*');
+      window.parent.postMessage({ type: 'readable-edit-background' }, '*');
       return;
     }
     activateClickTarget(el, event, result.cycled, selectionAware !== false);
   }
   window.addEventListener('message', function(ev){
     if (!ev.data) return;
-    if (ev.data.type === 'od-edit-mode') {
+    if (ev.data.type === 'readable-edit-mode') {
       var nextEnabled = !!ev.data.enabled;
       documentEpoch = typeof ev.data.documentEpoch === 'string' ? ev.data.documentEpoch : null;
       if (enabled !== nextEnabled) {
@@ -1373,7 +1373,7 @@ export function buildManualEditBridge(enabled: boolean): string {
         clearDeferredOverlayClick();
       }
       enabled = nextEnabled;
-      document.documentElement.toggleAttribute('data-od-edit-mode', enabled);
+      document.documentElement.toggleAttribute('data-readable-edit-mode', enabled);
       if (!enabled) {
         removeDuplicateRoot();
         clearSelectedTarget();
@@ -1384,29 +1384,29 @@ export function buildManualEditBridge(enabled: boolean): string {
       if (enabled) setTimeout(postTargets, 0);
       return;
     }
-    if (ev.data.type === 'od-edit-duplicate-create') {
+    if (ev.data.type === 'readable-edit-duplicate-create') {
       createDuplicate(ev.data);
       return;
     }
-    if (ev.data.type === 'od-edit-duplicate-update') {
+    if (ev.data.type === 'readable-edit-duplicate-update') {
       updateDuplicate(ev.data);
       return;
     }
-    if (ev.data.type === 'od-edit-duplicate-cancel') {
+    if (ev.data.type === 'readable-edit-duplicate-cancel') {
       cancelDuplicate(ev.data);
       return;
     }
-    if (ev.data.type === 'od-edit-click-cancel') {
+    if (ev.data.type === 'readable-edit-click-cancel') {
       clearDeferredOverlayClick();
       return;
     }
-    if (ev.data.type === 'od-edit-click' || ev.data.type === 'od-edit-alt-click') {
+    if (ev.data.type === 'readable-edit-click' || ev.data.type === 'readable-edit-alt-click') {
       var clickX = Number(ev.data.clientX);
       var clickY = Number(ev.data.clientY);
       if (!enabled || !isFinite(clickX) || !isFinite(clickY)) return;
       clearDeferredOverlayClick();
       var clickEl = document.elementFromPoint ? document.elementFromPoint(clickX, clickY) : null;
-      var overlayEvent = { target: clickEl, altKey: ev.data.type === 'od-edit-alt-click', clientX: clickX, clientY: clickY };
+      var overlayEvent = { target: clickEl, altKey: ev.data.type === 'readable-edit-alt-click', clientX: clickX, clientY: clickY };
       if (overlayEvent.altKey) {
         handleClick(overlayEvent, false);
         return;
@@ -1433,7 +1433,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       handleClick(overlayEvent, false);
       return;
     }
-    if (ev.data.type === 'od-edit-select-target') {
+    if (ev.data.type === 'readable-edit-select-target') {
       if (!enabled) return;
       clearDeferredOverlayClick();
       var requestedEl = findById(ev.data.id);
@@ -1443,10 +1443,10 @@ export function buildManualEditBridge(enabled: boolean): string {
       postHoverTarget(null);
       setSelectedTarget(selectTargetId);
       hostSelectedTargetId = selectTargetId;
-      window.parent.postMessage({ type: 'od-edit-select', target: targetFrom(requestedEl, true, true) }, '*');
+      window.parent.postMessage({ type: 'readable-edit-select', target: targetFrom(requestedEl, true, true) }, '*');
       return;
     }
-    if (ev.data.type === 'od-edit-selected-target') {
+    if (ev.data.type === 'readable-edit-selected-target') {
       var nextSelectedTargetId = typeof ev.data.id === 'string' && ev.data.id ? ev.data.id : null;
       if (hostSelectedTargetId !== nextSelectedTargetId) clearDeferredOverlayClick();
       hostSelectedTargetId = nextSelectedTargetId;
@@ -1455,14 +1455,14 @@ export function buildManualEditBridge(enabled: boolean): string {
       setSelectedTarget(ev.data.id || null);
       return;
     }
-    if (ev.data.type === 'od-edit-hover-reset') {
+    if (ev.data.type === 'readable-edit-hover-reset') {
       // Host signals the cursor truly left the canvas, so the next pointerover
       // re-announces the hovered element (defeats the per-element dedupe).
       setHoveredTarget(null);
       lastHoverId = undefined;
       return;
     }
-    if (ev.data.type === 'od-edit-hover-at') {
+    if (ev.data.type === 'readable-edit-hover-at') {
       var hoverX = Number(ev.data.clientX);
       var hoverY = Number(ev.data.clientY);
       if (!enabled || documentEpoch === null || ev.data.documentEpoch !== documentEpoch
@@ -1472,23 +1472,23 @@ export function buildManualEditBridge(enabled: boolean): string {
       resolveHoverAtPoint(hoverX, hoverY, hoverEl);
       return;
     }
-    if (ev.data.type === 'od-edit-preview-style') {
+    if (ev.data.type === 'readable-edit-preview-style') {
       applyPreviewStyles(ev.data.id, ev.data.styles || {}, ev.data.version, ev.data.includeAuthoredSize === true, ev.data.resize);
       return;
     }
-    if (ev.data.type === 'od-edit-rich-format') {
+    if (ev.data.type === 'readable-edit-rich-format') {
       applyRichFormat(ev.data.command);
       return;
     }
-    if (ev.data.type === 'od-edit-begin-text-edit') {
+    if (ev.data.type === 'readable-edit-begin-text-edit') {
       if (!enabled) return;
       clearDeferredOverlayClick();
       var beginEl = findById(ev.data.id);
-      if (beginEl && beginEl.getAttribute('data-od-editing') !== 'true') makeEditable(beginEl);
+      if (beginEl && beginEl.getAttribute('data-readable-editing') !== 'true') makeEditable(beginEl);
       return;
     }
-    if (ev.data.type === 'od-edit-end-text-edit') {
-      var endEl = document.querySelector('[data-od-editing="true"]');
+    if (ev.data.type === 'readable-edit-end-text-edit') {
+      var endEl = document.querySelector('[data-readable-editing="true"]');
       if (endEl && typeof endEl.blur === 'function') endEl.blur();
       return;
     }
@@ -1496,14 +1496,14 @@ export function buildManualEditBridge(enabled: boolean): string {
   document.addEventListener('click', function(ev){
     if (!enabled) return;
     clearDeferredOverlayClick();
-    if (ev.target && ev.target.closest && ev.target.closest('[data-od-editing="true"]')) return;
+    if (ev.target && ev.target.closest && ev.target.closest('[data-readable-editing="true"]')) return;
     ev.preventDefault();
     ev.stopPropagation();
     handleClick(ev);
   }, true);
   document.addEventListener('pointerover', function(ev){
     if (!enabled) return;
-    if (ev.target && ev.target.closest && ev.target.closest('[data-od-editing="true"]')) {
+    if (ev.target && ev.target.closest && ev.target.closest('[data-readable-editing="true"]')) {
       postHoverTarget(null);
       return;
     }
@@ -1511,7 +1511,7 @@ export function buildManualEditBridge(enabled: boolean): string {
   }, true);
   document.addEventListener('pointermove', function(ev){
     if (!enabled) return;
-    if (ev.target && ev.target.closest && ev.target.closest('[data-od-editing="true"]')) {
+    if (ev.target && ev.target.closest && ev.target.closest('[data-readable-editing="true"]')) {
       postHoverTarget(null);
       return;
     }
@@ -1545,9 +1545,9 @@ export function buildManualEditBridge(enabled: boolean): string {
     // Synthetic arrow keys dispatched by the host-side deck bridge are wrapped
     // in the deck-synthetic flag: they are slide navigation, not user nudges,
     // so the edit bridge leaves them (and their keyups) completely untouched.
-    if (nudgeDirection && window.__odDeckSynthetic) return;
-    var selectedEl = document.querySelector('[data-od-edit-selected]');
-    var isEditing = !!document.querySelector('[data-od-editing="true"]');
+    if (nudgeDirection && window.__readableStudioDeckSynthetic) return;
+    var selectedEl = document.querySelector('[data-readable-edit-selected]');
+    var isEditing = !!document.querySelector('[data-readable-editing="true"]');
     // A key still latched from an Escape-cancelled burst: swallow its repeats
     // so artifact/deck handlers never see a half-owned key, but never nudge.
     if (nudgeDirection && cancelledNudgeKeys[ev.key] && !(ev.ctrlKey || ev.metaKey || ev.altKey)) {
@@ -1559,7 +1559,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       ev.preventDefault();
       ev.stopImmediatePropagation();
       heldNudgeKeys[ev.key] = 1;
-      window.parent.postMessage({ type: 'od-edit-nudge', direction: nudgeDirection, targetId: hostSelectedTargetId, revision: hostRevision }, '*');
+      window.parent.postMessage({ type: 'readable-edit-nudge', direction: nudgeDirection, targetId: hostSelectedTargetId, revision: hostRevision }, '*');
       return;
     }
     // Escape owns the key ONLY while a nudge burst is physically held; with no
@@ -1569,7 +1569,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       ev.stopImmediatePropagation();
       for (var held in heldNudgeKeys) { if (heldNudgeKeys.hasOwnProperty(held)) cancelledNudgeKeys[held] = 1; }
       heldNudgeKeys = {};
-      window.parent.postMessage({ type: 'od-edit-burst-cancel' }, '*');
+      window.parent.postMessage({ type: 'readable-edit-burst-cancel' }, '*');
       return;
     }
     if (isEditing) return;
@@ -1579,22 +1579,22 @@ export function buildManualEditBridge(enabled: boolean): string {
     var isRedo = (key === 'z' && ev.shiftKey) || (key === 'y' && !ev.shiftKey);
     if (!isUndo && !isRedo) return;
     ev.preventDefault();
-    window.parent.postMessage({ type: 'od-edit-undo', redo: isRedo }, '*');
+    window.parent.postMessage({ type: 'readable-edit-undo', redo: isRedo }, '*');
   }, true);
   // Releasing the last held arrow key ends the burst; tell the host to commit.
   // A keyup the bridge never tracked (a host-origin keydown) is forwarded as
-  // od-edit-nudge-keyup instead, so a host-origin burst still ends when the
+  // readable-edit-nudge-keyup instead, so a host-origin burst still ends when the
   // key physically comes up inside the iframe. Latched and synthetic keyups
   // go nowhere.
   document.addEventListener('keyup', function(ev){
     if (!enabled) return;
     var nudgeKeys = { ArrowUp: 1, ArrowDown: 1, ArrowLeft: 1, ArrowRight: 1 };
     if (!nudgeKeys[ev.key]) return;
-    if (window.__odDeckSynthetic) return;
+    if (window.__readableStudioDeckSynthetic) return;
     if (heldNudgeKeys[ev.key]) {
       delete heldNudgeKeys[ev.key];
       for (var held in heldNudgeKeys) { if (heldNudgeKeys.hasOwnProperty(held)) return; }
-      window.parent.postMessage({ type: 'od-edit-nudge-commit', targetId: hostSelectedTargetId, revision: hostRevision }, '*');
+      window.parent.postMessage({ type: 'readable-edit-nudge-commit', targetId: hostSelectedTargetId, revision: hostRevision }, '*');
       return;
     }
     if (cancelledNudgeKeys[ev.key]) {
@@ -1602,7 +1602,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       return;
     }
     if (hostSelectedTargetId) {
-      window.parent.postMessage({ type: 'od-edit-nudge-keyup', key: ev.key, targetId: hostSelectedTargetId, revision: hostRevision }, '*');
+      window.parent.postMessage({ type: 'readable-edit-nudge-keyup', key: ev.key, targetId: hostSelectedTargetId, revision: hostRevision }, '*');
     }
   }, true);
   window.addEventListener('blur', finalizeHeldNudgeBurst);
@@ -1668,20 +1668,20 @@ export function buildManualEditBridge(enabled: boolean): string {
   document.addEventListener('animationend', queuePostTargets, true);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', postTargets);
   else setTimeout(postTargets, 0);
-  document.documentElement.toggleAttribute('data-od-edit-mode', enabled);
+  document.documentElement.toggleAttribute('data-readable-edit-mode', enabled);
 })();</script>`;
 }
 
 export function buildManualEditBridgeStyle(): string {
-  return `<style data-od-edit-bridge-style>
-html[data-od-edit-mode] body * { cursor: pointer !important; }
-html[data-od-edit-mode] [${MANUAL_EDIT_RUNTIME_HOVER_ATTR}]:not([data-od-edit-selected]) { outline: 2px solid #2563eb; }
-html[data-od-edit-mode] [data-od-edit-selected]:where([data-od-editing="true"]) {
+  return `<style data-readable-edit-bridge-style>
+html[data-readable-edit-mode] body * { cursor: pointer !important; }
+html[data-readable-edit-mode] [${MANUAL_EDIT_RUNTIME_HOVER_ATTR}]:not([data-readable-edit-selected]) { outline: 2px solid #2563eb; }
+html[data-readable-edit-mode] [data-readable-edit-selected]:where([data-readable-editing="true"]) {
   outline: 2px solid #2563eb !important;
   outline-offset: 4px;
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.16);
 }
-html[data-od-edit-mode] [data-od-editing="true"] {
+html[data-readable-edit-mode] [data-readable-editing="true"] {
   outline: 2px solid #2563eb !important;
   outline-offset: 4px;
   cursor: text !important;

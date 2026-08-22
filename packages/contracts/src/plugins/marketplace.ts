@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import {
   LocalizedTextSchema,
-  OPEN_DESIGN_PLUGIN_SPEC_VERSION,
-  OpenDesignSpecVersionSchema,
+  READABLE_STUDIO_PLUGIN_SPEC_VERSION,
+  ReadableStudioSpecVersionSchema,
 } from './manifest.js';
 
 const MarketplaceEntryDistSchema = z.object({
@@ -27,10 +27,10 @@ const MarketplacePluginVersionSchema = z.object({
 
 export type MarketplacePluginVersion = z.infer<typeof MarketplacePluginVersionSchema>;
 
-// `open-design-marketplace.json` schema (v1). Mirrors
-// `docs/schemas/open-design.marketplace.v1.json`. The federated catalog
-// format is intentionally permissive — community catalogs can carry extra
-// fields (e.g. clawhub category tags) without breaking OD installs.
+// `readable-studio-marketplace.json` schema (v1). Mirrors
+// `docs/schemas/readable-studio.marketplace.v1.json`. The federated catalog
+// format is intentionally permissive so community catalogs can carry extra
+// fields without breaking Readable Studio installs.
 export const MarketplacePluginEntrySchema = z.object({
   name:        z.string().min(1),
   source:      z.string().min(1),
@@ -65,7 +65,7 @@ export type MarketplacePluginEntry = z.infer<typeof MarketplacePluginEntrySchema
 
 export const MarketplaceManifestSchema = z.object({
   $schema:     z.string().optional(),
-  specVersion: OpenDesignSpecVersionSchema.default(OPEN_DESIGN_PLUGIN_SPEC_VERSION),
+  specVersion: ReadableStudioSpecVersionSchema.default(READABLE_STUDIO_PLUGIN_SPEC_VERSION),
   name:        z.string().min(1),
   version:     z.string().min(1),
   owner: z.object({

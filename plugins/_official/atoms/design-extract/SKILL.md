@@ -1,7 +1,7 @@
 ---
 name: design-extract
 description: Extract design tokens (color / typography / spacing) from imported source code, screenshots, or Figma exports into the canonical token bag token-map consumes.
-od:
+readable:
   scenario: code-migration
   mode: extract
 ---
@@ -11,7 +11,7 @@ od:
 Spec §10 / §21.3.2: tokens scattered across a repo's CSS / theme
 files / Tailwind config / styled-components helpers / SCSS partials
 need to be lifted into one bag before `token-map` can crosswalk
-them onto the active OD design system. This atom does the lifting;
+them onto the active Readable Studio design system. This atom does the lifting;
 the input shape is intentionally generic so the same atom serves
 both code-migration and figma-migration when fed different sources.
 

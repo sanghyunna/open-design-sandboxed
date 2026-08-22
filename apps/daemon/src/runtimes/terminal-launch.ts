@@ -9,7 +9,7 @@ const execFileAsync = promisify(execFile);
 // Sign-In OAuth flow (the upstream callback page asks the user to
 // paste the auth code back into agy, but `-p` has no input field), so
 // the user has to run `agy` interactively at least once to populate
-// the system keyring. Spawning a terminal from inside OD makes that
+// the system keyring. Spawning a terminal from inside Readable Studio makes that
 // a one-click action instead of a "go open Terminal yourself" task.
 //
 // Each platform branch uses primitives that are safe against shell
@@ -87,7 +87,7 @@ async function launchOnLinux(command: string): Promise<TerminalLaunchResult> {
 }
 
 // Windows: `cmd /c start "<title>" cmd /k "<command>"` — the outer
-// `start` opens a new console window (the first quoted "Open Design"
+// `start` opens a new console window (the first quoted "Readable Studio"
 // is the window title, required by `start`'s positional-arg parser
 // when the next token is also quoted), and the inner `cmd /k` keeps
 // the window open after the command finishes so the user can see
@@ -96,7 +96,7 @@ async function launchOnWindows(command: string): Promise<TerminalLaunchResult> {
   try {
     await execFileAsync(
       'cmd.exe',
-      ['/c', 'start', 'Open Design', 'cmd.exe', '/k', command],
+      ['/c', 'start', 'Readable Studio', 'cmd.exe', '/k', command],
       { timeout: 5_000 },
     );
     return { ok: true, platform: 'win32', via: 'cmd /c start' };

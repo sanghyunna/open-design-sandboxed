@@ -1,6 +1,6 @@
-# NotebookLM: export issues/PRs from Open Design
+# NotebookLM: export issues/PRs from Readable Studio
 
-Open Design gets a lot of feedback via GitHub Issues + PRs. If you want NotebookLM to help with:
+Readable Studio gets a lot of feedback via GitHub Issues + PRs. If you want NotebookLM to help with:
 
 - support answers (with citations)
 - clustering + taxonomy of user scenarios
@@ -19,7 +19,7 @@ From the repo root:
 
 ```bash
 pnpm exec tsx scripts/notebooklm-export-github.ts \
-  --repo sanghyunna/open-design-sandboxed \
+  --repo sanghyunna/readable-studio \
   --issues open \
   --prs open \
   --limit 50
@@ -35,8 +35,8 @@ You can override the output path:
 
 ```bash
 pnpm exec tsx scripts/notebooklm-export-github.ts \
-  --repo sanghyunna/open-design-sandboxed \
-  --out notebooklm/open-design-snapshot.md
+  --repo sanghyunna/readable-studio \
+  --out notebooklm/readable-studio-snapshot.md
 ```
 
 ### Flags

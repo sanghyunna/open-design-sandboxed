@@ -16,10 +16,10 @@ function target(overrides: Partial<ManualEditTarget> = {}): ManualEditTarget {
     text: '',
     rect: { x: 0, y: 0, width: 120, height: 80 },
     fields: {},
-    attributes: { 'data-od-id': 'hero-box' },
+    attributes: { 'data-readable-id': 'hero-box' },
     styles: emptyManualEditStyles(),
     isLayoutContainer: false,
-    outerHtml: '<section data-od-id="hero-box"></section>',
+    outerHtml: '<section data-readable-id="hero-box"></section>',
     ...overrides,
   };
 }

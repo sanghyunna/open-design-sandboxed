@@ -4,7 +4,7 @@ import { routeAgents } from '@/playwright/mock-factory';
 
 test.describe.configure({ timeout: 30_000 });
 
-const STORAGE_KEY = 'open-design:config';
+const STORAGE_KEY = 'readable-studio:config';
 const OPEN_SETTINGS_LABEL = /Open settings|打开设置|開啟設定/i;
 
 const HOME_CONFIG = {
@@ -38,7 +38,7 @@ const HOME_PLUGINS = [
       title: 'Web Prototype',
       version: '0.1.0',
       description: 'General-purpose desktop web prototype.',
-      od: {
+      readable: {
         kind: 'scenario',
         taskKind: 'new-generation',
         useCase: {
@@ -71,7 +71,7 @@ const HOME_PLUGINS = [
       title: 'Simple Deck',
       version: '0.1.0',
       description: 'Single-file horizontal-swipe HTML deck.',
-      od: {
+      readable: {
         kind: 'scenario',
         taskKind: 'new-generation',
         useCase: {
@@ -122,7 +122,7 @@ const APPLY_RESPONSES: Record<string, unknown> = {
 
 
 async function waitForLoadingToClear(page: Page) {
-  await expect(page.getByText('Loading Open Design…')).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.locator('.readable-loading-shell')).toHaveCount(0, { timeout: 15_000 });
 }
 
 async function seedBrowserConfig(page: Page, config: Record<string, unknown>) {
@@ -137,7 +137,7 @@ async function seedBrowserConfig(page: Page, config: Record<string, unknown>) {
 async function gotoEntryHome(page: Page) {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForLoadingToClear(page);
-  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Open Design' });
+  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Readable Studio' });
   if (await privacyDialog.isVisible().catch(() => false)) {
     await privacyDialog.getByRole('button', { name: /I get it|not now|got it|don't share/i }).click();
   }
@@ -151,7 +151,7 @@ test.beforeEach(async ({ page }) => {
     window.localStorage.setItem(key, JSON.stringify(value));
   }, { key: STORAGE_KEY, value: HOME_CONFIG });
 
-  await page.route('**/api/github/open-design', async (route) => {
+  await page.route('**/api/github/readable-studio', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',

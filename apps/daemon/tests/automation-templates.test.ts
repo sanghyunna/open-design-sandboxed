@@ -40,7 +40,7 @@ describe('automation templates catalog', () => {
   });
 
   it('includes reviewed user templates after proposal apply', async () => {
-    const dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-automation-templates-'));
+    const dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-automation-templates-'));
     try {
       await upsertUserAutomationTemplate(dataDir, {
         id: 'reviewed-context-digest',

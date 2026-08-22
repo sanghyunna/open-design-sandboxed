@@ -2,23 +2,23 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { parseManifest } from '@open-design/plugin-runtime';
+import { parseManifest } from '@readable-studio/plugin-runtime';
 
 // The pitch-deck example's prompt instructs the agent to "confirm three
 // things first" — name + one-line pitch, key traction numbers, ask + use
 // of funds — but until #2215 those facts existed only as English prose
 // inside the prompt. The platform's required-input gate at apply time
 // (apps/daemon/src/plugins/apply.ts:validateInputs) has nothing structured
-// to enforce in that shape, so an agent could route through od-default
+// to enforce in that shape, so an agent could route through readable-default
 // and start generating with no facts collected. This test pins the three
-// facts as structured `od.inputs` fields so the gate fires before any
+// facts as structured `readable.inputs` fields so the gate fires before any
 // HTML/deck artifact is written.
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../../..');
 const manifestPath = path.join(
   repoRoot,
-  'plugins/_official/examples/html-ppt-pitch-deck/open-design.json',
+  'plugins/_official/examples/html-ppt-pitch-deck/readable-studio.json',
 );
 
 describe('html-ppt-pitch-deck manifest inputs', () => {
@@ -27,7 +27,7 @@ describe('html-ppt-pitch-deck manifest inputs', () => {
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
 
-    const inputs = parsed.manifest.od?.inputs ?? [];
+    const inputs = parsed.manifest.readable?.inputs ?? [];
     const requiredNames = inputs
       .filter((input) => input.required === true)
       .map((input) => input.name);

@@ -15,7 +15,7 @@ import { buildSrcdoc } from '../../src/runtime/srcdoc';
 // pushed the scaled stage off-screen.
 //
 // The fix: detect the framework deck via its `id="deck-stage"` marker and
-// skip the `data-od-deck-fix` styleFix for it. Legacy / non-framework
+// skip the `data-readable-deck-fix` styleFix for it. Legacy / non-framework
 // decks that authored their own `.stage` grid still get the override.
 
 function frameworkDeckHtml(): string {
@@ -61,19 +61,19 @@ function legacyDeckHtml(): string {
 describe('injectDeckBridge — framework-deck detection (#deck-stage)', () => {
   it('skips the place-content fix when the deck carries the framework #deck-stage marker', () => {
     const out = buildSrcdoc(frameworkDeckHtml(), { deck: true });
-    expect(out).not.toMatch(/<style[^>]*data-od-deck-fix/);
+    expect(out).not.toMatch(/<style[^>]*data-readable-deck-fix/);
     expect(out).not.toContain('place-content: center !important');
     // The bridge script itself must still ship — the framework's own
     // fit() handles centering, but the host-side counter / keyboard
     // bridge still needs the slide-state postMessage channel.
-    expect(out).toMatch(/<script[^>]*data-od-deck-bridge/);
+    expect(out).toMatch(/<script[^>]*data-readable-deck-bridge/);
   });
 
   it('keeps injecting the place-content fix for legacy / non-framework decks', () => {
     const out = buildSrcdoc(legacyDeckHtml(), { deck: true });
-    expect(out).toMatch(/<style[^>]*data-od-deck-fix/);
+    expect(out).toMatch(/<style[^>]*data-readable-deck-fix/);
     expect(out).toContain('.stage, .deck-stage, .deck-shell { place-content: center !important; }');
-    expect(out).toMatch(/<script[^>]*data-od-deck-bridge/);
+    expect(out).toMatch(/<script[^>]*data-readable-deck-bridge/);
   });
 
   it('skips the fix when #deck-stage uses single quotes, extra whitespace, or uppercase ID syntax', () => {
@@ -87,7 +87,7 @@ describe('injectDeckBridge — framework-deck detection (#deck-stage)', () => {
     ];
     for (const variant of variants) {
       const out = buildSrcdoc(`<!doctype html><html><body>${variant}</body></html>`, { deck: true });
-      expect(out, `variant ${JSON.stringify(variant)}`).not.toContain('data-od-deck-fix');
+      expect(out, `variant ${JSON.stringify(variant)}`).not.toContain('data-readable-deck-fix');
     }
   });
 });

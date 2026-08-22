@@ -961,7 +961,7 @@ When an agent generates UI using the Urdu Modern design system, it **must** foll
 
 ---
 
-## Design System Metadata (For OD Daemon)
+## Design System Metadata (For Readable Studio Daemon)
 
 ```yaml
 name: Urdu Modern

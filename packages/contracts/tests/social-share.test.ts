@@ -2,19 +2,19 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildSocialSharePayload,
-  OPEN_DESIGN_GITHUB_REPO_URL,
+  READABLE_GITHUB_REPO_URL,
 } from '../src/api/social-share';
 
 describe('social-share contract', () => {
-  it('builds Open Design repository share targets', () => {
+  it('builds Readable Studio repository share targets', () => {
     const payload = buildSocialSharePayload({
-      kind: 'open-design-repo',
+      kind: 'readable-studio-repo',
       locale: 'zh-CN',
-      title: 'Open Design GitHub',
-      text: '推荐 Open Design',
+      title: 'Readable Studio GitHub',
+      text: '推荐 Readable Studio',
     });
 
-    expect(payload.url).toBe(OPEN_DESIGN_GITHUB_REPO_URL);
+    expect(payload.url).toBe(READABLE_GITHUB_REPO_URL);
     expect(payload.locale).toBe('zh-CN');
     expect(payload.platforms.some((target) => target.platform === 'x' && target.shareUrl?.includes('twitter.com/intent/tweet'))).toBe(true);
     expect(payload.platforms.some((target) => target.platform === 'xiaohongshu' && target.mode === 'copy-open')).toBe(true);
@@ -24,16 +24,16 @@ describe('social-share contract', () => {
     const payload = buildSocialSharePayload({
       kind: 'project-html',
       locale: 'en',
-      url: 'https://example.com/open-design-demo',
+      url: 'https://example.com/readable-studio-demo',
       title: 'Demo',
-      text: `Built with Open Design. Repo: ${OPEN_DESIGN_GITHUB_REPO_URL}`,
-      copyText: `Demo\nhttps://example.com/open-design-demo\n${OPEN_DESIGN_GITHUB_REPO_URL}`,
+      text: `Built with Readable Studio. Repo: ${READABLE_GITHUB_REPO_URL}`,
+      copyText: `Demo\nhttps://example.com/readable-studio-demo\n${READABLE_GITHUB_REPO_URL}`,
     });
 
-    expect(payload.url).toBe('https://example.com/open-design-demo');
-    expect(payload.githubRepoUrl).toBe(OPEN_DESIGN_GITHUB_REPO_URL);
-    expect(payload.copyText).toContain(OPEN_DESIGN_GITHUB_REPO_URL);
+    expect(payload.url).toBe('https://example.com/readable-studio-demo');
+    expect(payload.githubRepoUrl).toBe(READABLE_GITHUB_REPO_URL);
+    expect(payload.copyText).toContain(READABLE_GITHUB_REPO_URL);
     expect(payload.platforms.find((target) => target.platform === 'telegram')?.shareUrl)
-      .toContain('https%3A%2F%2Fexample.com%2Fopen-design-demo');
+      .toContain('https%3A%2F%2Fexample.com%2Freadable-studio-demo');
   });
 });

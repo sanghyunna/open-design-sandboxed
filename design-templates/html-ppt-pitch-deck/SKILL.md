@@ -9,7 +9,7 @@ triggers:
   - "investor deck"
   - "vc deck"
   - "pitch slides"
-od:
+readable:
   mode: deck
   scenario: finance
   upstream: "https://github.com/lewislulu/html-ppt-skill"

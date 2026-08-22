@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 import type {
   ApplyResult,
   InstalledPluginRecord,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { applyPlugin, listPlugins } from '../state/projects';
 import { useI18n } from '../i18n';
 import { localizePluginDescription, localizePluginTitle } from './plugins-home/localization';
@@ -25,7 +25,7 @@ interface Props {
   variant?: 'wide' | 'strip';
   // Filter the rail to a specific taskKind / mode (Phase 2B). When
   // unspecified the daemon-wide list is shown. `kinds` is a whitelist
-  // applied to `od.kind` so the ChatComposer rail can hide bundled
+  // applied to `readable.kind` so the ChatComposer rail can hide bundled
   // atoms (which only the pipeline calls) and only surface user-facing
   // skill / scenario plugins. `pluginIds` is a hard id whitelist used
   // when the project is bound to a single applied plugin — the rail
@@ -138,14 +138,14 @@ function filterPlugins(
     if (filter.pluginIds && filter.pluginIds.length > 0) {
       if (!filter.pluginIds.includes(r.id)) return false;
     }
-    if (filter.taskKind && r.manifest?.od?.taskKind !== filter.taskKind) {
+    if (filter.taskKind && r.manifest?.readable?.taskKind !== filter.taskKind) {
       return false;
     }
-    if (filter.mode && r.manifest?.od?.mode !== filter.mode) {
+    if (filter.mode && r.manifest?.readable?.mode !== filter.mode) {
       return false;
     }
     if (filter.kinds && filter.kinds.length > 0) {
-      const k = r.manifest?.od?.kind;
+      const k = r.manifest?.readable?.kind;
       if (!k || !filter.kinds.includes(k)) return false;
     }
     return true;

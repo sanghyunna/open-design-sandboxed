@@ -1,7 +1,7 @@
 // Phase 4 / plan §3.Y1 — searchInstalledPlugins().
 
 import { describe, expect, it } from 'vitest';
-import type { InstalledPluginRecord, PluginManifest } from '@open-design/contracts';
+import type { InstalledPluginRecord, PluginManifest } from '@readable-studio/contracts';
 import { searchInstalledPlugins } from '../src/plugins/search.js';
 
 const make = (id: string, over: Partial<{ title: string; description: string; tags: string[]; taskKind: string; mode: string; trust: 'trusted' | 'restricted' | 'bundled'; sourceKind: 'bundled' | 'local' | 'github' | 'url'; }>): InstalledPluginRecord => ({
@@ -16,14 +16,14 @@ const make = (id: string, over: Partial<{ title: string; description: string; ta
   installedAt: 1,
   updatedAt: 1,
   manifest: {
-    $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+    $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
     name: id,
     version: '0.1.0',
     title: over.title ?? `Title for ${id}`,
     ...(over.description ? { description: over.description } : {}),
     ...(over.tags ? { tags: over.tags } : {}),
     ...(over.taskKind || over.mode
-      ? { od: {
+      ? { readable: {
           ...(over.taskKind ? { taskKind: over.taskKind } : {}),
           ...(over.mode     ? { mode: over.mode } : {}),
         } }

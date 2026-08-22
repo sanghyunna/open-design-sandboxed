@@ -11,7 +11,7 @@ triggers:
   - "version update"
   - "change log"
   - "release summary"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: engineering

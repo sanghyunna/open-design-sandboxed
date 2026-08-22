@@ -6,7 +6,7 @@ import { automatedUiScenarios } from '@/playwright/resources';
 import type { UiScenario } from '@/playwright/resources';
 import { T } from '@/timeouts';
 
-const STORAGE_KEY = 'open-design:config';
+const STORAGE_KEY = 'readable-studio:config';
 const TINY_PNG_B64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5W6McAAAAASUVORK5CYII=';
 
@@ -125,7 +125,7 @@ async function createProjectNameOnly(page: Page, entry: UiScenario) {
 async function gotoEntryHome(page: Page) {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForLoadingToClear(page);
-  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Open Design' });
+  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Readable Studio' });
   if (await privacyDialog.isVisible()) {
     await privacyDialog.getByRole('button', { name: /I get it|not now|got it|don't share/i }).click();
     await expect(privacyDialog).toHaveCount(0);
@@ -200,7 +200,7 @@ async function seedHtmlArtifact(page: Page, projectId: string, fileName: string,
         name: fileName,
         content,
         artifactManifest: {
-          version: 1,
+          schema: 'readable-studio.artifact-manifest.v1',
           kind: 'html',
           title: fileName,
           entry: fileName,
@@ -316,7 +316,7 @@ async function openDesignFile(page: Page, fileName: string) {
 }
 
 async function waitForLoadingToClear(page: Page) {
-  await page.getByText('Loading Open Design…').waitFor({ state: 'hidden', timeout: T.medium });
+  await page.locator('.readable-loading-shell').waitFor({ state: 'hidden', timeout: T.medium });
 }
 
 async function runUploadedImageRendersInPreviewFlow(page: Page, entry: UiScenario) {

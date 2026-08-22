@@ -1,6 +1,4 @@
-import type { DesktopEvalResult, DesktopScreenshotResult, DesktopStatusSnapshot, DesktopUpdateResult } from "@open-design/sidecar-proto";
-import type { ToolPackLauncherRuntimeSnapshot } from "../launcher-runtime-snapshot.js";
-import type { ToolPackUpdateCacheLifecycleSnapshot } from "../update-cache-lifecycle-snapshot.js";
+import type { DesktopEvalResult, DesktopScreenshotResult, DesktopStatusSnapshot } from "@readable-studio/sidecar-proto";
 import type { CacheReport } from "../cache.js";
 import type { ToolPackConfig } from "../config.js";
 import type { INTERNAL_PACKAGES } from "./constants.js";
@@ -33,7 +31,7 @@ export type ElectronBuilderDirCacheMetadata = {
 };
 
 export type ResourceTreeCacheMetadata = {
-  resourceName: "open-design";
+  resourceName: "readable-studio";
 };
 
 export type WinBuiltAppManifest = {
@@ -54,7 +52,6 @@ export type WinPaths = {
   assembledMainEntryPath: string;
   assembledPackageJsonPath: string;
   assembledPrebundledRoot: string;
-  blockmapPath: string;
   builtManifestPath: string;
   daemonCliPrebundleEntrypointPath: string;
   daemonCliPrebundlePath: string;
@@ -62,31 +59,12 @@ export type WinPaths = {
   daemonPrebundleRoot: string;
   daemonSidecarPrebundleEntrypointPath: string;
   daemonSidecarPrebundlePath: string;
-  exePath: string;
-  installDir: string;
-  installedExePath: string;
-  installerBasePayloadPath: string;
-  installerOverlayPayloadPath: string;
-  installerScriptPath: string;
-  launcherPayloadPath: string;
-  publicDesktopShortcutPath: string;
-  latestYmlPath: string;
-  installMarkerPath: string;
-  installTimingPath: string;
-  nsisLogPath: string;
-  nsisIncludePath: string;
   packagedConfigPath: string;
   packagedMainPrebundleMetaPath: string;
   packagedMainPrebundlePath: string;
   resourceRoot: string;
-  setupPath: string;
   setupZipPath: string;
-  startMenuShortcutPath: string;
   tarballsRoot: string;
-  userDesktopShortcutPath: string;
-  uninstallMarkerPath: string;
-  uninstallTimingPath: string;
-  uninstallerPath: string;
   webStandaloneHookAuditPath: string;
   webStandaloneHookConfigPath: string;
   webSidecarPrebundleMetaPath: string;
@@ -97,11 +75,7 @@ export type WinPaths = {
 };
 
 export type WinPackResult = {
-  blockmapPath: string | null;
-  installerPath: string | null;
-  latestYmlPath: string | null;
   outputRoot: string;
-  payloadPath: string | null;
   portableZipPath: string | null;
   resourceRoot: string;
   runtimeNamespaceRoot: string;
@@ -109,7 +83,6 @@ export type WinPackResult = {
   segments: WinPackTiming[];
   sizeReport: WinSizeReport;
   timings: WinPackTiming[];
-  to: ToolPackConfig["to"];
   unpackedPath: string | null;
   webStandaloneHookAuditPath: string | null;
 };
@@ -132,11 +105,10 @@ export type WinSizeReport = {
     };
     nodeGypRebuild: boolean;
     npmRebuild: boolean;
-    targets: Array<"dir" | "nsis" | "zip">;
+    targets: ["zip"];
     webOutputMode: ToolPackConfig["webOutputMode"];
   };
   generatedAt: string;
-  installerBytes: number | null;
   mode: "fast" | "detailed";
   outputRootBytes: number;
   portableZipBytes: number | null;
@@ -182,44 +154,12 @@ export type WinSizeReport = {
   unpackedBytes: number | null;
 };
 
-export type WinInstallResult = {
-  desktopShortcutExists: boolean;
-  desktopShortcutPath: string;
-  installDir: string;
-  lifecycleTimings: WinLifecycleTiming[];
-  installerPath: string;
-  installPayload: WinInstallPayloadReport;
-  markerPath: string;
-  namespace: string;
-  nsisLogPath: string;
-  registryEntries: WindowsUninstallRegistryEntry[];
-  startMenuShortcutExists: boolean;
-  startMenuShortcutPath: string;
-  timingPath: string;
-  uninstallerPath: string;
-};
-
-export type WinInstallPayloadReport = {
-  fileCount: number;
-  totalBytes: number;
-  topLevel: Array<{
-    bytes: number;
-    fileCount: number;
-    path: string;
-  }>;
-};
-
-export type WinLifecycleTiming = {
-  durationMs: number;
-  step: string;
-};
-
 export type WinStartResult = {
   executablePath: string;
   logPath: string;
   namespace: string;
   pid: number;
-  source: "built" | "installed";
+  source: "built";
   status: DesktopStatusSnapshot | null;
 };
 
@@ -231,119 +171,15 @@ export type WinStopResult = {
   stoppedPids: number[];
 };
 
-export type WinUninstallResult = {
-  lifecycleTimings: WinLifecycleTiming[];
-  markerPath: string;
-  namespace: string;
-  nsisLogPath: string;
-  registryResiduesRemoved: string[];
-  removedDataRoot: boolean;
-  removedLogsRoot: boolean;
-  removedProductUserDataRoot: boolean;
-  removedSidecarRoot: boolean;
-  removalPlan: WinRemovalTarget[];
-  residueObservation: WinResidueObservation;
-  stop: WinStopResult;
-  timingPath: string;
-  uninstallerPath: string;
-};
-
 export type WinCleanupResult = {
   namespace: string;
-  removedLauncherNamespaceRoot: boolean;
   removedOutputRoot: boolean;
-  removedProductUserDataRoot: boolean;
   removedRuntimeNamespaceRoot: boolean;
-  removalPlan: WinRemovalTarget[];
-  residueObservation: WinResidueObservation;
   stop: WinStopResult;
-};
-
-export type WindowsUninstallRegistryEntry = {
-  displayIcon: string | null;
-  displayName: string | null;
-  displayVersion: string | null;
-  installLocation: string | null;
-  keyPath: string;
-  publisher: string | null;
-  quietUninstallString: string | null;
-  uninstallString: string | null;
-};
-
-export type WinResidueObservation = {
-  installDirExists: boolean;
-  installedExeExists: boolean;
-  managedProcessPids: number[];
-  productNamespaceRootExists: boolean;
-  productUserDataRootExists: boolean;
-  publicDesktopShortcutExists: boolean;
-  registryResidues: string[];
-  runtimeNamespaceRootExists: boolean;
-  startMenuShortcutExists: boolean;
-  uninstallerExists: boolean;
-  userDesktopShortcutExists: boolean;
-};
-
-export type WinRemovalTarget = {
-  exists: boolean;
-  path: string;
-  scope: "data" | "logs" | "product-user-data" | "sidecars";
-  willRemove: boolean;
-};
-
-export type WinListResult = {
-  current: {
-    builtExecutableExists: boolean;
-    builtExecutablePath: string | null;
-    builtManifestPath: string;
-    installDir: string;
-    publicDesktopShortcutExists: boolean;
-    publicDesktopShortcutPath: string;
-    installedExeExists: boolean;
-    installedExePath: string;
-    namespace: string;
-    registryEntries: WindowsUninstallRegistryEntry[];
-    registryResidues: string[];
-    productNamespaceRoot: string;
-    productNamespaceRootExists: boolean;
-    productUserDataRoot: string;
-    productUserDataRootExists: boolean;
-    removalPlan: WinRemovalTarget[];
-    runtimeNamespaceRoot: string;
-    runtimeNamespaceRootExists: boolean;
-    setupExists: boolean;
-    setupPath: string;
-    startMenuShortcutExists: boolean;
-    startMenuShortcutPath: string;
-    uninstallerExists: boolean;
-    uninstallerPath: string;
-    userDesktopShortcutExists: boolean;
-    userDesktopShortcutPath: string;
-  };
-  outputNamespaces: string[];
-  runtimeNamespaces: string[];
-};
-
-export type WinResetResult = {
-  namespaces: string[];
-  results: WinCleanupResult[];
 };
 
 export type WinInspectResult = {
   eval?: DesktopEvalResult;
-  launcher: ToolPackLauncherRuntimeSnapshot;
-  launcherSource: {
-    kind: "tools-pack-runtime";
-    note: string;
-    root: string;
-  };
   screenshot?: DesktopScreenshotResult;
   status: DesktopStatusSnapshot | null;
-  updateCache: ToolPackUpdateCacheLifecycleSnapshot;
-  updateCacheSource: {
-    kind: "tools-pack-runtime";
-    note: string;
-    root: string;
-  };
-  update?: DesktopUpdateResult;
 };

@@ -2,7 +2,7 @@
 
 **Parent:** [`spec.md`](spec.md) · **Siblings:** [`architecture.md`](architecture.md) · [`skills-protocol.md`](skills-protocol.md) · [`agent-adapters.md`](agent-adapters.md)
 
-OD exposes four user-facing modes. Modes are not arbitrary; each maps to a distinct **skill type** (see [`skills-protocol.md`](skills-protocol.md) §4) and a distinct **workflow shape**. Keeping them separate lets us tune UI affordances, export pipelines, and default skills per mode.
+Readable Studio exposes four user-facing modes. Modes are not arbitrary; each maps to a distinct **skill type** (see [`skills-protocol.md`](skills-protocol.md) §4) and a distinct **workflow shape**. Keeping them separate lets us tune UI affordances, export pipelines, and default skills per mode.
 
 | Mode | What you get | Time to first result | Skill type |
 |---|---|---|---|
@@ -24,14 +24,14 @@ One high-fidelity screen or flow. User brief → working HTML/JSX in a sandboxed
 ```
 [ mode picker: Prototype ]
 [ skill picker: saas-landing | dashboard | login-flow | … ]
-[ inputs form (if skill declares od.inputs) ]
+[ inputs form (if skill declares readable.inputs) ]
 [ free-text prompt box ]
 [ generate ]
     ↓
 [ streaming tool-call feed · artifact tree · preview iframe ]
     ↓
 [ comment mode (if adapter supports surgicalEdit) ]
-[ parameter sliders (if skill declares od.parameters) ]
+[ parameter sliders (if skill declares readable.parameters) ]
 [ export: html · pdf · zip ]
 ```
 
@@ -54,7 +54,7 @@ One high-fidelity screen or flow. User brief → working HTML/JSX in a sandboxed
 ### Refinement surfaces
 - **Chat:** free-text "move the CTA above the fold."
 - **Comment mode:** click an element → popover → "make this card glassmorphic." Only available if `capabilities.surgicalEdit === true`.
-- **Sliders:** any `od.parameters` the skill declared. Slider movements re-prompt with the parameter value only; no full regeneration.
+- **Sliders:** any `readable.parameters` the skill declared. Slider movements re-prompt with the parameter value only; no full regeneration.
 
 ### Default v1 skills
 - `saas-landing`
@@ -82,7 +82,7 @@ Same as Prototype, but:
 - Export adds `pptx` and `pdf` as first-class options
 
 ### Inputs
-- Slide count (skill usually declares `od.inputs.slide_count`)
+- Slide count (skill usually declares `readable.inputs.slide_count`)
 - Topic / outline (free text or structured)
 - Theme preset (skill-defined enum; e.g. `editorial | minimal | brutalist`)
 - DESIGN.md (optional — many deck skills don't need one because they have their own theme system)

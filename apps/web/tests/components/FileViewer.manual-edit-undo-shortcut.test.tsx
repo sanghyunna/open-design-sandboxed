@@ -31,7 +31,7 @@ async function selectHero() {
   });
   act(() => {
     window.dispatchEvent(new MessageEvent('message', {
-      data: { type: 'od-edit-select', target: heroTarget() },
+      data: { type: 'readable-edit-select', target: heroTarget() },
       source: frame.contentWindow,
     }));
   });
@@ -47,7 +47,7 @@ afterEach(() => {
 
 describe('FileViewer manual edit undo keyboard shortcut', () => {
   it('undoes and redoes manual edits with Ctrl+Z / Ctrl+Shift+Z while editing', async () => {
-    const initialSource = '<!doctype html><html><body><h1 data-od-id="hero">Hero</h1></body></html>';
+    const initialSource = '<!doctype html><html><body><h1 data-readable-id="hero">Hero</h1></body></html>';
     let persistedSource = initialSource;
     const savedSources: string[] = [];
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
@@ -108,7 +108,7 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
   });
 
   it('undoes a rich set-inner-html commit with Ctrl+Z', async () => {
-    const initialSource = '<!doctype html><html><body><p data-od-id="hero">Plain copy</p></body></html>';
+    const initialSource = '<!doctype html><html><body><p data-readable-id="hero">Plain copy</p></body></html>';
     let persistedSource = initialSource;
     const savedSources: string[] = [];
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
@@ -142,10 +142,10 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
       return node;
     });
 
-    // Bridge posts od-edit-html-commit for rich (Ctrl+B) edits.
+    // Bridge posts readable-edit-html-commit for rich (Ctrl+B) edits.
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-html-commit', id: 'hero', html: '<strong>Plain</strong> copy' },
+        data: { type: 'readable-edit-html-commit', id: 'hero', html: '<strong>Plain</strong> copy' },
         source: frame.contentWindow,
       }));
     });
@@ -160,7 +160,7 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
   });
 
   it('ignores Ctrl+Z that originates from an input field', async () => {
-    const initialSource = '<!doctype html><html><body><h1 data-od-id="hero">Hero</h1></body></html>';
+    const initialSource = '<!doctype html><html><body><h1 data-readable-id="hero">Hero</h1></body></html>';
     let persistedSource = initialSource;
     const savedSources: string[] = [];
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
@@ -210,7 +210,7 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
   });
 
   it('undoes and redoes a multi-step manual edit stack in order', async () => {
-    const initialSource = '<!doctype html><html><body><h1 data-od-id="hero">Hero</h1></body></html>';
+    const initialSource = '<!doctype html><html><body><h1 data-readable-id="hero">Hero</h1></body></html>';
     let persistedSource = initialSource;
     const savedSources: string[] = [];
     vi.stubGlobal('fetch', historyFetchMock(() => persistedSource, (next) => {
@@ -268,7 +268,7 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
   });
 
   it('drops undo history when the viewed file/context changes', async () => {
-    const initialSource = '<!doctype html><html><body><h1 data-od-id="hero">Hero</h1></body></html>';
+    const initialSource = '<!doctype html><html><body><h1 data-readable-id="hero">Hero</h1></body></html>';
     let persistedSource = initialSource;
     const savedSources: string[] = [];
     vi.stubGlobal('fetch', historyFetchMock(() => persistedSource, (next) => {
@@ -306,12 +306,12 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
     expect(savedSources).toHaveLength(1);
   });
 
-  it('undoes and redoes via the bridge-forwarded od-edit-undo message (Ctrl+Z inside the iframe)', async () => {
+  it('undoes and redoes via the bridge-forwarded readable-edit-undo message (Ctrl+Z inside the iframe)', async () => {
     // The bridge (apps/web/src/edit-mode/bridge.ts) posts this message when
     // Ctrl+Z/Ctrl+Y fires inside the srcDoc iframe and no inline edit session
     // is active, because keydown events never bubble out of a cross-document
     // iframe to the host's window-level listener above.
-    const initialSource = '<!doctype html><html><body><h1 data-od-id="hero">Hero</h1></body></html>';
+    const initialSource = '<!doctype html><html><body><h1 data-readable-id="hero">Hero</h1></body></html>';
     let persistedSource = initialSource;
     const savedSources: string[] = [];
     vi.stubGlobal('fetch', historyFetchMock(() => persistedSource, (next) => {
@@ -345,7 +345,7 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
 
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-undo', redo: false },
+        data: { type: 'readable-edit-undo', redo: false },
         source: frame.contentWindow,
       }));
     });
@@ -359,7 +359,7 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
 
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-undo', redo: true },
+        data: { type: 'readable-edit-undo', redo: true },
         source: frameWindow,
       }));
     });
@@ -368,7 +368,7 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
   });
 
   it('ignores Ctrl+Z dispatched from a contentEditable host element', async () => {
-    const initialSource = '<!doctype html><html><body><h1 data-od-id="hero">Hero</h1></body></html>';
+    const initialSource = '<!doctype html><html><body><h1 data-readable-id="hero">Hero</h1></body></html>';
     let persistedSource = initialSource;
     const savedSources: string[] = [];
     vi.stubGlobal('fetch', historyFetchMock(() => persistedSource, (next) => {
@@ -431,7 +431,7 @@ function htmlPreviewFile(): ProjectFile {
     mime: 'text/html',
     kind: 'html',
     artifactManifest: {
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
       kind: 'html',
       title: 'Preview',
       entry: 'preview.html',
@@ -451,7 +451,7 @@ function otherPreviewFile(): ProjectFile {
     mime: 'text/html',
     kind: 'html',
     artifactManifest: {
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
       kind: 'html',
       title: 'Other',
       entry: 'other.html',
@@ -471,9 +471,9 @@ function heroTarget(): ManualEditTarget {
     text: 'Hero',
     rect: { x: 0, y: 0, width: 120, height: 40 },
     fields: { text: 'Hero' },
-    attributes: { 'data-od-id': 'hero' },
+    attributes: { 'data-readable-id': 'hero' },
     styles: emptyManualEditStyles(),
     isLayoutContainer: false,
-    outerHtml: '<h1 data-od-id="hero">Hero</h1>',
+    outerHtml: '<h1 data-readable-id="hero">Hero</h1>',
   };
 }

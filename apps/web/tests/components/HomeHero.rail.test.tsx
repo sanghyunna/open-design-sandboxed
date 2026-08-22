@@ -10,7 +10,7 @@
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 
 import { HomeHero } from '../../src/components/HomeHero';
 import {
@@ -43,7 +43,7 @@ function makePlugin(
       title,
       description: 'Plugin preset fixture',
       tags: [mode, ...extraTags],
-      od: {
+      readable: {
         mode,
         useCase: {
           ...(options.query !== null
@@ -269,7 +269,7 @@ describe('HomeHero intent rail', () => {
     );
   });
   it('disables every visible chip while a plugin apply is in flight', () => {
-    renderHero({ pendingPluginId: 'od-figma-migration', pendingChipId: 'figma' });
+    renderHero({ pendingPluginId: 'readable-figma-migration', pendingChipId: 'figma' });
     for (const chip of HOME_HERO_CHIPS.filter((item) => item.group === 'create')) {
       const node = screen.getByTestId(`home-hero-rail-${chip.id}`);
       expect((node as HTMLButtonElement).disabled).toBe(true);
@@ -310,7 +310,7 @@ describe('HomeHero intent rail', () => {
 
   it('creation chips route to their specialised bundled scenario plugins', () => {
     // Prototype now binds to web-prototype's seed template instead of
-    // the generic od-new-generation router. Same for Slide deck →
+    // the generic readable-new-generation router. Same for Slide deck →
     // simple-deck. See packages/contracts/src/plugins/scenario-defaults.ts
     // for the rationale (battle-tested seed + layouts + checklist).
     expect(findChip('prototype')?.action).toMatchObject({ pluginId: 'example-web-prototype', projectKind: 'prototype' });

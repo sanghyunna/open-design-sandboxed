@@ -1,10 +1,10 @@
 import { appendFileSync } from "node:fs";
 
-import type { SidecarStamp } from "@open-design/sidecar-proto";
+import type { RuntimeDescriptor, SidecarStamp } from "@readable-studio/sidecar-proto";
 
 import type { PackagedNamespacePaths } from "./paths.js";
 
-const DESKTOP_LOG_ECHO_ENV = "OD_DESKTOP_LOG_ECHO";
+const DESKTOP_LOG_ECHO_ENV = "READABLE_DESKTOP_LOG_ECHO";
 
 type LogLevel = "error" | "info" | "warn";
 
@@ -221,13 +221,15 @@ export function createPackagedDesktopLogger(paths: PackagedNamespacePaths): Pack
 }
 
 export function attachPackagedDesktopProcessLogging(options: {
+  descriptor: RuntimeDescriptor;
   logger: PackagedDesktopLogger;
   paths: PackagedNamespacePaths;
   stamp: SidecarStamp;
 }): void {
-  const { logger, paths, stamp } = options;
+  const { descriptor, logger, paths, stamp } = options;
 
   logger.info("packaged desktop starting", {
+    descriptor,
     daemonDataRoot: paths.dataRoot,
     electronUserDataRoot: paths.electronUserDataRoot,
     executablePath: process.execPath,
@@ -238,9 +240,8 @@ export function attachPackagedDesktopProcessLogging(options: {
     resourceRoot: paths.resourceRoot,
     runtimeRoot: paths.runtimeRoot,
     source: stamp.source,
-    // Wall-clock ms since this process actually started. The logger attaches
-    // only after the pre-logger config read + launcher-after-quit wait, so this
-    // anchors true cold-launch start for startup-timing analysis.
+    // Wall-clock ms since this process actually started. This anchors the
+    // pre-logger config and existing-instance check for startup analysis.
     uptimeMs: Math.round(process.uptime() * 1000),
   });
 

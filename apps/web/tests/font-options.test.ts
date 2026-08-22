@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { SystemFontFamily } from '@open-design/contracts';
+import type { SystemFontFamily } from '@readable-studio/contracts';
 
 import { quoteFontFamily, systemFontOptions } from '../src/components/font-options';
 

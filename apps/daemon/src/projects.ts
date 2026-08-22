@@ -1,6 +1,6 @@
 // @ts-nocheck
 // Project files registry. Each project is a folder under
-// <projectRoot>/.od/projects/<projectId>/. The frontend's project list
+// <projectRoot>/.readable-studio/projects/<projectId>/. The frontend's project list
 // (localStorage) carries metadata; this module is the single owner of the
 // on-disk content (HTML artifacts, sketches, uploaded images, pasted text).
 //
@@ -62,7 +62,7 @@ export class SandboxImportedProjectError extends Error {
 
   constructor() {
     super(
-      'Imported-folder projects are not available in OD_SANDBOX_MODE until their files are mirrored into the managed project directory.',
+      'Imported-folder projects are not available in READABLE_SANDBOX_MODE until their files are mirrored into the managed project directory.',
     );
     this.name = 'SandboxImportedProjectError';
   }
@@ -140,7 +140,7 @@ export async function listFiles(projectsRoot, projectId, opts = {}) {
   const metadata = opts?.metadata;
   const dir = resolveProjectDir(projectsRoot, projectId, metadata);
   const out = [];
-  // Skip generated dependency/build trees for all project roots. Standard OD
+  // Skip generated dependency/build trees for all project roots. Standard Readable Studio
   // projects can contain framework installs too; surfacing package HTML like
   // node_modules/tslib/*.html as artifacts produces blank previews.
   await collectFiles(dir, '', out, isIgnoredProjectDirName, dir);
@@ -562,8 +562,8 @@ function buildDesignManifest(entries, projectLabel) {
   const { files, htmlFiles, screenHtmlFiles, cssFiles, jsFiles, assetFiles, entryFile } = projectFileMap(entries);
   const screenFiles = screenHtmlFiles.length > 0 ? screenHtmlFiles : [entryFile];
   return JSON.stringify({
-    schema: 'open-design.design-manifest.v1',
-    title: projectLabel || 'Open Design project',
+    schema: 'readable-studio.design-manifest.v1',
+    title: projectLabel || 'Readable Studio project',
     entryFile,
     sourceFiles: {
       all: files,
@@ -652,15 +652,17 @@ function buildDesignHandoff(entries, projectLabel) {
     files.some((name) => /(screens?|pages?|components?|app|src)\//i.test(name));
   const list = (items) => items.length > 0 ? items.map((name) => `- \`${name}\``).join('\n') : '- None detected';
 
-  return `# ${projectLabel || 'Open Design project'} implementation handoff
+  return `# ${projectLabel || 'Readable Studio project'} implementation handoff
 
 This archive is the source of truth for turning the design into production code. Start from \`${entryFile}\`, then preserve the visual system, responsive behavior, and interactions found in the exported files.
+
+For business-document work, preserve the Readable Studio workflow: Source Text -> AI Generation -> Direct Editing -> Standalone HTML. Keep source-grounded content and direct-editing decisions intact; the standalone HTML is the canonical deliverable unless the project explicitly names another target.
 
 ## Implementation target
 - Build production UI from the exported design, not a loose reinterpretation.
 - Preserve typography scale, spacing rhythm, color tokens, border radii, shadows, motion timing, and component states.
 - Replace static placeholders only when the target app has real data or functional equivalents.
-- Keep generated product UI free of Open Design chrome, preview labels, or design-process annotations.
+- Keep generated product UI free of Readable Studio chrome, preview labels, or design-process annotations.
 - Treat this handoff as a visual contract: if implementation choices conflict, match the exported pixels and behavior first, then refactor internals.
 
 ## Source map
@@ -691,7 +693,7 @@ For responsive web exports, treat these as a modern breakpoint system for one ad
 - Preserve real copy, labels, and data shown in the export. Do not replace specific text with generic marketing filler.
 - Preserve interactive affordances: hover, focus, pressed, disabled, loading, validation, copy/share, tab/accordion, modal/sheet, and keyboard states where present.
 - Preserve accessibility semantics when converting: headings stay hierarchical, controls remain buttons/links/inputs, focus states stay visible.
-- Do not keep prototype-only annotations, frame labels, or Open Design chrome in the production UI.
+- Do not keep prototype-only annotations, frame labels, or Readable Studio chrome in the production UI.
 
 ## CJX-ready UX contract
 - Use \`${DESIGN_MANIFEST_FILENAME}\` as the machine-readable map for screens, app modules, OS widgets, landing pages, tokens, interactions, and viewport checks.
@@ -1116,7 +1118,7 @@ async function uniqueRenameTempPath(source) {
   const dir = path.dirname(source);
   const base = path.basename(source);
   for (let i = 0; i < 10; i++) {
-    const temp = path.join(dir, `.od-rename-${process.pid}-${Date.now()}-${i}-${base}.tmp`);
+    const temp = path.join(dir, `.readable-studio-rename-${process.pid}-${Date.now()}-${i}-${base}.tmp`);
     try {
       await stat(temp);
     } catch (err) {
@@ -1488,14 +1490,14 @@ function toProjectPath(raw) {
 }
 
 // Validates an id string for use as a path segment under a daemon-managed
-// directory (`.od/projects/<id>`, `design-systems/<id>`, etc.). The character
+// directory (`.readable-studio/projects/<id>`, `design-systems/<id>`, etc.). The character
 // class allows dots so ids like `my-project.v2` work, but pure-dot ids
 // (`.`, `..`, `...`) MUST be rejected — they pass the char-class check but
 // resolve to the parent directory when fed into `path.join`. Without the
 // pure-dot guard, an attacker could create a project row with id `..` (or
 // reach this code via a percent-encoded URL like `/api/projects/%2e%2e/...`
 // which Express decodes before the route handler sees it) and steer
-// finalize / write operations outside `.od/projects/`.
+// finalize / write operations outside `.readable-studio/projects/`.
 export function isSafeId(id) {
   if (typeof id !== 'string') return false;
   if (id.length === 0 || id.length > 128) return false;

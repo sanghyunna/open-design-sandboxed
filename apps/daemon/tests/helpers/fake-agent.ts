@@ -48,9 +48,9 @@ export async function withFakeAgent<T>(
   run: () => Promise<T>,
   options?: FakeAgentOptions,
 ): Promise<T> {
-  const dir = await mkdtemp(path.join(os.tmpdir(), 'od-fake-agent-'));
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'readable-fake-agent-'));
   const originalPath = process.env.PATH;
-  const originalAgentHome = process.env.OD_AGENT_HOME;
+  const originalAgentHome = process.env.READABLE_AGENT_HOME;
   const deletedEnv = new Map<string, string | undefined>(
     (options?.deleteEnv ?? []).map((key) => [key, process.env[key]]),
   );
@@ -69,7 +69,7 @@ export async function withFakeAgent<T>(
         : `${dir}${path.delimiter}${originalPath}`;
 
     if (options?.setAgentHome) {
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
     }
 
     for (const key of deletedEnv.keys()) {
@@ -85,9 +85,9 @@ export async function withFakeAgent<T>(
     }
 
     if (originalAgentHome == null) {
-      delete process.env.OD_AGENT_HOME;
+      delete process.env.READABLE_AGENT_HOME;
     } else {
-      process.env.OD_AGENT_HOME = originalAgentHome;
+      process.env.READABLE_AGENT_HOME = originalAgentHome;
     }
 
     for (const [key, value] of deletedEnv) {
@@ -105,7 +105,7 @@ export async function withFakeAgent<T>(
 export function namedPipePath(name: string): string {
   return process.platform === 'win32'
     ? '\\\\.\\pipe\\' + name
-    : `/tmp/open-design/ipc/${name}.sock`;
+    : `/tmp/readable-studio/ipc/${name}.sock`;
 }
 
 function scriptWithPidTracking(script: string, pidLogPath: string): string {

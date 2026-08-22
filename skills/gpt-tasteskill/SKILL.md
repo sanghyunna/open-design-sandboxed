@@ -7,7 +7,7 @@ triggers:
   - "codex frontend taste"
   - "gsap motion landing"
   - "premium codex UI"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

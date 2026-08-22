@@ -17,7 +17,7 @@ import {
   getCritiqueRun,
   reconcileStaleRuns,
 } from '../src/critique/persistence.js';
-import { defaultCritiqueConfig } from '@open-design/contracts/critique';
+import { defaultCritiqueConfig } from '@readable-studio/contracts/critique';
 
 function freshDb(): Database.Database {
   const db = new Database(':memory:');
@@ -47,7 +47,7 @@ let tmpDir: string;
 let db: Database.Database;
 
 beforeEach(() => {
-  tmpDir = mkdtempSync(join(tmpdir(), 'od-boot-reconcile-test-'));
+  tmpDir = mkdtempSync(join(tmpdir(), 'readable-boot-reconcile-test-'));
   db = freshDb();
 });
 afterEach(async () => {

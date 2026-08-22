@@ -12,7 +12,7 @@ triggers:
   - "single page"
   - "marketing page"
   - "homepage"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: design
@@ -87,7 +87,7 @@ Wrap the completed HTML in `<artifact>` tags using the artifact slug as the `ide
 - **Display font is serif** (Iowan Old Style / Charter / Georgia in the seed). Sans for body. Mono for numerics, captions, eyebrows.
 - **Image placeholders, not external URLs.** Use the `.ph-img` class — never link to a stock photo CDN.
 - **Mobile reflow already works** via the seed's media query at 920px. Don't break it by adding fixed widths.
-- **`data-od-id` on every `<section>`** so comment mode can target it.
+- **`data-readable-id` on every `<section>`** so comment mode can target it.
 
 ## Output contract
 
@@ -98,6 +98,6 @@ Wrap the completed HTML in `<artifact>` tags using the artifact slug as the `ide
 </artifact>
 ```
 
-Open Design derives the canonical HTML artifact from this identifier. Do not also write another root HTML file for the same generation turn.
+Readable Studio derives the canonical HTML artifact from this identifier. Do not also write another root HTML file for the same generation turn.
 
 One sentence before the artifact. Nothing after.

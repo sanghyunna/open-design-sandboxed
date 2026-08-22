@@ -72,8 +72,8 @@ export async function createFakeAgentRuntimes(
     ? input
     : (input.runtimeIds ?? ['codex', ...FAKE_AGENT_RUNTIME_IDS]);
   const root = Array.isArray(input)
-    ? path.join(tmpdir(), `open-design-fake-agents-${process.pid}`)
-    : (input.root ?? path.join(tmpdir(), `open-design-fake-agents-${process.pid}`));
+    ? path.join(tmpdir(), `readable-studio-fake-agents-${process.pid}`)
+    : (input.root ?? path.join(tmpdir(), `readable-studio-fake-agents-${process.pid}`));
   await mkdir(root, { recursive: true });
 
   const runtimes = {} as Record<FakeAgentId, FakeAgentRuntime>;
@@ -166,8 +166,8 @@ async function emitRun(promptText) {
     return;
   }
   if (
-    promptText.includes('Create an Open Design plugin for:') &&
-    promptText.includes('produce a folder named generated-plugin')
+    promptText.includes('produce a folder named generated-plugin') &&
+    promptText.includes('readable plugin validate')
   ) {
     await emitPluginAuthoringRun();
     return;
@@ -198,7 +198,7 @@ async function emitPluginAuthoringRun() {
   const folder = join(process.cwd(), 'generated-plugin');
   await mkdir(join(folder, 'examples'), { recursive: true });
   await writeFileFs(
-    join(folder, 'open-design.json'),
+    join(folder, 'readable-studio.json'),
     JSON.stringify({
       specVersion: 1,
       name: 'generated-plugin',
@@ -221,10 +221,10 @@ async function emitPluginAuthoringRun() {
     'utf8',
   );
   const summary = [
-    'Created generated-plugin with open-design.json, SKILL.md, and examples/demo.md.',
-    'od plugin validate: passed',
-    'od plugin pack: generated-plugin-0.1.0.tgz',
-    'od plugin install --source: passed',
+    'Created generated-plugin with readable-studio.json, SKILL.md, and examples/demo.md.',
+    'readable plugin validate: passed',
+    'readable plugin pack: generated-plugin-0.1.0.tgz',
+    'readable plugin install --source: passed',
   ].join('\\n');
   emitSuccess(summary, false, false);
   process.exitCode = 0;

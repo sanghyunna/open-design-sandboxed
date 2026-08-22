@@ -1,6 +1,6 @@
 // Plugin doctor. Surfaces pre-apply lint diagnostics:
 //
-//   - Validates the manifest using @open-design/plugin-runtime's validateSafe.
+//   - Validates the manifest using @readable-studio/plugin-runtime's validateSafe.
 //   - Cross-checks atom ids against the FIRST_PARTY_ATOMS catalog (warns on
 //     planned atoms, errors on unknown atoms).
 //   - Re-resolves context against the live registry and reports any refs that
@@ -10,12 +10,12 @@
 //     changed under their feet.
 //
 // Phase 1 returns a flat list of issues rather than a JSON-structured report;
-// the CLI renders them as `od plugin doctor <id>` output. Spec §11.5 promises
+// the CLI renders them as `readable plugin doctor <id>` output. Spec §11.5 promises
 // a richer report (severity / kind enum) which we'll layer in once Phase 4
 // adds the diagnostics endpoint.
 
-import { manifestSourceDigest, resolveContext, validateSafe, type RegistryView } from '@open-design/plugin-runtime';
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import { manifestSourceDigest, resolveContext, validateSafe, type RegistryView } from '@readable-studio/plugin-runtime';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 import { findAtom, isImplementedAtom, isKnownAtom } from './atoms.js';
 import { isParseableUntil } from './until.js';
 
@@ -53,13 +53,13 @@ export function doctorPlugin(
     issues.push({ severity: 'warning', code: 'manifest.warning', message: warn });
   }
 
-  for (const atomId of manifest.od?.context?.atoms ?? []) {
+  for (const atomId of manifest.readable?.context?.atoms ?? []) {
     if (!isKnownAtom(atomId)) {
       issues.push({
         severity: 'error',
         code: 'atom.unknown',
         message: `Unknown atom id: '${atomId}'.`,
-        field: 'od.context.atoms',
+        field: 'readable.context.atoms',
       });
     } else if (!isImplementedAtom(atomId)) {
       const atom = findAtom(atomId);
@@ -67,19 +67,19 @@ export function doctorPlugin(
         severity: 'warning',
         code: 'atom.planned',
         message: `Atom '${atomId}'${atom ? ` (${atom.label})` : ''} is planned but not yet implemented; runs will skip this atom.`,
-        field: 'od.context.atoms',
+        field: 'readable.context.atoms',
       });
     }
   }
 
-  for (const stage of manifest.od?.pipeline?.stages ?? []) {
+  for (const stage of manifest.readable?.pipeline?.stages ?? []) {
     for (const atomId of stage.atoms ?? []) {
       if (!isKnownAtom(atomId)) {
         issues.push({
           severity: 'error',
           code: 'atom.unknown',
           message: `Pipeline stage '${stage.id}' references unknown atom '${atomId}'.`,
-          field: `od.pipeline.stages.${stage.id}`,
+          field: `readable.pipeline.stages.${stage.id}`,
         });
       }
     }
@@ -88,7 +88,7 @@ export function doctorPlugin(
         severity: 'error',
         code: 'pipeline.until-missing',
         message: `Pipeline stage '${stage.id}' sets repeat:true but no until expression.`,
-        field: `od.pipeline.stages.${stage.id}`,
+        field: `readable.pipeline.stages.${stage.id}`,
       });
     }
     if (stage.until && !isParseableUntil(stage.until)) {
@@ -96,7 +96,7 @@ export function doctorPlugin(
         severity: 'error',
         code: 'pipeline.until-invalid',
         message: `Pipeline stage '${stage.id}' has an unparseable until expression: '${stage.until}'.`,
-        field: `od.pipeline.stages.${stage.id}`,
+        field: `readable.pipeline.stages.${stage.id}`,
       });
     }
   }
@@ -105,15 +105,15 @@ export function doctorPlugin(
   // A plugin that ships a custom React component must declare the
   // `genui:custom-component` capability so the trust gate at apply
   // time can refuse it for restricted installs.
-  for (const surface of manifest.od?.genui?.surfaces ?? []) {
+  for (const surface of manifest.readable?.genui?.surfaces ?? []) {
     if (!surface.component) continue;
-    const declared = new Set(manifest.od?.capabilities ?? []);
+    const declared = new Set(manifest.readable?.capabilities ?? []);
     if (!declared.has('genui:custom-component')) {
       issues.push({
         severity: 'error',
         code:     'genui.component-capability',
         message:  `Surface '${surface.id}' ships a component but the manifest does not declare the 'genui:custom-component' capability.`,
-        field:    'od.genui.surfaces',
+        field:    'readable.genui.surfaces',
       });
     }
     if (surface.component.path.includes('..')) {
@@ -121,7 +121,7 @@ export function doctorPlugin(
         severity: 'error',
         code:     'genui.component-traversal',
         message:  `Surface '${surface.id}' component path must be relative without traversal segments.`,
-        field:    'od.genui.surfaces',
+        field:    'readable.genui.surfaces',
       });
     }
   }

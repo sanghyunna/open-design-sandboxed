@@ -6,22 +6,24 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 import {
   APP_KEYS,
-  OPEN_DESIGN_SIDECAR_CONTRACT,
+  SIDECAR_CONTRACT,
   SIDECAR_ENV,
   SIDECAR_MESSAGES,
   SIDECAR_MODES,
+  normalizeRuntimeDescriptor,
+  RuntimeDescriptorError,
   type AppKey,
   type DaemonStatusSnapshot,
   type SidecarStamp,
   type WebStatusSnapshot,
-} from "@open-design/sidecar-proto";
+} from "@readable-studio/sidecar-proto";
 import {
   allocatePort,
   createSidecarLaunchEnv,
   requestJsonIpc,
   resolveAppIpcPath,
   type SidecarRuntimeContext,
-} from "@open-design/sidecar";
+} from "@readable-studio/sidecar";
 import {
   addLoopbackNoProxyEnv,
   createProcessStampArgs,
@@ -30,7 +32,7 @@ import {
   stopProcesses,
   waitForProcessExit,
   wellKnownUserToolchainBins,
-} from "@open-design/platform";
+} from "@readable-studio/platform";
 
 import type { PackagedWebOutputMode } from "./config.js";
 import type { PackagedNamespacePaths } from "./paths.js";
@@ -84,8 +86,8 @@ type ManagedSidecarChild = {
 };
 
 type PackagedDaemonManagedPathEnv = {
-  OD_DATA_DIR: string;
-  OD_RESOURCE_ROOT: string;
+  READABLE_DATA_DIR: string;
+  READABLE_RESOURCE_ROOT: string;
   /**
    * Channel-root path. Lives one level above the namespaces directory so
    * the daemon can persist installationId (and any future fields that
@@ -96,7 +98,7 @@ type PackagedDaemonManagedPathEnv = {
    * channel even when the baked namespace token changes or per-namespace data
    * is cleared. See `apps/daemon/src/installation.ts`.
    */
-  OD_INSTALLATION_DIR: string;
+  READABLE_INSTALLATION_DIR: string;
 };
 
 function resolveSidecarEntry(packageName: string, exportName: string): string {
@@ -151,27 +153,6 @@ async function openLog(path: string): Promise<FileHandle> {
 }
 
 const DAEMON_STATUS_TIMEOUT_MS = 35_000;
-const DAEMON_MIGRATION_STATUS_TIMEOUT_MS = 30 * 60 * 1000;
-
-/**
- * Daemon status wait budget. The default 35s is fine for normal cold
- * boots, but the OD_LEGACY_DATA_DIR one-shot recovery flow can synch-
- * copy a multi-GB legacy `.od/` payload before SQLite even opens, and
- * killing the child mid-migration can leave dataDir half-promoted.
- * When the env var is set, use a 30-minute budget so the parent will
- * not tear the daemon down before the migration can complete.
- *
- * @see apps/daemon/src/legacy-data-migrator.ts
- * @see https://github.com/nexu-io/open-design/issues/710
- */
-// @dsp func-ca65beb2
-export function resolveDaemonStatusTimeoutMs(
-  env: NodeJS.ProcessEnv = process.env,
-): number {
-  const raw = env.OD_LEGACY_DATA_DIR;
-  if (raw != null && raw.length > 0) return DAEMON_MIGRATION_STATUS_TIMEOUT_MS;
-  return DAEMON_STATUS_TIMEOUT_MS;
-}
 
 const WEB_STATUS_TIMEOUT_MS = 180_000;
 
@@ -183,14 +164,14 @@ const WEB_STATUS_TIMEOUT_MS = 180_000;
  * compiles. The launcher must wait strictly longer than that internal
  * budget, otherwise it gives up first and the sidecar's longer budget
  * is wasted. The default 180s leaves headroom above the 120s internal
- * window. `OD_WEB_STATUS_TIMEOUT_MS` overrides it for tuning; an
+ * window. `READABLE_WEB_STATUS_TIMEOUT_MS` overrides it for tuning; an
  * absent, non-numeric, or non-positive value falls back to the default.
  */
 // @dsp func-d6d6f242
 export function resolveWebStatusTimeoutMs(
   env: NodeJS.ProcessEnv = process.env,
 ): number {
-  const raw = env.OD_WEB_STATUS_TIMEOUT_MS;
+  const raw = env.READABLE_WEB_STATUS_TIMEOUT_MS;
   if (raw != null && raw.length > 0) {
     const parsed = Number(raw);
     if (Number.isInteger(parsed) && parsed > 0) return parsed;
@@ -202,16 +183,13 @@ export function resolveWebStatusTimeoutMs(
  * Waits for the sidecar to report a ready status over IPC.
  *
  * When `watch` is provided, the polling loop also races the spawned
- * child's `exit` event so a daemon that throws at startup (e.g. the
- * #710 migrator's LegacyMigrationError on invalid OD_LEGACY_DATA_DIR,
- * existing target payload, symlink in payload, or marker write
- * failure) surfaces immediately instead of leaving the packaged app
- * waiting the full DAEMON_MIGRATION_STATUS_TIMEOUT_MS for a process
+ * child's `exit` event so a daemon that throws at startup surfaces
+ * immediately instead of leaving the packaged app waiting for a process
  * that already exited. The error message includes the daemon log path
  * so the user can read the actual failure reason.
  */
 // @dsp func-35359063
-export async function waitForStatus<T>(
+export async function waitForStatus<T extends object>(
   ipcPath: string,
   isReady: (status: T) => boolean,
   timeoutMs = DAEMON_STATUS_TIMEOUT_MS,
@@ -246,8 +224,10 @@ export async function waitForStatus<T>(
           { type: SIDECAR_MESSAGES.STATUS },
           { timeoutMs: 800 },
         );
+        normalizeRuntimeDescriptor(Reflect.get(status, "descriptor"));
         if (isReady(status)) return status;
       } catch (error) {
+        if (error instanceof RuntimeDescriptorError) throw error;
         lastError = error;
       }
       await sleep(150);
@@ -267,7 +247,7 @@ export async function waitForStatus<T>(
 // reach even when the inherited PATH from launchd / a desktop launcher is
 // stripped down to nothing. The user-toolchain portion of the search list
 // (Homebrew, npm globals, nvm/fnm/mise, cargo, ...) lives in
-// @open-design/platform's wellKnownUserToolchainBins so the daemon
+// @readable-studio/platform's wellKnownUserToolchainBins so the daemon
 // resolver and this PATH builder cannot drift again. See issue #442.
 const PACKAGED_POSIX_SYSTEM_BINS = ["/usr/bin", "/bin", "/usr/sbin", "/sbin"] as const;
 const PACKAGED_SYSTEM_PROXY_CACHE_KEY = "packaged-child-base-env";
@@ -310,9 +290,9 @@ function createPackagedDaemonManagedPathEnv(
   paths: PackagedNamespacePaths,
 ): PackagedDaemonManagedPathEnv {
   return {
-    OD_DATA_DIR: paths.dataRoot,
-    OD_RESOURCE_ROOT: paths.resourceRoot,
-    OD_INSTALLATION_DIR: paths.installationRoot,
+    READABLE_DATA_DIR: paths.dataRoot,
+    READABLE_RESOURCE_ROOT: paths.resourceRoot,
+    READABLE_INSTALLATION_DIR: paths.installationRoot,
   };
 }
 
@@ -325,14 +305,12 @@ export type PackagedDaemonSpawnEnvOptions = {
   /**
    * PR #974 round-5 (lefarcen P2): only pin the daemon's import-folder
    * gate ON when the desktop runtime is actually being started in the
-   * same packaged process group. Headless packaged deployments
-   * (`tools-pack linux start --headless`) have no `shell.openPath`
-   * surface, so leaving the gate dormant avoids the impossible-auth
+   * same packaged process group. Headless packaged deployments have no
+   * `shell.openPath` surface, so leaving the gate dormant avoids the impossible-auth
    * state where the daemon waits forever for a registration that the
    * headless runtime can never deliver.
    */
   requireDesktopAuth: boolean;
-  legacyDataDir?: string | null;
 };
 
 /**
@@ -359,7 +337,10 @@ export function buildPackagedDaemonSpawnEnv(
     // bypass that a runtime-only handshake left open. Headless skips
     // it because there is no privileged shell.openPath surface and
     // no client to register a secret.
-    ...(options.requireDesktopAuth ? { OD_REQUIRE_DESKTOP_AUTH: "1" } : {}),
+    ...(options.requireDesktopAuth ? { READABLE_REQUIRE_DESKTOP_AUTH: "1" } : {}),
+    // Discovery may execute third-party CLI auth/model commands. Keep packaged
+    // cold start offline; explicit user agent runs retain their normal network.
+    READABLE_AGENT_DISCOVERY_OFFLINE: "1",
     // Packaged daemon managed paths are deliberately delivered through
     // the sidecar launch environment. The daemon may keep its own default
     // fallback, but packaged runtime must not rely on path inference from
@@ -367,17 +348,8 @@ export function buildPackagedDaemonSpawnEnv(
     ...createPackagedDaemonManagedPathEnv(paths),
     ...(options.amrProfile == null || options.amrProfile.length === 0
       ? {}
-      : { OPEN_DESIGN_AMR_PROFILE: options.amrProfile }),
-    ...(options.appVersion == null ? {} : { OD_APP_VERSION: options.appVersion }),
-    // OD_LEGACY_DATA_DIR is the one-shot recovery handle for users
-    // upgrading from 0.3.x .od/ layouts. The daemon's startup
-    // migrator (legacy-data-migrator.ts) reads it; the env-allowlist
-    // for packaged children would otherwise drop it. Forward only
-    // when set so we do not invent an empty string and trigger the
-    // daemon's "env set but path invalid" error path.
-    ...(options.legacyDataDir == null || options.legacyDataDir.length === 0
-      ? {}
-      : { OD_LEGACY_DATA_DIR: options.legacyDataDir }),
+      : { READABLE_AMR_PROFILE: options.amrProfile }),
+    ...(options.appVersion == null ? {} : { READABLE_APP_VERSION: options.appVersion }),
   };
 }
 
@@ -391,7 +363,7 @@ async function spawnSidecarChild(options: {
 }): Promise<ManagedSidecarChild> {
   const ipcPath = resolveAppIpcPath({
     app: options.app,
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
     namespace: options.runtime.namespace,
   });
   const stamp = {
@@ -405,7 +377,7 @@ async function spawnSidecarChild(options: {
   const logHandle = await openLog(logPath);
   const childEnv = createSidecarLaunchEnv({
     base: options.paths.runtimeRoot,
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
     extraEnv: {
       ...resolvePackagedChildBaseEnv(
         process.env,
@@ -423,7 +395,7 @@ async function spawnSidecarChild(options: {
   const command = options.nodeCommand ?? (await resolvePackagedElectronNodeCommand());
   const child = spawn(
     command,
-    [options.entryPath, ...createProcessStampArgs(stamp, OPEN_DESIGN_SIDECAR_CONTRACT)],
+    [options.entryPath, ...createProcessStampArgs(stamp, SIDECAR_CONTRACT)],
     {
       cwd: process.cwd(),
       env: childEnv,
@@ -449,7 +421,7 @@ async function closeManagedChild(child: ManagedSidecarChild): Promise<void> {
   const appendLifecycleLog = async (message: string): Promise<void> => {
     await appendFile(child.logPath, `${message}\n`, "utf8").catch(() => undefined);
   };
-  await appendLifecycleLog(`[open-design packaged] shutdown requested app=${child.app} pid=${child.child.pid ?? "unknown"}`);
+  await appendLifecycleLog(`[readable-studio packaged] shutdown requested app=${child.app} pid=${child.child.pid ?? "unknown"}`);
   try {
     await requestJsonIpc(child.ipcPath, { type: SIDECAR_MESSAGES.SHUTDOWN }, { timeoutMs: 1200 });
   } catch {
@@ -457,11 +429,11 @@ async function closeManagedChild(child: ManagedSidecarChild): Promise<void> {
   }
 
   if (!(await waitForProcessExit(child.child.pid, 5000))) {
-    await appendLifecycleLog(`[open-design packaged] shutdown timeout app=${child.app} pid=${child.child.pid ?? "unknown"}; forcing stop`);
+    await appendLifecycleLog(`[readable-studio packaged] shutdown timeout app=${child.app} pid=${child.child.pid ?? "unknown"}; forcing stop`);
     await stopProcesses([child.child.pid]);
   }
 
-  await appendLifecycleLog(`[open-design packaged] exited app=${child.app} pid=${child.child.pid ?? "unknown"} code=${child.child.exitCode ?? "unknown"} signal=${child.child.signalCode ?? "none"}`);
+  await appendLifecycleLog(`[readable-studio packaged] exited app=${child.app} pid=${child.child.pid ?? "unknown"} code=${child.child.exitCode ?? "unknown"} signal=${child.child.signalCode ?? "none"}`);
   await child.logHandle.close().catch(() => undefined);
 }
 
@@ -510,7 +482,6 @@ export async function startPackagedSidecars(
     await mkdir(paths.logsRoot, { recursive: true });
     await mkdir(paths.desktopLogsRoot, { recursive: true });
     await mkdir(paths.runtimeRoot, { recursive: true });
-    await mkdir(paths.updateRoot, { recursive: true });
     await mkdir(paths.electronUserDataRoot, { recursive: true });
     await mkdir(paths.electronSessionDataRoot, { recursive: true });
     logStartupPhase("namespace-runtime-dirs-ensured");
@@ -528,14 +499,13 @@ export async function startPackagedSidecars(
       })).port;
       const daemon = await spawnSidecarChild({
         app: APP_KEYS.DAEMON,
-        entryPath: options.daemonSidecarEntry ?? resolveSidecarEntry("@open-design/daemon", "sidecar"),
+        entryPath: options.daemonSidecarEntry ?? resolveSidecarEntry("@readable-studio/daemon", "sidecar"),
         env: buildPackagedDaemonSpawnEnv(paths, {
           appVersion: options.appVersion,
           amrProfile: options.amrProfile,
           daemonCliEntry: options.daemonCliEntry,
           daemonPort,
           desktopApprovalToken: options.desktopApprovalToken,
-          legacyDataDir: process.env.OD_LEGACY_DATA_DIR ?? null,
           requireDesktopAuth: options.requireDesktopAuth,
         }),
         nodeCommand: options.nodeCommand,
@@ -547,12 +517,13 @@ export async function startPackagedSidecars(
 
       const web = await spawnSidecarChild({
         app: APP_KEYS.WEB,
-        entryPath: options.webSidecarEntry ?? resolveSidecarEntry("@open-design/web", "sidecar"),
+        entryPath: options.webSidecarEntry ?? resolveSidecarEntry("@readable-studio/web", "sidecar"),
         env: {
           [SIDECAR_ENV.DAEMON_PORT]: String(daemonPort),
           [SIDECAR_ENV.WEB_PORT]: "0",
-          ...(options.webStandaloneRoot == null ? {} : { OD_WEB_STANDALONE_ROOT: options.webStandaloneRoot }),
-          OD_WEB_OUTPUT_MODE: options.webOutputMode,
+          ...(options.appVersion == null ? {} : { READABLE_APP_VERSION: options.appVersion }),
+          ...(options.webStandaloneRoot == null ? {} : { READABLE_WEB_STANDALONE_ROOT: options.webStandaloneRoot }),
+          READABLE_WEB_OUTPUT_MODE: options.webOutputMode,
           PORT: "0",
         },
         nodeCommand: options.nodeCommand,
@@ -566,12 +537,10 @@ export async function startPackagedSidecars(
         waitForStatus<DaemonStatusSnapshot>(
           daemon.ipcPath,
           (status) => status.url != null,
-          resolveDaemonStatusTimeoutMs(),
+          DAEMON_STATUS_TIMEOUT_MS,
           // Race the IPC polling against the daemon child's exit. Without
-          // this, a daemon that throws at startup (LegacyMigrationError on
-          // invalid OD_LEGACY_DATA_DIR, existing target payload, symlink,
-          // marker write failure) leaves the packaged app waiting the full
-          // 30-minute migration budget for a process that already died.
+          // this, a daemon that throws at startup leaves the packaged app
+          // waiting for the full status budget after the process already died.
           { child: daemon.child, logPath: logPathFor(paths, APP_KEYS.DAEMON) },
         ).then((status) => {
           logStartupPhase("daemon-status-ready");

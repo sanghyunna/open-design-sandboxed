@@ -47,7 +47,7 @@ describe('Toast', () => {
     act(() => {
       vi.advanceTimersByTime(1999);
     });
-    expect(container.querySelector('.od-toast.leaving')).not.toBeNull();
+    expect(container.querySelector('.readable-toast.leaving')).not.toBeNull();
     expect(onDismiss).not.toHaveBeenCalled();
     // onDismiss (which unmounts the toast) fires at exactly ttlMs, so the exit
     // animation does not extend the toast's lifetime beyond ttlMs.
@@ -59,7 +59,7 @@ describe('Toast', () => {
 
   it('shows a leading status glyph for the success tone', () => {
     const { container } = render(<Toast message="Screenshot copied to clipboard" tone="success" />);
-    expect(container.querySelector('.od-toast.tone-success .od-toast-icon')).not.toBeNull();
+    expect(container.querySelector('.readable-toast.tone-success .readable-toast-icon')).not.toBeNull();
   });
 
   it('renders a Dismiss button when both code and onDismiss are present', () => {

@@ -108,10 +108,10 @@ function deferredResponse() {
 function srcDocActivationMessages(calls: readonly (readonly unknown[])[]) {
   return calls
     .map(([message]) => message)
-    .filter((message): message is { type: 'od:srcdoc-transport-activate'; html: string } => {
+    .filter((message): message is { type: 'readable-studio:srcdoc-transport-activate'; html: string } => {
       if (typeof message !== 'object' || message === null) return false;
       const data = message as { type?: unknown; html?: unknown };
-      return data.type === 'od:srcdoc-transport-activate' && typeof data.html === 'string';
+      return data.type === 'readable-studio:srcdoc-transport-activate' && typeof data.html === 'string';
     });
 }
 
@@ -143,10 +143,10 @@ function manualEditTarget(id: string, label: string, x: number, overrides: Parti
     text: '',
     rect: { x, y: 20, width: 180, height: 80 },
     fields: {},
-    attributes: { 'data-od-label': label },
+    attributes: { 'data-readable-label': label },
     styles: emptyManualEditStyles(),
     isLayoutContainer: true,
-    outerHtml: `<div data-od-id="${id}">${label}</div>`,
+    outerHtml: `<div data-readable-id="${id}">${label}</div>`,
     ...overrides,
   };
 }
@@ -194,11 +194,11 @@ function installPreviewSnapshotBridge(iframe: HTMLIFrameElement) {
   if (!source) throw new Error('Expected preview iframe contentWindow');
   return vi.spyOn(source, 'postMessage').mockImplementation((message: unknown) => {
     const data = message as { type?: string; id?: string } | null;
-    if (!data || data.type !== 'od:snapshot' || !data.id) return;
+    if (!data || data.type !== 'readable-studio:snapshot' || !data.id) return;
     window.dispatchEvent(new MessageEvent('message', {
       source,
       data: {
-        type: 'od:snapshot:result',
+        type: 'readable-studio:snapshot:result',
         id: data.id,
         dataUrl: TEST_SNAPSHOT_DATA_URL,
         w: 2,
@@ -500,7 +500,7 @@ describe('FileViewer SVG artifacts', () => {
       path: 'diagram.svg',
       mime: 'image/svg+xml',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'svg',
         title: 'Diagram',
         entry: 'diagram.svg',
@@ -536,7 +536,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'application/json; charset=utf-8',
     });
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
       items: [
         {
           kind: 'arrow',
@@ -571,7 +571,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'application/json; charset=utf-8',
     });
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
       items: [
         {
           kind: 'rect',
@@ -630,7 +630,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'page.html',
@@ -689,8 +689,8 @@ describe('FileViewer SVG artifacts', () => {
               title={`${activeKey}.html`}
               sandbox="allow-scripts allow-downloads"
               data-testid="pooled-frame"
-              data-od-render-mode="url-load"
-              data-od-active="true"
+              data-readable-render-mode="url-load"
+              data-readable-active="true"
             />
           ) : null}
         </IframeKeepAliveProvider>
@@ -727,8 +727,8 @@ describe('FileViewer SVG artifacts', () => {
             title="page.html"
             sandbox="allow-scripts allow-downloads"
             data-testid="pooled-frame"
-            data-od-render-mode="url-load"
-            data-od-active="true"
+            data-readable-render-mode="url-load"
+            data-readable-active="true"
             onLoad={onLoad}
           />
         </IframeKeepAliveProvider>
@@ -761,8 +761,8 @@ describe('FileViewer SVG artifacts', () => {
               title="page.html"
               sandbox="allow-scripts allow-downloads"
               data-testid="pooled-frame"
-              data-od-render-mode="url-load"
-              data-od-active="true"
+              data-readable-render-mode="url-load"
+              data-readable-active="true"
             />
           ) : null}
         </>
@@ -805,8 +805,8 @@ describe('FileViewer SVG artifacts', () => {
             title="page.html"
             sandbox="allow-scripts allow-downloads"
             data-testid="pooled-frame"
-            data-od-render-mode="url-load"
-            data-od-active="true"
+            data-readable-render-mode="url-load"
+            data-readable-active="true"
           />
         </>
       );
@@ -833,7 +833,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'page.html',
@@ -847,9 +847,9 @@ describe('FileViewer SVG artifacts', () => {
     );
 
     expect(markup).toContain('data-testid="artifact-preview-frame"');
-    expect(markup).toContain('data-od-render-mode="url-load"');
-    expect(markup).toContain('data-od-render-mode="url-load" data-od-active="true"');
-    expect(markup).toContain('data-od-render-mode="srcdoc" data-od-active="false"');
+    expect(markup).toContain('data-readable-render-mode="url-load"');
+    expect(markup).toContain('data-readable-render-mode="url-load" data-readable-active="true"');
+    expect(markup).toContain('data-readable-render-mode="srcdoc" data-readable-active="false"');
     expect(markup).toContain('src="/api/projects/project-1/raw/page.html?v=1710000000&amp;r=0&amp;odPreviewBridge=scroll&amp;odPreviewBridge=selection&amp;odPreviewBridge=snapshot"');
     expect(markup).toContain('sandbox="allow-scripts allow-downloads"');
   });
@@ -861,7 +861,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'page.html',
@@ -896,7 +896,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Deck',
         entry: 'deck.html',
@@ -916,13 +916,13 @@ describe('FileViewer SVG artifacts', () => {
     );
 
     const frame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
-    expect(frame.getAttribute('data-od-render-mode')).toBe('srcdoc');
+    expect(frame.getAttribute('data-readable-render-mode')).toBe('srcdoc');
 
     fireEvent.click(screen.getByRole('button', { name: /reload preview/i }));
 
     const reloadedFrame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
     expect(reloadedFrame).not.toBe(frame);
-    expect(reloadedFrame.getAttribute('data-od-render-mode')).toBe('srcdoc');
+    expect(reloadedFrame.getAttribute('data-readable-render-mode')).toBe('srcdoc');
   });
 
   it('offers image export for URL-loaded HTML previews', () => {
@@ -932,7 +932,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Workspace',
         entry: 'workspace.html',
@@ -950,7 +950,7 @@ describe('FileViewer SVG artifacts', () => {
       />,
     );
 
-    expect((screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement).getAttribute('data-od-render-mode')).toBe('url-load');
+    expect((screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement).getAttribute('data-readable-render-mode')).toBe('url-load');
 
     fireEvent.click(screen.getByRole('button', { name: /download/i }));
 
@@ -964,7 +964,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'page.html',
@@ -978,31 +978,31 @@ describe('FileViewer SVG artifacts', () => {
         projectId="project-1"
         projectKind="prototype"
         file={file}
-        liveHtml='<html><body><script>window.__odArtifactBootCount = (window.__odArtifactBootCount || 0) + 1;</script><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><script>window.__readableStudioArtifactBootCount = (window.__readableStudioArtifactBootCount || 0) + 1;</script><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
-    const urlFrame = container.querySelector('iframe[data-od-render-mode="url-load"]') as HTMLIFrameElement | null;
-    const srcDocFrame = container.querySelector('iframe[data-od-render-mode="srcdoc"]') as HTMLIFrameElement | null;
+    const urlFrame = container.querySelector('iframe[data-readable-render-mode="url-load"]') as HTMLIFrameElement | null;
+    const srcDocFrame = container.querySelector('iframe[data-readable-render-mode="srcdoc"]') as HTMLIFrameElement | null;
 
     expect(urlFrame).toBeTruthy();
     expect(srcDocFrame).toBeTruthy();
-    expect(urlFrame?.getAttribute('data-od-active')).toBe('true');
-    expect(srcDocFrame?.getAttribute('data-od-active')).toBe('false');
-    expect(srcDocFrame?.srcdoc).toContain('data-od-lazy-srcdoc-transport');
-    expect(srcDocFrame?.srcdoc).not.toContain('__odArtifactBootCount');
+    expect(urlFrame?.getAttribute('data-readable-active')).toBe('true');
+    expect(srcDocFrame?.getAttribute('data-readable-active')).toBe('false');
+    expect(srcDocFrame?.srcdoc).toContain('data-readable-lazy-srcdoc-transport');
+    expect(srcDocFrame?.srcdoc).not.toContain('__readableStudioArtifactBootCount');
 
     fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
 
-    const urlFrameAfter = container.querySelector('iframe[data-od-render-mode="url-load"]') as HTMLIFrameElement | null;
-    const srcDocFrameAfter = container.querySelector('iframe[data-od-render-mode="srcdoc"]') as HTMLIFrameElement | null;
+    const urlFrameAfter = container.querySelector('iframe[data-readable-render-mode="url-load"]') as HTMLIFrameElement | null;
+    const srcDocFrameAfter = container.querySelector('iframe[data-readable-render-mode="srcdoc"]') as HTMLIFrameElement | null;
 
     expect(urlFrameAfter).toBe(urlFrame);
-    expect(urlFrameAfter?.getAttribute('data-od-active')).toBe('false');
+    expect(urlFrameAfter?.getAttribute('data-readable-active')).toBe('false');
     expect(urlFrameAfter?.getAttribute('src')).toBe('about:blank');
-    expect(srcDocFrameAfter?.getAttribute('data-od-active')).toBe('true');
-    expect(srcDocFrameAfter?.srcdoc).toContain('__odArtifactBootCount');
-    expect(srcDocFrameAfter?.srcdoc).toContain('data-od-edit-bridge');
+    expect(srcDocFrameAfter?.getAttribute('data-readable-active')).toBe('true');
+    expect(srcDocFrameAfter?.srcdoc).toContain('__readableStudioArtifactBootCount');
+    expect(srcDocFrameAfter?.srcdoc).toContain('data-readable-edit-bridge');
   });
 
   it('keeps the srcDoc edit transport active after canceling manual edit', async () => {
@@ -1012,7 +1012,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'page.html',
@@ -1026,17 +1026,17 @@ describe('FileViewer SVG artifacts', () => {
         projectId="project-1"
         projectKind="prototype"
         file={file}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
-    expect((screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement).getAttribute('data-od-render-mode')).toBe('url-load');
+    expect((screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement).getAttribute('data-readable-render-mode')).toBe('url-load');
 
     fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
     const editFrame = await waitFor(() => {
       const frame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
-      expect(frame.getAttribute('data-od-render-mode')).toBe('srcdoc');
-      expect(frame.srcdoc).toContain('data-od-edit-bridge');
+      expect(frame.getAttribute('data-readable-render-mode')).toBe('srcdoc');
+      expect(frame.srcdoc).toContain('data-readable-edit-bridge');
       return frame;
     });
 
@@ -1044,12 +1044,12 @@ describe('FileViewer SVG artifacts', () => {
 
     await waitFor(() => expect(screen.getByTestId('manual-edit-mode-toggle').getAttribute('aria-pressed')).toBe('false'));
     const previewFrame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
-    const urlFrame = container.querySelector('iframe[data-od-render-mode="url-load"]') as HTMLIFrameElement | null;
+    const urlFrame = container.querySelector('iframe[data-readable-render-mode="url-load"]') as HTMLIFrameElement | null;
 
     expect(previewFrame).toBe(editFrame);
-    expect(previewFrame.getAttribute('data-od-render-mode')).toBe('srcdoc');
-    expect(previewFrame.srcdoc).toContain('data-od-edit-bridge');
-    expect(urlFrame?.getAttribute('data-od-active')).toBe('false');
+    expect(previewFrame.getAttribute('data-readable-render-mode')).toBe('srcdoc');
+    expect(previewFrame.srcdoc).toContain('data-readable-edit-bridge');
+    expect(urlFrame?.getAttribute('data-readable-active')).toBe('false');
   });
 
   it('keeps the manual edit inspector pinned after clicking a target', async () => {
@@ -1069,7 +1069,7 @@ describe('FileViewer SVG artifacts', () => {
           mime: 'text/html',
           kind: 'html',
           artifactManifest: {
-            version: 1,
+            schema: 'readable-studio.artifact-manifest.v1',
             kind: 'html',
             title: 'Page',
             entry: 'page.html',
@@ -1077,13 +1077,13 @@ describe('FileViewer SVG artifacts', () => {
             exports: ['html'],
           },
         })}
-        liveHtml='<html><body><main data-od-id="hero-card">Hero</main><aside data-od-id="trend-card">Trend</aside></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero-card">Hero</main><aside data-readable-id="trend-card">Trend</aside></body></html>'
       />,
     );
 
     fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
     await waitFor(() => {
-      expect(screen.getByTestId('artifact-preview-frame').getAttribute('data-od-render-mode')).toBe('srcdoc');
+      expect(screen.getByTestId('artifact-preview-frame').getAttribute('data-readable-render-mode')).toBe('srcdoc');
     });
     const frame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
 
@@ -1091,7 +1091,7 @@ describe('FileViewer SVG artifacts', () => {
     // must not open the inspector. Pinning requires an explicit select.
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { type: 'od-edit-hover', target: heroTarget },
+      data: { type: 'readable-edit-hover', target: heroTarget },
     }));
     expect(await screen.findByTestId('manual-edit-hover-open')).toBeTruthy();
     expect(screen.queryByText('Hero card')).toBeNull();
@@ -1099,7 +1099,7 @@ describe('FileViewer SVG artifacts', () => {
     // Selecting a shape pins the docked shape toolbar to the hero card.
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { type: 'od-edit-select', target: heroTarget },
+      data: { type: 'readable-edit-select', target: heroTarget },
     }));
     expect(await screen.findByTestId('manual-edit-shape-toolbar')).toBeTruthy();
     expect((screen.getByLabelText('Width') as HTMLInputElement).value).toBe('111');
@@ -1107,7 +1107,7 @@ describe('FileViewer SVG artifacts', () => {
     // Hovering a different element must not switch the pinned toolbar.
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { type: 'od-edit-hover', target: trendTarget },
+      data: { type: 'readable-edit-hover', target: trendTarget },
     }));
 
     expect((screen.getByLabelText('Width') as HTMLInputElement).value).toBe('111');
@@ -1121,7 +1121,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Search',
         entry: 'search.html',
@@ -1135,15 +1135,15 @@ describe('FileViewer SVG artifacts', () => {
         projectId="project-1"
         projectKind="prototype"
         file={file}
-        liveHtml='<html><body><script src="app.js"></script><main data-od-id="results">Results</main></body></html>'
+        liveHtml='<html><body><script src="app.js"></script><main data-readable-id="results">Results</main></body></html>'
       />,
     );
 
-    const srcDocFrame = container.querySelector('iframe[data-od-render-mode="srcdoc"]') as HTMLIFrameElement | null;
-    expect(srcDocFrame?.getAttribute('data-od-active')).toBe('true');
-    expect(srcDocFrame?.srcdoc).toContain('data-od-id="results"');
-    expect(srcDocFrame?.srcdoc).not.toContain('data-od-lazy-srcdoc-transport');
-    expect(srcDocFrame?.srcdoc).toContain('data-od-sandbox-shim');
+    const srcDocFrame = container.querySelector('iframe[data-readable-render-mode="srcdoc"]') as HTMLIFrameElement | null;
+    expect(srcDocFrame?.getAttribute('data-readable-active')).toBe('true');
+    expect(srcDocFrame?.srcdoc).toContain('data-readable-id="results"');
+    expect(srcDocFrame?.srcdoc).not.toContain('data-readable-lazy-srcdoc-transport');
+    expect(srcDocFrame?.srcdoc).toContain('data-readable-sandbox-shim');
   });
 
   it('reactivates the srcDoc transport after switching source back to preview', async () => {
@@ -1153,7 +1153,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'page.html',
@@ -1167,7 +1167,7 @@ describe('FileViewer SVG artifacts', () => {
         projectId="project-1"
         projectKind="prototype"
         file={file}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
@@ -1175,7 +1175,7 @@ describe('FileViewer SVG artifacts', () => {
 
     await waitFor(() => {
       const activeFrame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
-      expect(activeFrame.getAttribute('data-od-render-mode')).toBe('srcdoc');
+      expect(activeFrame.getAttribute('data-readable-render-mode')).toBe('srcdoc');
     });
 
     fireEvent.click(screen.getByRole('tab', { name: 'Code' }));
@@ -1185,8 +1185,8 @@ describe('FileViewer SVG artifacts', () => {
 
     await waitFor(() => {
       const activeFrame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
-      expect(activeFrame.getAttribute('data-od-render-mode')).toBe('srcdoc');
-      expect(activeFrame.srcdoc).toContain('data-od-edit-bridge');
+      expect(activeFrame.getAttribute('data-readable-render-mode')).toBe('srcdoc');
+      expect(activeFrame.srcdoc).toContain('data-readable-edit-bridge');
       expect(activeFrame.srcdoc).toContain('Hero');
     });
   });
@@ -1198,7 +1198,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'First',
         entry: 'first.html',
@@ -1261,7 +1261,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'page.html',
@@ -1294,7 +1294,7 @@ describe('FileViewer SVG artifacts', () => {
     await waitFor(() => {
       const frame = document.body.querySelector('.present-overlay iframe');
       expect(frame?.getAttribute('sandbox')).toBe('allow-scripts allow-downloads');
-      expect(frame?.getAttribute('data-od-render-mode')).toBe('url-load');
+      expect(frame?.getAttribute('data-readable-render-mode')).toBe('url-load');
     });
     expect(container.querySelector('.html-viewer.is-tab-present')).toBeTruthy();
     const overlay = document.body.querySelector<HTMLElement>('.present-overlay');
@@ -1320,7 +1320,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/jsx',
       kind: 'code',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'react-component',
         title: 'Card',
         entry: 'Card.jsx',
@@ -1349,7 +1349,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/jsx',
       kind: 'code',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'react-component',
         title: 'icons',
         entry: 'icons.jsx',
@@ -1416,7 +1416,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'deck',
         title: 'Deck',
         entry: 'deck.html',
@@ -1433,10 +1433,10 @@ describe('FileViewer SVG artifacts', () => {
     );
 
     expect(markup).toContain('data-testid="artifact-preview-frame"');
-    expect(markup).toContain('data-od-render-mode="srcdoc"');
-    expect(markup).toContain('data-od-render-mode="srcdoc" data-od-active="true"');
-    expect(markup).toContain('data-od-render-mode="url-load" data-od-active="false"');
-    expect(markup).not.toContain('data-od-lazy-srcdoc-transport');
+    expect(markup).toContain('data-readable-render-mode="srcdoc"');
+    expect(markup).toContain('data-readable-render-mode="srcdoc" data-readable-active="true"');
+    expect(markup).toContain('data-readable-render-mode="url-load" data-readable-active="false"');
+    expect(markup).not.toContain('data-readable-lazy-srcdoc-transport');
     expect(markup).toContain('sandbox="allow-scripts allow-downloads"');
   });
 
@@ -1447,7 +1447,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Inferred',
         entry: 'inferred.html',
@@ -1462,9 +1462,9 @@ describe('FileViewer SVG artifacts', () => {
       />,
     );
 
-    expect(markup).toContain('data-od-render-mode="srcdoc"');
-    expect(markup).toContain('data-od-render-mode="srcdoc" data-od-active="true"');
-    expect(markup).toContain('data-od-render-mode="url-load" data-od-active="false"');
+    expect(markup).toContain('data-readable-render-mode="srcdoc"');
+    expect(markup).toContain('data-readable-render-mode="srcdoc" data-readable-active="true"');
+    expect(markup).toContain('data-readable-render-mode="url-load" data-readable-active="false"');
   });
 
   it('hides preview-only toolbar controls when switching an HTML deck to source view', async () => {
@@ -1474,7 +1474,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Deck',
         entry: 'deck.html',
@@ -1519,7 +1519,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -1565,7 +1565,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -1624,7 +1624,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Nudge',
         entry: 'nudge.html',
@@ -1659,7 +1659,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'First',
         entry: 'nudge-first.html',
@@ -1673,7 +1673,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Second',
         entry: 'nudge-second.html',
@@ -1720,7 +1720,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -1796,7 +1796,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -1874,7 +1874,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -1982,7 +1982,7 @@ describe('FileViewer SVG artifacts', () => {
     // result block and in the social-share header; scope to the result block.
     const resultBlock = customDomainLabel.closest('.deploy-result-block') as HTMLElement;
     expect(within(resultBlock).getByText('https://demo.example.com')).toBeTruthy();
-    const deployToast = document.querySelector('.od-toast');
+    const deployToast = document.querySelector('.readable-toast');
     expect(deployToast?.className).toContain('tone-success');
     expect(deployToast?.className).toContain('placement-top');
     expect(deployToast?.textContent).toContain('Deployment uploaded successfully');
@@ -2006,7 +2006,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2079,7 +2079,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2145,7 +2145,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2200,7 +2200,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2256,7 +2256,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2309,7 +2309,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2368,7 +2368,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2416,7 +2416,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/markdown',
       kind: 'text',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'markdown-document',
         title: 'Notes',
         entry: 'notes.md',
@@ -2448,7 +2448,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2504,7 +2504,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2568,7 +2568,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2635,7 +2635,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2734,7 +2734,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Landing Page',
         entry: 'landing-page.html',
@@ -2797,7 +2797,7 @@ describe('FileViewer tweaks toolbar', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Preview',
         entry: 'preview.html',
@@ -2811,7 +2811,7 @@ describe('FileViewer tweaks toolbar', () => {
   it('renders Annotation, Edit, and Draw as the primary preview tools', async () => {
     render(
       <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
@@ -2885,7 +2885,7 @@ describe('FileViewer tweaks toolbar', () => {
   it('keeps the Draw bar open after queueing an annotation', () => {
     render(
       <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
@@ -2904,23 +2904,23 @@ describe('FileViewer tweaks toolbar', () => {
   it('uses a materialized srcDoc bridge while the Draw bar is open', async () => {
     render(
       <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
-    expect((screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement).getAttribute('data-od-render-mode')).toBe('url-load');
+    expect((screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement).getAttribute('data-readable-render-mode')).toBe('url-load');
     clickAgentTool('draw-overlay-toggle');
 
     const frame = await waitFor(() => {
       const activeFrame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
-      expect(activeFrame.getAttribute('data-od-render-mode')).toBe('srcdoc');
-      expect(activeFrame.srcdoc).toContain('data-od-selection-bridge');
-      expect(activeFrame.srcdoc).toContain('data-od-snapshot-bridge');
-      expect(activeFrame.srcdoc).not.toContain('data-od-lazy-srcdoc-transport');
+      expect(activeFrame.getAttribute('data-readable-render-mode')).toBe('srcdoc');
+      expect(activeFrame.srcdoc).toContain('data-readable-selection-bridge');
+      expect(activeFrame.srcdoc).toContain('data-readable-snapshot-bridge');
+      expect(activeFrame.srcdoc).not.toContain('data-readable-lazy-srcdoc-transport');
       return activeFrame;
     });
     await waitFor(() => {
-      expect(frame.srcdoc).toContain('data-od-id="hero"');
+      expect(frame.srcdoc).toContain('data-readable-id="hero"');
     });
     expect(screen.queryByRole('button', { name: 'Click' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Undo' })).toBeTruthy();
@@ -2937,12 +2937,12 @@ describe('FileViewer tweaks toolbar', () => {
 
     render(
       <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
     const urlFrame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
-    expect(urlFrame.getAttribute('data-od-render-mode')).toBe('url-load');
+    expect(urlFrame.getAttribute('data-readable-render-mode')).toBe('url-load');
     expect(urlFrame.getAttribute('src')).toContain('odPreviewBridge=scroll');
 
     const srcDocFrame = screen.getByTestId('artifact-preview-frame-srcdoc') as HTMLIFrameElement;
@@ -2950,7 +2950,7 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: urlFrame.contentWindow,
       data: {
-        type: 'od:preview-scroll',
+        type: 'readable-studio:preview-scroll',
         frameLeft: 4,
         frameTop: 640,
         canvasLeft: 0,
@@ -2963,7 +2963,7 @@ describe('FileViewer tweaks toolbar', () => {
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'od:preview-scroll-restore',
+          type: 'readable-studio:preview-scroll-restore',
           frameLeft: 4,
           frameTop: 640,
           canvasTop: 640,
@@ -2976,20 +2976,20 @@ describe('FileViewer tweaks toolbar', () => {
   it('keeps the URL-loaded preview mounted when opening comments', async () => {
     render(
       <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
     const urlFrame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
     const srcDocFrame = screen.getByTestId('artifact-preview-frame-srcdoc') as HTMLIFrameElement;
     const postSpy = vi.spyOn(urlFrame.contentWindow!, 'postMessage');
-    expect(urlFrame.getAttribute('data-od-render-mode')).toBe('url-load');
+    expect(urlFrame.getAttribute('data-readable-render-mode')).toBe('url-load');
     expect(urlFrame.getAttribute('src')).toContain('odPreviewBridge=selection');
-    expect(srcDocFrame.getAttribute('data-od-active')).toBe('false');
+    expect(srcDocFrame.getAttribute('data-readable-active')).toBe('false');
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         source: urlFrame.contentWindow,
-        data: { type: 'od:url-selection-bridge-ready' },
+        data: { type: 'readable-studio:url-selection-bridge-ready' },
       }));
     });
 
@@ -2997,11 +2997,11 @@ describe('FileViewer tweaks toolbar', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('artifact-preview-frame')).toBe(urlFrame);
-      expect(urlFrame.getAttribute('data-od-render-mode')).toBe('url-load');
-      expect(urlFrame.getAttribute('data-od-active')).toBe('true');
-      expect(srcDocFrame.getAttribute('data-od-active')).toBe('false');
+      expect(urlFrame.getAttribute('data-readable-render-mode')).toBe('url-load');
+      expect(urlFrame.getAttribute('data-readable-active')).toBe('true');
+      expect(srcDocFrame.getAttribute('data-readable-active')).toBe('false');
       expect(postSpy).toHaveBeenCalledWith(
-        { type: 'od:comment-mode', enabled: true, mode: 'inspect' },
+        { type: 'readable-studio:comment-mode', enabled: true, mode: 'inspect' },
         '*',
       );
     });
@@ -3010,21 +3010,21 @@ describe('FileViewer tweaks toolbar', () => {
   it('falls back to srcDoc comments when the URL selection bridge is not ready', async () => {
     render(
       <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
     const urlFrame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
-    expect(urlFrame.getAttribute('data-od-render-mode')).toBe('url-load');
+    expect(urlFrame.getAttribute('data-readable-render-mode')).toBe('url-load');
 
     fireEvent.click(screen.getByTestId('comment-panel-toggle'));
 
     const srcDocFrame = await waitFor(() => {
       const frame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
-      expect(frame.getAttribute('data-od-render-mode')).toBe('srcdoc');
+      expect(frame.getAttribute('data-readable-render-mode')).toBe('srcdoc');
       return frame;
     });
-    expect(srcDocFrame.srcdoc).toContain('data-od-selection-bridge');
+    expect(srcDocFrame.srcdoc).toContain('data-readable-selection-bridge');
   });
 
   it('lets Draw direct send emit a queued annotation while a task is running', async () => {
@@ -3035,7 +3035,7 @@ describe('FileViewer tweaks toolbar', () => {
 
     render(
       <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
         streaming
       />,
     );
@@ -3043,7 +3043,7 @@ describe('FileViewer tweaks toolbar', () => {
     clickAgentTool('draw-overlay-toggle');
     const srcDocFrame = await waitFor(() => {
       const activeFrame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
-      expect(activeFrame.getAttribute('data-od-render-mode')).toBe('srcdoc');
+      expect(activeFrame.getAttribute('data-readable-render-mode')).toBe('srcdoc');
       return activeFrame;
     });
     installPreviewSnapshotBridge(srcDocFrame);
@@ -3082,7 +3082,7 @@ describe('FileViewer tweaks toolbar', () => {
       conversationId: 'conversation-1',
       filePath: 'preview.html',
       elementId: 'pin-applying',
-      selector: '[data-od-pin="pin-applying"]',
+      selector: '[data-readable-pin="pin-applying"]',
       label: 'pin-applying',
       text: '',
       htmlHint: '',
@@ -3098,7 +3098,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
         previewComments={[resolvedComment]}
       />,
     );
@@ -3116,7 +3116,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
         commentPortalId="project-comments-dock"
       />,
     );
@@ -3133,7 +3133,7 @@ describe('FileViewer tweaks toolbar', () => {
       conversationId: 'conversation-1',
       filePath: 'preview.html',
       elementId: 'pin-open',
-      selector: '[data-od-pin="pin-open"]',
+      selector: '[data-readable-pin="pin-open"]',
       label: 'pin-open',
       text: '',
       htmlHint: '',
@@ -3159,7 +3159,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
         previewComments={[openComment, otherFileComment, resolvedComment]}
       />,
     );
@@ -3183,7 +3183,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
@@ -3215,7 +3215,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
@@ -3248,7 +3248,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
@@ -3278,7 +3278,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
@@ -3313,7 +3313,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
@@ -3335,7 +3335,7 @@ describe('FileViewer tweaks toolbar', () => {
       conversationId: 'conversation-1',
       filePath: 'preview.html',
       elementId: 'pin-older',
-      selector: '[data-od-pin="pin-older"]',
+      selector: '[data-readable-pin="pin-older"]',
       label: 'pin-older',
       text: '',
       htmlHint: '',
@@ -3349,7 +3349,7 @@ describe('FileViewer tweaks toolbar', () => {
       ...olderComment,
       id: 'comment-newer',
       elementId: 'pin-newer',
-      selector: '[data-od-pin="pin-newer"]',
+      selector: '[data-readable-pin="pin-newer"]',
       label: 'pin-newer',
       position: { x: 72, y: 32, width: 18, height: 18 },
       note: 'Newer comment',
@@ -3362,7 +3362,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
         previewComments={[newerComment, olderComment]}
       />,
     );
@@ -3385,14 +3385,14 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-target',
+        type: 'readable-studio:comment-target',
         elementId: 'hero',
-        selector: '[data-od-id="hero"]',
+        selector: '[data-readable-id="hero"]',
         label: 'Hero',
         text: 'Hero',
         position: { x: 8, y: 12, width: 120, height: 48 },
         hoverPoint: { x: 12, y: 16 },
-        htmlHint: '<main data-od-id="hero">Hero</main>',
+        htmlHint: '<main data-readable-id="hero">Hero</main>',
       },
     }));
 
@@ -3417,10 +3417,10 @@ describe('FileViewer tweaks toolbar', () => {
       conversationId: 'conversation-1',
       filePath: 'preview.html',
       elementId: 'hero',
-      selector: '[data-od-id="hero"]',
+      selector: '[data-readable-id="hero"]',
       label: 'Hero',
       text: 'Hero',
-      htmlHint: '<main data-od-id="hero">Hero</main>',
+      htmlHint: '<main data-readable-id="hero">Hero</main>',
       position: { x: 8, y: 12, width: 120, height: 48 },
       note: 'Existing note',
       status: 'open',
@@ -3433,7 +3433,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
         previewComments={[savedComment]}
       />,
     );
@@ -3444,14 +3444,14 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-targets',
+        type: 'readable-studio:comment-targets',
         targets: [{
           elementId: 'hero',
-          selector: '[data-od-id="hero"]',
+          selector: '[data-readable-id="hero"]',
           label: 'Hero',
           text: 'Hero',
           position: { x: 8, y: 12, width: 120, height: 48 },
-          htmlHint: '<main data-od-id="hero">Hero</main>',
+          htmlHint: '<main data-readable-id="hero">Hero</main>',
         }],
       },
     }));
@@ -3463,14 +3463,14 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-target',
+        type: 'readable-studio:comment-target',
         elementId: 'hero',
-        selector: '[data-od-id="hero"]',
+        selector: '[data-readable-id="hero"]',
         label: 'Hero',
         text: 'Hero',
         position: { x: 8, y: 12, width: 120, height: 48 },
         hoverPoint: { x: 12, y: 16 },
-        htmlHint: '<main data-od-id="hero">Hero</main>',
+        htmlHint: '<main data-readable-id="hero">Hero</main>',
       },
     }));
 
@@ -3490,10 +3490,10 @@ describe('FileViewer tweaks toolbar', () => {
       conversationId: 'conversation-1',
       filePath: 'deck.html',
       elementId: 'slide-one-title',
-      selector: '[data-od-id="slide-one-title"]',
+      selector: '[data-readable-id="slide-one-title"]',
       label: 'Slide one title',
       text: 'Slide one',
-      htmlHint: '<h1 data-od-id="slide-one-title">Slide one</h1>',
+      htmlHint: '<h1 data-readable-id="slide-one-title">Slide one</h1>',
       position: { x: 8, y: 12, width: 120, height: 48 },
       note: 'First slide note',
       status: 'open',
@@ -3505,10 +3505,10 @@ describe('FileViewer tweaks toolbar', () => {
       ...slideOneComment,
       id: 'comment-slide-four',
       elementId: 'slide-four-title',
-      selector: '[data-od-id="slide-four-title"]',
+      selector: '[data-readable-id="slide-four-title"]',
       label: 'Slide four title',
       text: 'Slide four',
-      htmlHint: '<h1 data-od-id="slide-four-title">Slide four</h1>',
+      htmlHint: '<h1 data-readable-id="slide-four-title">Slide four</h1>',
       position: { x: 24, y: 32, width: 140, height: 52 },
       note: 'Fourth slide note',
       createdAt: 20,
@@ -3526,7 +3526,7 @@ describe('FileViewer tweaks toolbar', () => {
           mime: 'text/html',
           kind: 'html',
           artifactManifest: {
-            version: 1,
+            schema: 'readable-studio.artifact-manifest.v1',
             kind: 'html',
             title: 'Deck',
             entry: 'deck.html',
@@ -3544,19 +3544,19 @@ describe('FileViewer tweaks toolbar', () => {
     const frame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { type: 'od:slide-state', active: 3, count: 18 },
+      data: { type: 'readable-studio:slide-state', active: 3, count: 18 },
     }));
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-targets',
+        type: 'readable-studio:comment-targets',
         targets: [{
           elementId: 'slide-four-title',
-          selector: '[data-od-id="slide-four-title"]',
+          selector: '[data-readable-id="slide-four-title"]',
           label: 'Slide four title',
           text: 'Slide four',
           position: { x: 24, y: 32, width: 140, height: 52 },
-          htmlHint: '<h1 data-od-id="slide-four-title">Slide four</h1>',
+          htmlHint: '<h1 data-readable-id="slide-four-title">Slide four</h1>',
           slideIndex: 3,
         }],
       },
@@ -3575,10 +3575,10 @@ describe('FileViewer tweaks toolbar', () => {
       conversationId: 'conversation-1',
       filePath: 'preview.html',
       elementId: 'hero-title',
-      selector: '[data-od-id="hero-title"]',
+      selector: '[data-readable-id="hero-title"]',
       label: 'Hero title',
       text: 'Hero',
-      htmlHint: '<h1 data-od-id="hero-title">Hero</h1>',
+      htmlHint: '<h1 data-readable-id="hero-title">Hero</h1>',
       position: { x: 24, y: 32, width: 180, height: 36 },
       note: 'Latest edit',
       status: 'open',
@@ -3589,7 +3589,7 @@ describe('FileViewer tweaks toolbar', () => {
       ...createdFirstUpdatedLast,
       id: 'comment-created-last',
       elementId: 'hero-subtitle',
-      selector: '[data-od-id="hero-subtitle"]',
+      selector: '[data-readable-id="hero-subtitle"]',
       label: 'Hero subtitle',
       note: 'Older edit',
       createdAt: Date.now() - 5 * 60_000,
@@ -3601,7 +3601,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
         previewComments={[createdLastUpdatedFirst, createdFirstUpdatedLast]}
       />,
     );
@@ -3624,10 +3624,10 @@ describe('FileViewer tweaks toolbar', () => {
       conversationId: 'conversation-1',
       filePath: 'preview.html',
       elementId: 'hero',
-      selector: '[data-od-id="hero"]',
+      selector: '[data-readable-id="hero"]',
       label: 'Hero',
       text: 'Hero',
-      htmlHint: '<main data-od-id="hero">Hero</main>',
+      htmlHint: '<main data-readable-id="hero">Hero</main>',
       position: { x: 8, y: 12, width: 120, height: 48 },
       note: 'Do not resurrect this note',
       status: 'applying',
@@ -3640,7 +3640,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
         previewComments={[applyingElementComment]}
       />,
     );
@@ -3651,13 +3651,13 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-target',
+        type: 'readable-studio:comment-target',
         elementId: 'hero',
-        selector: '[data-od-id="hero"]',
+        selector: '[data-readable-id="hero"]',
         label: 'Hero',
         text: 'Hero',
         position: { x: 8, y: 12, width: 120, height: 48 },
-        htmlHint: '<main data-od-id="hero">Hero</main>',
+        htmlHint: '<main data-readable-id="hero">Hero</main>',
       },
     }));
 
@@ -3674,10 +3674,10 @@ describe('FileViewer tweaks toolbar', () => {
       conversationId: 'conversation-1',
       filePath: 'preview.html',
       elementId: 'hero',
-      selector: '[data-od-id="hero"]',
+      selector: '[data-readable-id="hero"]',
       label: 'Hero',
       text: 'Hero',
-      htmlHint: '<main data-od-id="hero">Hero</main>',
+      htmlHint: '<main data-readable-id="hero">Hero</main>',
       position: { x: 8, y: 12, width: 120, height: 48 },
       note: 'Existing note should stay in the thread',
       status: 'open',
@@ -3690,7 +3690,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
         previewComments={[openComment]}
         onRemovePreviewComment={vi.fn()}
       />,
@@ -3702,13 +3702,13 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-target',
+        type: 'readable-studio:comment-target',
         elementId: 'hero',
-        selector: '[data-od-id="hero"]',
+        selector: '[data-readable-id="hero"]',
         label: 'Hero',
         text: 'Hero',
         position: { x: 8, y: 12, width: 120, height: 48 },
-        htmlHint: '<main data-od-id="hero">Hero</main>',
+        htmlHint: '<main data-readable-id="hero">Hero</main>',
       },
     }));
 
@@ -3725,7 +3725,7 @@ describe('FileViewer tweaks toolbar', () => {
       conversationId: 'conversation-1',
       filePath: 'preview.html',
       elementId: 'pin-with-image',
-      selector: '[data-od-pin="pin-with-image"]',
+      selector: '[data-readable-pin="pin-with-image"]',
       label: 'pin-with-image',
       text: '',
       htmlHint: '',
@@ -3742,7 +3742,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
         previewComments={[openComment]}
       />,
     );
@@ -3765,7 +3765,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
@@ -3775,13 +3775,13 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-target',
+        type: 'readable-studio:comment-target',
         elementId: 'hero',
-        selector: '[data-od-id="hero"]',
+        selector: '[data-readable-id="hero"]',
         label: 'p',
         text: 'Hero',
         position: { x: 8, y: 12, width: 312, height: 63 },
-        htmlHint: '<p data-od-id="hero">Hero</p>',
+        htmlHint: '<p data-readable-id="hero">Hero</p>',
         style: {
           color: 'rgb(26, 25, 22)',
           fontSize: '13.5px',
@@ -3803,7 +3803,7 @@ describe('FileViewer tweaks toolbar', () => {
           projectId="project-1"
           projectKind="prototype"
           file={htmlPreviewFile()}
-          liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+          liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
           previewComments={comments}
           onSavePreviewComment={async (target, note) => {
             const saved: PreviewComment = {
@@ -3841,13 +3841,13 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-target',
+        type: 'readable-studio:comment-target',
         elementId: 'hero',
-        selector: '[data-od-id="hero"]',
+        selector: '[data-readable-id="hero"]',
         label: 'Hero',
         text: 'Hero',
         position: { x: 8, y: 12, width: 120, height: 48 },
-        htmlHint: '<main data-od-id="hero">Hero</main>',
+        htmlHint: '<main data-readable-id="hero">Hero</main>',
       },
     }));
 
@@ -3872,7 +3872,7 @@ describe('FileViewer tweaks toolbar', () => {
       conversationId: 'conversation-1',
       filePath: 'preview.html',
       elementId: 'pin-older',
-      selector: '[data-od-pin="pin-older"]',
+      selector: '[data-readable-pin="pin-older"]',
       label: 'pin-older',
       text: '',
       htmlHint: '',
@@ -3886,7 +3886,7 @@ describe('FileViewer tweaks toolbar', () => {
       ...olderComment,
       id: 'comment-newer',
       elementId: 'pin-newer',
-      selector: '[data-od-pin="pin-newer"]',
+      selector: '[data-readable-pin="pin-newer"]',
       label: 'pin-newer',
       position: { x: 72, y: 32, width: 18, height: 18 },
       note: 'Newer comment',
@@ -3901,7 +3901,7 @@ describe('FileViewer tweaks toolbar', () => {
           projectId="project-1"
           projectKind="prototype"
           file={htmlPreviewFile()}
-          liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+          liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
           previewComments={comments}
           onSavePreviewComment={async (target, note) => {
             const saved: PreviewComment = {
@@ -3942,14 +3942,14 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-target',
+        type: 'readable-studio:comment-target',
         elementId: 'hero',
-        selector: '[data-od-id="hero"]',
+        selector: '[data-readable-id="hero"]',
         label: 'Hero',
         text: 'Hero',
         position: { x: 8, y: 12, width: 120, height: 48 },
         hoverPoint: { x: 12, y: 16 },
-        htmlHint: '<main data-od-id="hero">Hero</main>',
+        htmlHint: '<main data-readable-id="hero">Hero</main>',
       },
     }));
 
@@ -3971,7 +3971,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
         streaming
         onSendBoardCommentAttachments={onSendBoardCommentAttachments}
       />,
@@ -3982,13 +3982,13 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-target',
+        type: 'readable-studio:comment-target',
         elementId: 'hero',
-        selector: '[data-od-id="hero"]',
+        selector: '[data-readable-id="hero"]',
         label: 'Hero',
         text: 'Hero',
         position: { x: 8, y: 12, width: 120, height: 48 },
-        htmlHint: '<main data-od-id="hero">Hero</main>',
+        htmlHint: '<main data-readable-id="hero">Hero</main>',
       },
     }));
 
@@ -4016,7 +4016,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
         onSendBoardCommentAttachments={onSendBoardCommentAttachments}
       />,
     );
@@ -4026,13 +4026,13 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-target',
+        type: 'readable-studio:comment-target',
         elementId: 'hero',
-        selector: '[data-od-id="hero"]',
+        selector: '[data-readable-id="hero"]',
         label: 'Hero',
         text: 'Hero',
         position: { x: 8, y: 12, width: 120, height: 48 },
-        htmlHint: '<main data-od-id="hero">Hero</main>',
+        htmlHint: '<main data-readable-id="hero">Hero</main>',
       },
     }));
 
@@ -4052,7 +4052,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
@@ -4072,7 +4072,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
@@ -4081,12 +4081,12 @@ describe('FileViewer tweaks toolbar', () => {
 
     const target = {
       elementId: 'hero',
-      selector: '[data-od-id="hero"]',
+      selector: '[data-readable-id="hero"]',
       label: 'p',
       text: 'Hero',
       position: { x: 8, y: 12, width: 312, height: 63 },
       hoverPoint: { x: 200, y: 100 },
-      htmlHint: '<p data-od-id="hero">Hero</p>',
+      htmlHint: '<p data-readable-id="hero">Hero</p>',
       style: {
         color: 'rgb(26, 25, 22)',
         fontSize: '13.5px',
@@ -4096,7 +4096,7 @@ describe('FileViewer tweaks toolbar', () => {
 
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { ...target, type: 'od:comment-hover' },
+      data: { ...target, type: 'readable-studio:comment-hover' },
     }));
 
     expect(screen.queryByTestId('annotation-hover-style-summary')).toBeNull();
@@ -4107,7 +4107,7 @@ describe('FileViewer tweaks toolbar', () => {
 
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { ...target, type: 'od:comment-target' },
+      data: { ...target, type: 'readable-studio:comment-target' },
     }));
 
     const summary = await screen.findByTestId('comment-popover-style-summary');
@@ -4130,7 +4130,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
@@ -4139,29 +4139,29 @@ describe('FileViewer tweaks toolbar', () => {
 
     const target = {
       elementId: 'hero',
-      selector: '[data-od-id="hero"]',
+      selector: '[data-readable-id="hero"]',
       label: 'p',
       text: 'Hero',
       position: { x: 8, y: 12, width: 312, height: 63 },
       hoverPoint: { x: 200, y: 100 },
-      htmlHint: '<p data-od-id="hero">Hero</p>',
+      htmlHint: '<p data-readable-id="hero">Hero</p>',
       style: { color: 'rgb(26, 25, 22)', fontSize: '13.5px' },
     };
 
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { ...target, type: 'od:comment-hover' },
+      data: { ...target, type: 'readable-studio:comment-hover' },
     }));
 
     const card = await screen.findByTestId('annotation-hover-popover');
 
     // Pointer crosses from the element onto the floating card. The iframe sees
-    // that as a mouseout and posts od:comment-leave; the card's own mouseenter
+    // that as a mouseout and posts readable-studio:comment-leave; the card's own mouseenter
     // fires first and pins it, so the leave must be ignored and the card stays.
     fireEvent.mouseEnter(card);
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { type: 'od:comment-leave' },
+      data: { type: 'readable-studio:comment-leave' },
     }));
 
     // Give React a chance to (wrongly) unmount before asserting it did not.
@@ -4181,7 +4181,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
@@ -4190,29 +4190,29 @@ describe('FileViewer tweaks toolbar', () => {
 
     const target = {
       elementId: 'hero',
-      selector: '[data-od-id="hero"]',
+      selector: '[data-readable-id="hero"]',
       label: 'p',
       text: 'Hero',
       position: { x: 8, y: 12, width: 312, height: 63 },
       hoverPoint: { x: 200, y: 100 },
-      htmlHint: '<p data-od-id="hero">Hero</p>',
+      htmlHint: '<p data-readable-id="hero">Hero</p>',
       style: { color: 'rgb(26, 25, 22)', fontSize: '13.5px' },
     };
 
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { ...target, type: 'od:comment-hover' },
+      data: { ...target, type: 'readable-studio:comment-hover' },
     }));
 
     const card = await screen.findByTestId('annotation-hover-popover');
 
     // Real-world ordering the synchronous teardown got wrong: the iframe's async
-    // od:comment-leave lands BEFORE the card's mouseenter has had a chance to pin
+    // readable-studio:comment-leave lands BEFORE the card's mouseenter has had a chance to pin
     // it. The dismiss must be deferred so the imminent mouseenter cancels it —
     // otherwise the card tears down for a frame and flickers on the way in.
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { type: 'od:comment-leave' },
+      data: { type: 'readable-studio:comment-leave' },
     }));
     fireEvent.mouseEnter(card);
 
@@ -4226,7 +4226,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
       />,
     );
 
@@ -4235,18 +4235,18 @@ describe('FileViewer tweaks toolbar', () => {
 
     const target = {
       elementId: 'hero',
-      selector: '[data-od-id="hero"]',
+      selector: '[data-readable-id="hero"]',
       label: 'p',
       text: 'Hero',
       position: { x: 8, y: 12, width: 312, height: 63 },
       hoverPoint: { x: 200, y: 100 },
-      htmlHint: '<p data-od-id="hero">Hero</p>',
+      htmlHint: '<p data-readable-id="hero">Hero</p>',
       style: { color: 'rgb(26, 25, 22)', fontSize: '13.5px' },
     };
 
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { ...target, type: 'od:comment-hover' },
+      data: { ...target, type: 'readable-studio:comment-hover' },
     }));
 
     const card = await screen.findByTestId('annotation-hover-popover');
@@ -4263,7 +4263,7 @@ describe('FileViewer tweaks toolbar', () => {
     // dismiss, so the card stays put rather than blinking out.
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { ...target, type: 'od:comment-hover' },
+      data: { ...target, type: 'readable-studio:comment-hover' },
     }));
 
     await new Promise((resolve) => setTimeout(resolve, 140));
@@ -4277,7 +4277,7 @@ describe('FileViewer tweaks toolbar', () => {
       conversationId: 'conversation-1',
       filePath: 'preview.html',
       elementId: 'pin-transition',
-      selector: '[data-od-pin="pin-transition"]',
+      selector: '[data-readable-pin="pin-transition"]',
       label: 'pin-transition',
       text: '',
       htmlHint: '',
@@ -4293,7 +4293,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
         previewComments={[openComment]}
       />,
     );
@@ -4309,7 +4309,7 @@ describe('FileViewer tweaks toolbar', () => {
         projectId="project-1"
         projectKind="prototype"
         file={htmlPreviewFile()}
-        liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
         previewComments={[{ ...openComment, status: 'applying' }]}
       />,
     );
@@ -4337,7 +4337,7 @@ describe('FileViewer tweaks toolbar', () => {
               conversationId: 'conversation-1',
               filePath: 'preview.html',
               elementId: 'button.sso-btn',
-              selector: '[data-od-id="button.sso-btn"]',
+              selector: '[data-readable-id="button.sso-btn"]',
               label: 'button.sso-btn',
               text: 'GitHub',
               htmlHint: '<button>GitHub</button>',
@@ -4449,7 +4449,7 @@ describe('FileViewer tweaks toolbar', () => {
         conversationId: 'conversation-1',
         filePath: 'preview.html',
         elementId: 'first',
-        selector: '[data-od-id="first"]',
+        selector: '[data-readable-id="first"]',
         label: 'First',
         text: 'First',
         htmlHint: '<p>First</p>',
@@ -4465,7 +4465,7 @@ describe('FileViewer tweaks toolbar', () => {
         conversationId: 'conversation-1',
         filePath: 'preview.html',
         elementId: 'second',
-        selector: '[data-od-id="second"]',
+        selector: '[data-readable-id="second"]',
         label: 'Second',
         text: 'Second',
         htmlHint: '<p>Second</p>',
@@ -4548,10 +4548,10 @@ describe('FileViewer tweaks toolbar', () => {
       conversationId: 'conversation-1',
       filePath: 'preview.html',
       elementId: 'copy-1',
-      selector: '[data-od-id="copy-1"]',
+      selector: '[data-readable-id="copy-1"]',
       label: 'Turn a brand brief into an editorial collage system.',
       text: 'Turn a brand brief into an editorial collage system.',
-      htmlHint: '<p data-od-id="copy-1">',
+      htmlHint: '<p data-readable-id="copy-1">',
       position: { x: 16, y: 24, width: 320, height: 48 },
       note: 'Make this copy tighter.',
       status: 'open',
@@ -4591,7 +4591,7 @@ describe('FileViewer tweaks toolbar', () => {
           conversationId: 'conversation-1',
           filePath: 'preview.html',
           elementId: 'pin-1',
-          selector: '[data-od-pin="pin-1"]',
+          selector: '[data-readable-pin="pin-1"]',
           label: 'pin-1',
           text: '',
           htmlHint: '',
@@ -4607,7 +4607,7 @@ describe('FileViewer tweaks toolbar', () => {
           conversationId: 'conversation-1',
           filePath: 'preview.html',
           elementId: 'pin-2',
-          selector: '[data-od-pin="pin-2"]',
+          selector: '[data-readable-pin="pin-2"]',
           label: 'pin-2',
           text: '',
           htmlHint: '',
@@ -4624,7 +4624,7 @@ describe('FileViewer tweaks toolbar', () => {
           projectId="project-1"
           projectKind="prototype"
           file={htmlPreviewFile()}
-          liveHtml='<html><body><main data-od-id="hero">Hero</main></body></html>'
+          liveHtml='<html><body><main data-readable-id="hero">Hero</main></body></html>'
           previewComments={comments}
           onRemovePreviewComment={async (commentId) => {
             removed.push(commentId);
@@ -4651,20 +4651,20 @@ describe('FileViewer tweaks toolbar', () => {
 });
 
 describe('applyInspectOverridesToSource', () => {
-  const base = `<!doctype html><html><head><title>X</title></head><body><main data-od-id="hero">Hi</main></body></html>`;
-  const css = `[data-od-id="hero"] { color: #ff0000 !important }`;
+  const base = `<!doctype html><html><head><title>X</title></head><body><main data-readable-id="hero">Hi</main></body></html>`;
+  const css = `[data-readable-id="hero"] { color: #ff0000 !important }`;
 
   it('inserts the overrides block before </head>', () => {
     const next = applyInspectOverridesToSource(base, css);
-    expect(next).toContain('<style data-od-inspect-overrides>');
+    expect(next).toContain('<style data-readable-inspect-overrides>');
     expect(next).toContain('color: #ff0000');
-    expect(next.indexOf('<style data-od-inspect-overrides>')).toBeLessThan(next.indexOf('</head>'));
+    expect(next.indexOf('<style data-readable-inspect-overrides>')).toBeLessThan(next.indexOf('</head>'));
   });
 
   it('replaces an existing overrides block instead of duplicating', () => {
     const once = applyInspectOverridesToSource(base, css);
-    const twice = applyInspectOverridesToSource(once, `[data-od-id="hero"] { color: #00ff00 !important }`);
-    const matches = twice.match(/<style data-od-inspect-overrides>/g) ?? [];
+    const twice = applyInspectOverridesToSource(once, `[data-readable-id="hero"] { color: #00ff00 !important }`);
+    const matches = twice.match(/<style data-readable-inspect-overrides>/g) ?? [];
     expect(matches).toHaveLength(1);
     expect(twice).toContain('color: #00ff00');
     expect(twice).not.toContain('color: #ff0000');
@@ -4673,40 +4673,40 @@ describe('applyInspectOverridesToSource', () => {
   it('strips the overrides block when called with empty css', () => {
     const once = applyInspectOverridesToSource(base, css);
     const stripped = applyInspectOverridesToSource(once, '');
-    expect(stripped).not.toContain('data-od-inspect-overrides');
+    expect(stripped).not.toContain('data-readable-inspect-overrides');
   });
 
   it('handles fragments without an explicit <head>', () => {
-    const next = applyInspectOverridesToSource('<main data-od-id="x">x</main>', css);
-    expect(next).toContain('<style data-od-inspect-overrides>');
-    expect(next.indexOf('<style data-od-inspect-overrides>')).toBeLessThan(next.indexOf('<main'));
+    const next = applyInspectOverridesToSource('<main data-readable-id="x">x</main>', css);
+    expect(next).toContain('<style data-readable-inspect-overrides>');
+    expect(next.indexOf('<style data-readable-inspect-overrides>')).toBeLessThan(next.indexOf('<main'));
   });
 
-  // Regression for nexu-io/open-design#362: if a source file has more than
+  // Regression for nexu-io/readable-studio#362: if a source file has more than
   // one inspect override block (manual edit, or an earlier buggy save), the
   // splicer must drop them all before inserting the new block. A non-global
   // regex would only strip the first, so save-then-reload could resurrect an
   // override the user just cleared.
   it('removes every existing overrides block, not just the first', () => {
     const dup = `<!doctype html><html><head>` +
-      `<style data-od-inspect-overrides>[data-od-id="hero"] { color: #ff0000 !important }</style>` +
-      `<style data-od-inspect-overrides>[data-od-id="hero"] { color: #00ff00 !important }</style>` +
-      `<title>X</title></head><body><main data-od-id="hero">Hi</main></body></html>`;
-    const replaced = applyInspectOverridesToSource(dup, `[data-od-id="hero"] { color: #0000ff !important }`);
-    const matches = replaced.match(/<style data-od-inspect-overrides>/g) ?? [];
+      `<style data-readable-inspect-overrides>[data-readable-id="hero"] { color: #ff0000 !important }</style>` +
+      `<style data-readable-inspect-overrides>[data-readable-id="hero"] { color: #00ff00 !important }</style>` +
+      `<title>X</title></head><body><main data-readable-id="hero">Hi</main></body></html>`;
+    const replaced = applyInspectOverridesToSource(dup, `[data-readable-id="hero"] { color: #0000ff !important }`);
+    const matches = replaced.match(/<style data-readable-inspect-overrides>/g) ?? [];
     expect(matches).toHaveLength(1);
     expect(replaced).toContain('color: #0000ff');
     expect(replaced).not.toContain('color: #ff0000');
     expect(replaced).not.toContain('color: #00ff00');
 
     const cleared = applyInspectOverridesToSource(dup, '');
-    expect(cleared).not.toContain('data-od-inspect-overrides');
+    expect(cleared).not.toContain('data-readable-inspect-overrides');
   });
 
-  // Regression for nexu-io/open-design#362: the splicer must be HTML-aware
+  // Regression for nexu-io/readable-studio#362: the splicer must be HTML-aware
   // when locating its own override block and the head insertion point.
   // Generated artifacts commonly carry inline scripts/styles that mention
-  // `</head>` or `<style data-od-inspect-overrides>` as text, e.g. a
+  // `</head>` or `<style data-readable-inspect-overrides>` as text, e.g. a
   // template literal that builds HTML at runtime or a CSS rule that
   // documents the override block. A regex-only splicer would happily
   // splice into the middle of the script body or strip the literal string,
@@ -4718,13 +4718,13 @@ describe('applyInspectOverridesToSource', () => {
       // treated as the real head close.
       `<script>const tpl = "<head>\\n</head>";</script>` +
       `<style>/* sentinel: </head> appears in this CSS comment */</style>` +
-      `<title>X</title></head><body><main data-od-id="hero">Hi</main></body></html>`;
+      `<title>X</title></head><body><main data-readable-id="hero">Hi</main></body></html>`;
     const next = applyInspectOverridesToSource(sourceWithLiteral, css);
     // The override block must land exactly once, before the real </head>,
     // and after the inline <script> and <style> that contain `</head>`
     // text. Without HTML-aware scanning the regex would splice before the
     // first textual `</head>`, which sits inside the script body.
-    const blockIdx = next.indexOf('<style data-od-inspect-overrides>');
+    const blockIdx = next.indexOf('<style data-readable-inspect-overrides>');
     const realHeadEndIdx = next.indexOf('</head>', next.indexOf('<title>'));
     const scriptOpenIdx = next.indexOf('<script>');
     const scriptCloseIdx = next.indexOf('</script>');
@@ -4741,100 +4741,100 @@ describe('applyInspectOverridesToSource', () => {
     // The CSS comment's `</head>` token also survives untouched.
     expect(next).toContain('/* sentinel: </head> appears in this CSS comment */');
     // Only one override block in total.
-    const blockMatches = next.match(/<style data-od-inspect-overrides>/g) ?? [];
+    const blockMatches = next.match(/<style data-readable-inspect-overrides>/g) ?? [];
     expect(blockMatches).toHaveLength(1);
   });
 
-  it('ignores `<style data-od-inspect-overrides>` literals inside <script>', () => {
+  it('ignores `<style data-readable-inspect-overrides>` literals inside <script>', () => {
     // A sentinel string literal in an inline script that mentions the
     // override block by name. A regex-only splicer would strip the
     // literal as if it were a real block, mangling the script.
     const sourceWithLiteral =
       `<!doctype html><html><head>` +
-      `<script>const banner = "<style data-od-inspect-overrides>color: red</style>";</script>` +
-      `<title>X</title></head><body><main data-od-id="hero">Hi</main></body></html>`;
+      `<script>const banner = "<style data-readable-inspect-overrides>color: red</style>";</script>` +
+      `<title>X</title></head><body><main data-readable-id="hero">Hi</main></body></html>`;
     const next = applyInspectOverridesToSource(sourceWithLiteral, css);
     // The literal must survive verbatim inside the script body.
-    expect(next).toContain('const banner = "<style data-od-inspect-overrides>color: red</style>";');
+    expect(next).toContain('const banner = "<style data-readable-inspect-overrides>color: red</style>";');
     // The output still gains exactly one real override block.
-    const blockMatches = next.match(/<style data-od-inspect-overrides>\n\[data-od-id="hero"\]/g) ?? [];
+    const blockMatches = next.match(/<style data-readable-inspect-overrides>\n\[data-readable-id="hero"\]/g) ?? [];
     expect(blockMatches).toHaveLength(1);
     // Stripping with empty css must NOT touch the script literal.
     const stripped = applyInspectOverridesToSource(sourceWithLiteral, '');
-    expect(stripped).toContain('const banner = "<style data-od-inspect-overrides>color: red</style>";');
+    expect(stripped).toContain('const banner = "<style data-readable-inspect-overrides>color: red</style>";');
     // The script-internal literal is the only mention of the marker after
     // stripping — the splicer must not have inserted or kept any real
     // override block.
-    const allMatches = stripped.match(/data-od-inspect-overrides/g) ?? [];
+    const allMatches = stripped.match(/data-readable-inspect-overrides/g) ?? [];
     expect(allMatches).toHaveLength(1);
   });
 
-  // Regression for nexu-io/open-design#362: the splicer must look at real
+  // Regression for nexu-io/readable-studio#362: the splicer must look at real
   // attribute names, not just substring-match the marker text against the
-  // whole opening tag. A `\bdata-od-inspect-overrides\b` regex over the
+  // whole opening tag. A `\bdata-readable-inspect-overrides\b` regex over the
   // full tag matches both a longer attribute name (`-note` suffix) and the
   // marker spelled inside another attribute's value, so a plain `<style>`
   // documenting the override block in a `title` tooltip or a sibling note
   // attribute would be mis-stripped on save and would have its inner CSS
   // mis-parsed as override rules on hydration.
   it('does not strip <style> blocks whose attribute name only PREFIXES the marker', () => {
-    const css2 = `[data-od-id="hero"] { color: #00ffaa !important }`;
+    const css2 = `[data-readable-id="hero"] { color: #00ffaa !important }`;
     const userBlock = `body { background: red !important }`;
     const sourceWithLongerName =
       `<!doctype html><html><head>` +
-      // attribute is named data-od-inspect-overrides-note, NOT the marker.
+      // attribute is named data-readable-inspect-overrides-note, NOT the marker.
       // The note shouldn't be treated as an Inspect-owned style block.
-      `<style data-od-inspect-overrides-note="docs">${userBlock}</style>` +
-      `<title>X</title></head><body><main data-od-id="hero">Hi</main></body></html>`;
+      `<style data-readable-inspect-overrides-note="docs">${userBlock}</style>` +
+      `<title>X</title></head><body><main data-readable-id="hero">Hi</main></body></html>`;
     const next = applyInspectOverridesToSource(sourceWithLongerName, css2);
     // The user's style with the longer attribute name must survive in the
     // output verbatim (with both the attribute and the body intact).
-    expect(next).toContain('<style data-od-inspect-overrides-note="docs">');
+    expect(next).toContain('<style data-readable-inspect-overrides-note="docs">');
     expect(next).toContain(userBlock);
     // Exactly one real override block lands before </head>.
-    const blockMatches = next.match(/<style data-od-inspect-overrides>/g) ?? [];
+    const blockMatches = next.match(/<style data-readable-inspect-overrides>/g) ?? [];
     expect(blockMatches).toHaveLength(1);
     // Stripping with empty CSS still leaves the user's longer-name block
     // alone — there was no real override block to remove.
     const stripped = applyInspectOverridesToSource(sourceWithLongerName, '');
-    expect(stripped).toContain('<style data-od-inspect-overrides-note="docs">');
+    expect(stripped).toContain('<style data-readable-inspect-overrides-note="docs">');
     expect(stripped).toContain(userBlock);
-    expect(stripped).not.toContain('<style data-od-inspect-overrides>');
+    expect(stripped).not.toContain('<style data-readable-inspect-overrides>');
   });
 
   it('does not strip <style> blocks that only mention the marker inside an attribute value', () => {
-    const css2 = `[data-od-id="hero"] { color: #00ffaa !important }`;
+    const css2 = `[data-readable-id="hero"] { color: #00ffaa !important }`;
     const userBlock = `body { background: red !important }`;
     const sourceWithMarkerInValue =
       `<!doctype html><html><head>` +
-      // The literal text data-od-inspect-overrides appears as an attribute
+      // The literal text data-readable-inspect-overrides appears as an attribute
       // VALUE on a normal <style title="..."> — there is no real override
       // marker here, so the splicer must keep the block.
-      `<style title="data-od-inspect-overrides">${userBlock}</style>` +
-      `<title>X</title></head><body><main data-od-id="hero">Hi</main></body></html>`;
+      `<style title="data-readable-inspect-overrides">${userBlock}</style>` +
+      `<title>X</title></head><body><main data-readable-id="hero">Hi</main></body></html>`;
     const next = applyInspectOverridesToSource(sourceWithMarkerInValue, css2);
-    expect(next).toContain('<style title="data-od-inspect-overrides">');
+    expect(next).toContain('<style title="data-readable-inspect-overrides">');
     expect(next).toContain(userBlock);
-    const blockMatches = next.match(/<style data-od-inspect-overrides>/g) ?? [];
+    const blockMatches = next.match(/<style data-readable-inspect-overrides>/g) ?? [];
     expect(blockMatches).toHaveLength(1);
     const stripped = applyInspectOverridesToSource(sourceWithMarkerInValue, '');
-    expect(stripped).toContain('<style title="data-od-inspect-overrides">');
+    expect(stripped).toContain('<style title="data-readable-inspect-overrides">');
     expect(stripped).toContain(userBlock);
-    expect(stripped).not.toContain('<style data-od-inspect-overrides>');
+    expect(stripped).not.toContain('<style data-readable-inspect-overrides>');
   });
 
-  it('still strips a real <style data-od-inspect-overrides> block with assigned value', () => {
+  it('still strips a real <style data-readable-inspect-overrides> block with assigned value', () => {
     // The marker is allowed both as a boolean attribute and with an
-    // assigned value (`<style data-od-inspect-overrides="">`). The splicer
+    // assigned value (`<style data-readable-inspect-overrides="">`). The splicer
     // must treat both as the override block, not just the boolean shape.
     const sourceWithValuedMarker =
       `<!doctype html><html><head>` +
-      `<style data-od-inspect-overrides="">` +
-      `[data-od-id="hero"] { color: #ff0000 !important }` +
+      `<style data-readable-inspect-overrides="">` +
+      `[data-readable-id="hero"] { color: #ff0000 !important }` +
       `</style>` +
       `<title>X</title></head><body></body></html>`;
     const stripped = applyInspectOverridesToSource(sourceWithValuedMarker, '');
-    expect(stripped).not.toContain('data-od-inspect-overrides');
+    expect(stripped).not.toContain('data-readable-inspect-overrides');
     expect(stripped).not.toContain('color: #ff0000');
   });
 
@@ -4845,12 +4845,12 @@ describe('applyInspectOverridesToSource', () => {
     const sourceWithTextarea =
       `<!doctype html><html><head><title>Has </head> in title</title></head>` +
       `<body><textarea>literal </head> goes here</textarea>` +
-      `<main data-od-id="hero">Hi</main></body></html>`;
+      `<main data-readable-id="hero">Hi</main></body></html>`;
     const next = applyInspectOverridesToSource(sourceWithTextarea, css);
     // Override block lands before the REAL </head>, which is after the
     // </title>'s close. The title-internal `</head>` must not be the
     // chosen insertion point.
-    const blockIdx = next.indexOf('<style data-od-inspect-overrides>');
+    const blockIdx = next.indexOf('<style data-readable-inspect-overrides>');
     const titleCloseIdx = next.indexOf('</title>');
     const realHeadCloseIdx = next.indexOf('</head>', titleCloseIdx);
     expect(blockIdx).toBeGreaterThan(titleCloseIdx);
@@ -4864,9 +4864,9 @@ describe('applyInspectOverridesToSource', () => {
 describe('serializeInspectOverrides', () => {
   it('emits validated declarations for legitimate overrides', () => {
     const out = serializeInspectOverrides({
-      hero: { selector: '[data-od-id="hero"]', props: { color: '#ff0000', 'font-size': '18px' } },
+      hero: { selector: '[data-readable-id="hero"]', props: { color: '#ff0000', 'font-size': '18px' } },
     });
-    expect(out).toContain('[data-od-id="hero"]');
+    expect(out).toContain('[data-readable-id="hero"]');
     expect(out).toContain('color: #ff0000 !important');
     expect(out).toContain('font-size: 18px !important');
   });
@@ -4876,15 +4876,15 @@ describe('serializeInspectOverrides', () => {
       hero: { selector: '[data-screen-label="hero"]', props: { color: '#0f0' } },
     });
     expect(out).toContain('[data-screen-label="hero"]');
-    expect(out).not.toContain('[data-od-id="hero"]');
+    expect(out).not.toContain('[data-readable-id="hero"]');
   });
 
-  // Regression for nexu-io/open-design#362: standard deck slides ship as
+  // Regression for nexu-io/readable-studio#362: standard deck slides ship as
   // `<section data-screen-label="01 Cover">`. The bridge keys overrides by
   // the raw label and posts a CSS.escape'd selector, so the host must
   // accept whitespace/leading-digit ids and detect the selector kind by
   // prefix instead of full equality. Otherwise the override is dropped
-  // outright (or silently rewritten to `[data-od-id="..."]`) and reload
+  // outright (or silently rewritten to `[data-readable-id="..."]`) and reload
   // erases the user's edit.
   it('preserves data-screen-label values with whitespace and leading digits', () => {
     const out = serializeInspectOverrides({
@@ -4894,14 +4894,14 @@ describe('serializeInspectOverrides', () => {
       },
     });
     expect(out).toContain('[data-screen-label="01 Cover"]');
-    expect(out).not.toContain('[data-od-id="01 Cover"]');
+    expect(out).not.toContain('[data-readable-id="01 Cover"]');
     expect(out).toContain('color: #ff0000 !important');
     expect(out).toContain('font-size: 20px !important');
   });
 
   it('rejects non-allow-listed properties', () => {
     const out = serializeInspectOverrides({
-      hero: { selector: '[data-od-id="hero"]', props: { position: 'absolute', color: '#fff' } },
+      hero: { selector: '[data-readable-id="hero"]', props: { position: 'absolute', color: '#fff' } },
     });
     expect(out).not.toContain('position');
     expect(out).toContain('color: #fff !important');
@@ -4910,7 +4910,7 @@ describe('serializeInspectOverrides', () => {
   it('drops values that try to break out of a `prop: value` declaration', () => {
     const out = serializeInspectOverrides({
       hero: {
-        selector: '[data-od-id="hero"]',
+        selector: '[data-readable-id="hero"]',
         // semicolon, brace, angle bracket, and newline are all rejected.
         props: {
           color: 'red; background: url(x)',
@@ -4925,7 +4925,7 @@ describe('serializeInspectOverrides', () => {
 
   // The vulnerability we're regression-testing: artifact code rendered with
   // scripts enabled can call window.parent.postMessage({ type:
-  // 'od:inspect-overrides', overrides, css: '</style><script>...</script>' })
+  // 'readable-studio:inspect-overrides', overrides, css: '</style><script>...</script>' })
   // — ev.source still matches iframe.contentWindow, so the host listener
   // accepts it. The fix is that the host re-derives CSS from the structured
   // `overrides` field under its own allow-list and ignores the inbound `css`
@@ -4940,12 +4940,12 @@ describe('serializeInspectOverrides', () => {
       },
       // Hostile elementId: rejected outright by the safe-id check.
       '"></style><script>alert(2)</script>': {
-        selector: '[data-od-id="x"]',
+        selector: '[data-readable-id="x"]',
         props: { color: '#fff' },
       },
       // Hostile value: rejected by UNSAFE_VALUE.
       villain: {
-        selector: '[data-od-id="villain"]',
+        selector: '[data-readable-id="villain"]',
         props: { color: '</style><script>alert(3)</script>' },
       },
     };
@@ -4955,7 +4955,7 @@ describe('serializeInspectOverrides', () => {
     expect(out).not.toContain('alert(');
     // The legitimate-looking entry still serializes — but with a re-derived
     // selector, not the attacker-supplied one.
-    expect(out).toContain('[data-od-id="hero"] { color: #fff !important }');
+    expect(out).toContain('[data-readable-id="hero"] { color: #fff !important }');
     expect(out).not.toContain('villain');
 
     // And the spliced source must not contain executable markup either,
@@ -4976,10 +4976,10 @@ describe('serializeInspectOverrides', () => {
   });
 });
 
-// Regression for nexu-io/open-design#362: the host owns the inspect override
+// Regression for nexu-io/readable-studio#362: the host owns the inspect override
 // map authoritatively. Hydration parses the artifact source on load so an
 // initial Save-to-source preserves prior rules even when the user edits a
-// different element, and forging the iframe's od:inspect-overrides reply
+// different element, and forging the iframe's readable-studio:inspect-overrides reply
 // cannot inject overrides — the host never ingests it.
 describe('parseInspectOverridesFromSource', () => {
   it('returns an empty map when the source has no override block', () => {
@@ -4990,30 +4990,30 @@ describe('parseInspectOverridesFromSource', () => {
   it('parses an existing override block into the host map', () => {
     const source =
       `<!doctype html><html><head>` +
-      `<style data-od-inspect-overrides>` +
-      `[data-od-id="hero"] { color: #ff0000 !important; font-size: 18px !important }` +
+      `<style data-readable-inspect-overrides>` +
+      `[data-readable-id="hero"] { color: #ff0000 !important; font-size: 18px !important }` +
       `\n[data-screen-label="01 Cover"] { background-color: #000 !important }` +
       `</style></head><body></body></html>`;
     const map = parseInspectOverridesFromSource(source);
     expect(map.hero?.props).toEqual({ color: '#ff0000', 'font-size': '18px' });
-    expect(map.hero?.selector).toBe('[data-od-id="hero"]');
+    expect(map.hero?.selector).toBe('[data-readable-id="hero"]');
     expect(map['01 Cover']?.props).toEqual({ 'background-color': '#000' });
     expect(map['01 Cover']?.selector).toBe('[data-screen-label="01 Cover"]');
   });
 
   it('aggregates rules across multiple persisted blocks', () => {
     const source =
-      `<style data-od-inspect-overrides>[data-od-id="a"] { color: #111 !important }</style>` +
-      `<style data-od-inspect-overrides>[data-od-id="b"] { color: #222 !important }</style>`;
+      `<style data-readable-inspect-overrides>[data-readable-id="a"] { color: #111 !important }</style>` +
+      `<style data-readable-inspect-overrides>[data-readable-id="b"] { color: #222 !important }</style>`;
     const map = parseInspectOverridesFromSource(source);
     expect(Object.keys(map).sort()).toEqual(['a', 'b']);
   });
 
   it('drops disallowed properties and rules whose only declarations are unsafe', () => {
     const source =
-      `<style data-od-inspect-overrides>` +
-      `[data-od-id="hero"] { position: absolute !important; color: #fff !important }` +
-      `[data-od-id="bad"] { background: red } ` +
+      `<style data-readable-inspect-overrides>` +
+      `[data-readable-id="hero"] { position: absolute !important; color: #fff !important }` +
+      `[data-readable-id="bad"] { background: red } ` +
       `</style>`;
     const map = parseInspectOverridesFromSource(source);
     expect(map.hero?.props).toEqual({ color: '#fff' });
@@ -5022,8 +5022,8 @@ describe('parseInspectOverridesFromSource', () => {
 
   it('refuses elementIds whose characters could break out of the attr value', () => {
     const hostile =
-      `<style data-od-inspect-overrides>` +
-      `[data-od-id="\"><script>alert(1)</script>"] { color: #fff !important }` +
+      `<style data-readable-inspect-overrides>` +
+      `[data-readable-id="\"><script>alert(1)</script>"] { color: #fff !important }` +
       `</style>`;
     expect(parseInspectOverridesFromSource(hostile)).toEqual({});
   });
@@ -5036,8 +5036,8 @@ describe('parseInspectOverridesFromSource', () => {
     // seed phantom rules and a later Save-to-source would write CSS the user
     // never created.
     const phantomBlock =
-      `<style data-od-inspect-overrides>` +
-      `[data-od-id="hero"] { color: #ff0000 !important }` +
+      `<style data-readable-inspect-overrides>` +
+      `[data-readable-id="hero"] { color: #ff0000 !important }` +
       `</style>`;
     const source =
       `<!doctype html><html><head>` +
@@ -5049,8 +5049,8 @@ describe('parseInspectOverridesFromSource', () => {
     expect(parseInspectOverridesFromSource(source)).toEqual({});
   });
 
-  // Regression for nexu-io/open-design#362: hydration must require an
-  // actual `data-od-inspect-overrides` attribute name, not a boundary-only
+  // Regression for nexu-io/readable-studio#362: hydration must require an
+  // actual `data-readable-inspect-overrides` attribute name, not a boundary-only
   // substring match against the whole opening tag. Otherwise a sibling
   // attribute name with `-note` suffix or a tooltip whose value contains
   // the marker text would seed phantom overrides into the host map and
@@ -5058,8 +5058,8 @@ describe('parseInspectOverridesFromSource', () => {
   it('does not seed phantom overrides from a longer attribute name', () => {
     const source =
       `<!doctype html><html><head>` +
-      `<style data-od-inspect-overrides-note="docs">` +
-      `[data-od-id="hero"] { color: #ff0000 !important }` +
+      `<style data-readable-inspect-overrides-note="docs">` +
+      `[data-readable-id="hero"] { color: #ff0000 !important }` +
       `</style></head><body></body></html>`;
     expect(parseInspectOverridesFromSource(source)).toEqual({});
   });
@@ -5067,22 +5067,22 @@ describe('parseInspectOverridesFromSource', () => {
   it('does not seed phantom overrides when the marker text only appears in an attribute value', () => {
     const source =
       `<!doctype html><html><head>` +
-      `<style title="data-od-inspect-overrides">` +
-      `[data-od-id="hero"] { color: #ff0000 !important }` +
+      `<style title="data-readable-inspect-overrides">` +
+      `[data-readable-id="hero"] { color: #ff0000 !important }` +
       `</style></head><body></body></html>`;
     expect(parseInspectOverridesFromSource(source)).toEqual({});
   });
 
   it('still parses a real override block when raw-text literals also mention one', () => {
     const phantomBlock =
-      `<style data-od-inspect-overrides>` +
-      `[data-od-id="phantom"] { color: #ff0000 !important }` +
+      `<style data-readable-inspect-overrides>` +
+      `[data-readable-id="phantom"] { color: #ff0000 !important }` +
       `</style>`;
     const source =
       `<!doctype html><html><head>` +
       `<script>const tmpl = \`${phantomBlock}\`;</script>` +
-      `<style data-od-inspect-overrides>` +
-      `[data-od-id="hero"] { color: #00ff00 !important }` +
+      `<style data-readable-inspect-overrides>` +
+      `[data-readable-id="hero"] { color: #00ff00 !important }` +
       `</style>` +
       `</head><body></body></html>`;
     const map = parseInspectOverridesFromSource(source);
@@ -5093,41 +5093,41 @@ describe('parseInspectOverridesFromSource', () => {
 
 describe('updateInspectOverride', () => {
   const base: InspectOverrideMap = {
-    hero: { selector: '[data-od-id="hero"]', props: { color: '#ff0000' } },
+    hero: { selector: '[data-readable-id="hero"]', props: { color: '#ff0000' } },
   };
 
   it('adds a new property to an existing entry', () => {
-    const next = updateInspectOverride(base, 'hero', '[data-od-id="hero"]', 'font-size', '18px');
+    const next = updateInspectOverride(base, 'hero', '[data-readable-id="hero"]', 'font-size', '18px');
     expect(next).not.toBe(base);
     expect(next.hero?.props).toEqual({ color: '#ff0000', 'font-size': '18px' });
   });
 
   it('creates a new entry for a previously untouched element', () => {
-    const next = updateInspectOverride(base, 'cta', '[data-od-id="cta"]', 'color', '#00ff00');
+    const next = updateInspectOverride(base, 'cta', '[data-readable-id="cta"]', 'color', '#00ff00');
     expect(next.cta?.props).toEqual({ color: '#00ff00' });
     expect(next.hero?.props).toEqual({ color: '#ff0000' });
   });
 
   it('clears a single property when given an empty value', () => {
-    const seeded = updateInspectOverride(base, 'hero', '[data-od-id="hero"]', 'font-size', '18px');
-    const cleared = updateInspectOverride(seeded, 'hero', '[data-od-id="hero"]', 'font-size', '');
+    const seeded = updateInspectOverride(base, 'hero', '[data-readable-id="hero"]', 'font-size', '18px');
+    const cleared = updateInspectOverride(seeded, 'hero', '[data-readable-id="hero"]', 'font-size', '');
     expect(cleared.hero?.props).toEqual({ color: '#ff0000' });
   });
 
   it('drops the entry once the last property is cleared', () => {
-    const cleared = updateInspectOverride(base, 'hero', '[data-od-id="hero"]', 'color', '');
+    const cleared = updateInspectOverride(base, 'hero', '[data-readable-id="hero"]', 'color', '');
     expect(cleared.hero).toBeUndefined();
   });
 
   it('returns the same map reference when the change is a no-op', () => {
-    const same = updateInspectOverride(base, 'hero', '[data-od-id="hero"]', 'color', '#ff0000');
+    const same = updateInspectOverride(base, 'hero', '[data-readable-id="hero"]', 'color', '#ff0000');
     expect(same).toBe(base);
-    const noClear = updateInspectOverride(base, 'hero', '[data-od-id="hero"]', 'font-size', '');
+    const noClear = updateInspectOverride(base, 'hero', '[data-readable-id="hero"]', 'font-size', '');
     expect(noClear).toBe(base);
   });
 
   it('rejects properties off the host allow-list', () => {
-    const ignored = updateInspectOverride(base, 'hero', '[data-od-id="hero"]', 'position', 'absolute');
+    const ignored = updateInspectOverride(base, 'hero', '[data-readable-id="hero"]', 'position', 'absolute');
     expect(ignored).toBe(base);
   });
 
@@ -5135,7 +5135,7 @@ describe('updateInspectOverride', () => {
     const ignored = updateInspectOverride(
       base,
       'hero',
-      '[data-od-id="hero"]',
+      '[data-readable-id="hero"]',
       'color',
       'red; background: url(x)',
     );
@@ -5146,7 +5146,7 @@ describe('updateInspectOverride', () => {
     const ignored = updateInspectOverride(
       base,
       '"><script>alert(1)</script>',
-      '[data-od-id="x"]',
+      '[data-readable-id="x"]',
       'color',
       '#fff',
     );

@@ -9,10 +9,11 @@ triggers:
   - "animated pet"
   - "hatch a digital pet"
   - "digital pet"
-od:
+readable:
   mode: image
   surface: image
   scenario: personal
+  featured: 11
   preview:
     type: image
     entry: final/spritesheet.png
@@ -30,8 +31,8 @@ od:
 
 # Hatch Pet
 
-> **Open Design integration.** This is the unmodified Codex `hatch-pet` skill,
-> vendored under `skills/hatch-pet/` so any Open Design agent can run it. After
+> **Readable Studio integration.** This is the unmodified Codex `hatch-pet` skill,
+> vendored under `skills/hatch-pet/` so any Readable Studio agent can run it. After
 > the skill finishes packaging, the resulting `spritesheet.webp` (under
 > `${CODEX_HOME:-$HOME/.codex}/pets/<pet-name>/`) can be imported into the
 > floating pet companion via **Settings → Pets → Import Codex sprite**. The

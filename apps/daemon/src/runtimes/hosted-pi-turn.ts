@@ -532,10 +532,10 @@ function sensitiveValues(
     capabilities.sessionRoot,
     capabilities.uploadRoot,
     packageRoot,
-    env.OD_HOSTED_PI_BROKER_SOCKET,
-    env.OD_HOSTED_PI_BROKER_TOKEN,
-    env.OD_HOSTED_DESIGN_SYSTEM_READ_URL,
-    env.OD_TOOL_TOKEN,
+    env.READABLE_HOSTED_PI_BROKER_SOCKET,
+    env.READABLE_HOSTED_PI_BROKER_TOKEN,
+    env.READABLE_HOSTED_DESIGN_SYSTEM_READ_URL,
+    env.READABLE_TOOL_TOKEN,
   ].filter((value): value is string => typeof value === 'string' && value.length > 0))];
 }
 

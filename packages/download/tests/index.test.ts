@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -37,7 +37,7 @@ afterEach(() => {
 });
 
 function tmpRoot(label: string): string {
-  const root = mkdtempSync(join(tmpdir(), `od-download-${label}-`));
+  const root = mkdtempSync(join(tmpdir(), `readable-download-${label}-`));
   roots.push(root);
   return root;
 }
@@ -91,8 +91,7 @@ async function startFixture(
         "content-type": "application/octet-stream",
         etag: '"fixture-etag"',
       });
-      response.write(payload.subarray(0, options.failFirstBytes));
-      setTimeout(() => response.destroy(), 5);
+      response.end(payload.subarray(0, options.failFirstBytes));
       return;
     }
 
@@ -135,7 +134,68 @@ async function startFixture(
   };
 }
 
+function seedPartialDownload(options: {
+  basePath: string;
+  partialBytes: number;
+  payload: { body: string; url: string };
+  target: { bucket: string; fileName: string };
+}): void {
+  const checksum = sha256(options.payload.body);
+  const key = targetKey(options.target.bucket, options.target.fileName);
+  const now = "2026-01-01T00:00:00.000Z";
+  mkdirSync(join(options.basePath, ".state"), { recursive: true });
+  mkdirSync(join(options.basePath, ".partial"), { recursive: true });
+  mkdirSync(join(options.basePath, ".locks"), { recursive: true });
+  writeFileSync(join(options.basePath, ".readable-studio-download-root.json"), JSON.stringify({
+    createdAt: now,
+    kind: "readable-studio-managed-download-root",
+    schemaVersion: 1,
+  }));
+  writeFileSync(join(options.basePath, ".partial", `${key}.partial`), options.payload.body.slice(0, options.partialBytes));
+  writeFileSync(join(options.basePath, ".state", `${key}.json`), JSON.stringify({
+    bucket: options.target.bucket,
+    checksum: { algorithm: "sha256", value: checksum },
+    createdAt: now,
+    fileName: options.target.fileName,
+    identityDigest: sha256(`${options.payload.url}\0sha256\0${checksum}`),
+    kind: "readable-studio-managed-download",
+    schemaVersion: 1,
+    state: "partial",
+    targetKey: key,
+    totalBytes: Buffer.byteLength(options.payload.body),
+    updatedAt: now,
+    urlDigest: sha256(options.payload.url),
+    validators: { etag: '"fixture-etag"' },
+  }));
+}
+
 describe("managed download package", () => {
+  it("writes the Readable Studio ownership sentinel and manifest schema", async () => {
+    // Given: a fresh managed-download root and a real local download source.
+    const basePath = tmpRoot("identity");
+    const fixture = await startFixture("identity payload");
+    try {
+      // When: the first download initializes the store.
+      await managedDownload({
+        basePath,
+        bucket: "updates",
+        fileName: "identity.bin",
+        payload: {
+          checksum: { algorithm: "sha256", value: sha256("identity payload") },
+          url: fixture.url,
+        },
+      });
+
+      // Then: both machine-consumed records carry only the fresh identity.
+      const sentinel = JSON.parse(readFileSync(join(basePath, ".readable-studio-download-root.json"), "utf8"));
+      const manifest = JSON.parse(readFileSync(join(basePath, ".state", `${targetKey("updates", "identity.bin")}.json`), "utf8"));
+      expect(sentinel.kind).toBe("readable-studio-managed-download-root");
+      expect(manifest.kind).toBe("readable-studio-managed-download");
+    } finally {
+      await fixture.close();
+    }
+  });
+
   it("downloads, copies to caller output, verifies, and clears managed state", async () => {
     const body = "copy and clear payload";
     const fixture = await startFixture(body);
@@ -161,17 +221,26 @@ describe("managed download package", () => {
   });
 
   it("resumes a partial download when the server supports Range", async () => {
+    // Given: an exact persisted partial state and a real range-capable server.
     const body = "resumable payload from a flaky connection";
-    const fixture = await startFixture(body, { failFirstBytes: 9, range: true });
-    const root = tmpRoot("resume");
+    const fixture = await startFixture(body, { range: true });
+    const basePath = join(tmpRoot("resume"), "downloads");
+    seedPartialDownload({
+      basePath,
+      partialBytes: 9,
+      payload: { body, url: fixture.url },
+      target: { bucket: "updates", fileName: "installer.bin" },
+    });
     try {
+      // When: the managed download reopens the partial state.
       const result = await managedDownload({
-        basePath: join(root, "downloads"),
+        basePath,
         bucket: "updates",
         fileName: "installer.bin",
         payload: { checksum: { algorithm: "sha256", value: sha256(body) }, url: fixture.url },
       });
 
+      // Then: it resumes from the exact persisted byte boundary.
       expect(result.resumed).toBe(true);
       expect(readFileSync(result.path, "utf8")).toBe(body);
       expect(fixture.requests.some((request) => request.range?.startsWith("bytes="))).toBe(true);
@@ -181,17 +250,26 @@ describe("managed download package", () => {
   });
 
   it("falls back to a full download when Range is not honored", async () => {
+    // Given: an exact persisted partial state and a server that ignores ranges.
     const body = "fallback payload from a server without range support";
-    const fixture = await startFixture(body, { failFirstBytes: 8, range: false });
-    const root = tmpRoot("range-fallback");
+    const fixture = await startFixture(body, { range: false });
+    const basePath = join(tmpRoot("range-fallback"), "downloads");
+    seedPartialDownload({
+      basePath,
+      partialBytes: 8,
+      payload: { body, url: fixture.url },
+      target: { bucket: "updates", fileName: "installer.bin" },
+    });
     try {
+      // When: the managed download reopens the partial state.
       const result = await managedDownload({
-        basePath: join(root, "downloads"),
+        basePath,
         bucket: "updates",
         fileName: "installer.bin",
         payload: { checksum: { algorithm: "sha256", value: sha256(body) }, url: fixture.url },
       });
 
+      // Then: it detects the ignored range and safely restarts from zero.
       expect(result.resumed).toBe(false);
       expect(readFileSync(result.path, "utf8")).toBe(body);
       expect(fixture.requests.some((request) => request.range?.startsWith("bytes="))).toBe(true);

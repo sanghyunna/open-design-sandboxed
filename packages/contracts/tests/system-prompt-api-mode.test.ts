@@ -74,14 +74,14 @@ describe('composeSystemPrompt — API mode (#313)', () => {
 
     it('pins the override at the top so it overrides the discovery layer', () => {
       // The discovery layer (DISCOVERY_AND_PHILOSOPHY) starts with the
-      // string `# OD core directives`. The API-mode override must appear
+      // string `# Readable Studio core directives`. The API-mode override must appear
       // BEFORE that header — otherwise the discovery layer's own
       // "these override anything later" preamble wins precedence and
       // re-enables TodoWrite/Read/Write/Edit/Bash mentions later in the
       // prompt.
       const prompt = composeSystemPrompt({ streamFormat: 'plain' });
       const overrideIdx = prompt.search(/API mode — no tools available/i);
-      const discoveryIdx = prompt.indexOf('# OD core directives');
+      const discoveryIdx = prompt.indexOf('<question-form id="task-type"');
       expect(overrideIdx).toBeGreaterThanOrEqual(0);
       expect(discoveryIdx).toBeGreaterThanOrEqual(0);
       expect(overrideIdx).toBeLessThan(discoveryIdx);
@@ -146,7 +146,7 @@ describe('composeSystemPrompt — API mode (#313)', () => {
         metadata: { kind: 'prototype', skipDiscoveryBrief: true },
       });
       const skipIdx = prompt.indexOf(SKIP_DISCOVERY_BRIEF_OVERRIDE);
-      const discoveryIdx = prompt.indexOf('# OD core directives');
+      const discoveryIdx = prompt.indexOf('<question-form id="task-type"');
       expect(skipIdx).toBeGreaterThanOrEqual(0);
       expect(skipIdx).toBeLessThan(discoveryIdx);
       expect(prompt).toMatch(/do NOT emit `?<question-form id="discovery">`?/i);
@@ -189,7 +189,7 @@ describe('composeSystemPrompt — API mode (#313)', () => {
         metadata: { kind: 'prototype', examplePrompt: true },
       });
       const overrideIdx = prompt.indexOf('Example prompt mode — full-quality direct generation');
-      const discoveryIdx = prompt.indexOf('# OD core directives');
+      const discoveryIdx = prompt.indexOf('<question-form id="task-type"');
       expect(overrideIdx).toBeGreaterThanOrEqual(0);
       expect(overrideIdx).toBeLessThan(discoveryIdx);
     });

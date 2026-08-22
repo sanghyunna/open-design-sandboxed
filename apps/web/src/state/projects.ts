@@ -31,7 +31,7 @@ import type {
   RollbackRequest,
   RollbackResponse,
   TerminalSession,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { randomUUID } from '../utils/uuid';
 import type {
   ChatMessage,
@@ -42,8 +42,8 @@ import type {
   ProjectTemplate,
 } from '../types';
 
-export type { PluginInstallOutcome } from '@open-design/contracts';
-export type { PluginShareAction } from '@open-design/contracts';
+export type { PluginInstallOutcome } from '@readable-studio/contracts';
+export type { PluginShareAction } from '@readable-studio/contracts';
 export type {
   ProjectCheckpointConflict,
   ProjectCheckpointDiffResponse,
@@ -52,7 +52,7 @@ export type {
   RollbackConflictPolicy,
   RollbackRequest,
   RollbackResponse,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 export class RollbackConflictError extends Error {
   readonly code: string;
@@ -113,7 +113,7 @@ export async function createProject(input: {
 }): Promise<{ project: Project; conversationId: string; appliedPluginSnapshotId?: string } | null> {
   try {
     // `randomUUID` falls back to `crypto.getRandomValues` / `Math.random`
-    // when `crypto.randomUUID` is unavailable. Open Design served over
+    // when `crypto.randomUUID` is unavailable. Readable Studio served over
     // plain HTTP on a LAN IP (Docker / unRAID self-hosting) is a
     // non-secure context, where `crypto.randomUUID` is undefined and
     // calling it directly throws — the surrounding try/catch then turns
@@ -656,7 +656,7 @@ export async function killTerminal(
 
 // ---------- tabs ----------
 
-const PROJECT_TABS_CACHE_PREFIX = 'open-design:project-tabs:v1:';
+const PROJECT_TABS_CACHE_PREFIX = 'readable-studio:project-tabs:v1:';
 
 function tabsCacheKey(projectId: string): string {
   return `${PROJECT_TABS_CACHE_PREFIX}${projectId}`;
@@ -819,8 +819,8 @@ export async function listPlugins(
 }
 
 export function isVisiblePlugin(plugin: InstalledPluginRecord): boolean {
-  const od = (plugin.manifest?.od ?? {}) as Record<string, unknown>;
-  return od.hidden !== true;
+  const readable = (plugin.manifest?.readable ?? {}) as Record<string, unknown>;
+  return readable.hidden !== true;
 }
 
 interface PluginInstallEvent {
@@ -910,7 +910,7 @@ export async function installGeneratedPluginFolder(
     );
     const outcome = await readPluginInstallOutcome(resp);
     if (outcome.ok && typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('open-design:plugins-changed'));
+      window.dispatchEvent(new CustomEvent('readable-studio:plugins-changed'));
     }
     return outcome;
   } catch (err) {
@@ -933,7 +933,7 @@ export interface PluginShareOutcome {
 
 export interface PluginShareTaskStart {
   taskId: string;
-  action: 'publish-github' | 'contribute-open-design';
+  action: 'publish-github' | 'contribute-readable-studio';
   path: string;
   status: 'queued' | 'running' | 'done' | 'failed';
   startedAt: number;
@@ -953,7 +953,7 @@ export interface PluginShareTaskError {
 
 export interface PluginShareTaskSnapshot {
   taskId: string;
-  action: 'publish-github' | 'contribute-open-design';
+  action: 'publish-github' | 'contribute-readable-studio';
   path: string;
   status: 'queued' | 'running' | 'done' | 'failed';
   startedAt: number;
@@ -971,17 +971,17 @@ export async function publishGeneratedPluginToGitHub(
   return postGeneratedPluginShareAction(projectId, relativePath, 'publish-github');
 }
 
-export async function contributeGeneratedPluginToOpenDesign(
+export async function contributeGeneratedPluginToReadableStudio(
   projectId: string,
   relativePath: string,
 ): Promise<PluginShareOutcome> {
-  return postGeneratedPluginShareAction(projectId, relativePath, 'contribute-open-design');
+  return postGeneratedPluginShareAction(projectId, relativePath, 'contribute-readable-studio');
 }
 
 export async function startGeneratedPluginShareTask(
   projectId: string,
   relativePath: string,
-  action: 'publish-github' | 'contribute-open-design',
+  action: 'publish-github' | 'contribute-readable-studio',
 ): Promise<PluginShareTaskStart> {
   const resp = await fetch(
     `/api/projects/${encodeURIComponent(projectId)}/plugins/share-tasks`,
@@ -1091,7 +1091,7 @@ export async function createPluginShareProject(
 async function postGeneratedPluginShareAction(
   projectId: string,
   relativePath: string,
-  action: 'publish-github' | 'contribute-open-design',
+  action: 'publish-github' | 'contribute-readable-studio',
 ): Promise<PluginShareOutcome> {
   try {
     const resp = await fetch(

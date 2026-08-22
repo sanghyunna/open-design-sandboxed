@@ -17,7 +17,7 @@ import {
   type ComponentsManifest,
   extractComponentsManifest,
   summarizeComponentsManifestForPrompt,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 import { parseFrontmatter } from './frontmatter.js';
 import type { FrontmatterObject, FrontmatterValue } from './frontmatter.js';
@@ -121,7 +121,7 @@ export type DesignSystemRevisionFileChange = {
 type ColorToken = { name: string; value: string };
 type SwatchRow = { values: string[]; filledAllSlots: boolean };
 type DesignSystemProjectManifest = {
-  schemaVersion: 'od-design-system-project/v1';
+  schemaVersion: 'readable.design-system-project/v1';
   id: string;
   name: string;
   category: string;
@@ -548,7 +548,7 @@ export async function readDesignSystemPullFile(
 export function isDesignTokenChannelEnabled(
   env: NodeJS.ProcessEnv = process.env,
 ): boolean {
-  return env.OD_DESIGN_TOKEN_CHANNEL !== '0';
+  return env.READABLE_DESIGN_TOKEN_CHANNEL !== '0';
 }
 
 export async function resolveDesignSystemAssets(
@@ -1239,7 +1239,7 @@ async function migrateLegacyDesignSystemPackage(
     return;
   }
   const title = normalizeTitle(metadata.title ?? firstHeading(body) ?? id);
-  const summary = summarize(body) || 'A reusable Open Design design system.';
+  const summary = summarize(body) || 'A reusable Readable Studio design system.';
   const palette = normalizeSwatches(body);
   const copyIfMissing = async (from: string, to: string): Promise<boolean> => {
     const fromPath = path.join(dir, ...from.split('/'));
@@ -1306,7 +1306,7 @@ async function migrateLegacyDesignSystemPackage(
     appKitExists
       ? writeIfMissing(
           'ui_kits/app/README.md',
-          `# ${title} UI Kit\n\nThis package was migrated from an earlier Open Design design-system workspace. Use \`index.html\` as the applied interface example and replace it with source-backed modular components when new repository evidence is available.\n`,
+          `# ${title} UI Kit\n\nThis package was migrated from an earlier Readable Studio design-system workspace. Use \`index.html\` as the applied interface example and replace it with source-backed modular components when new repository evidence is available.\n`,
         )
       : Promise.resolve(false),
     appKitExists
@@ -1502,7 +1502,7 @@ function generatedDesignSystemFileWrites(
   },
 ): AtomicTextFileWrite[] {
   const palette = normalizeSwatches(input.body);
-  const summary = input.summary || 'A user-created Open Design design system.';
+  const summary = input.summary || 'A user-created Readable Studio design system.';
   const sections = extractMarkdownSections(input.body);
   const provenance = input.provenance ?? normalizeProvenance(undefined, {
     ...(input.sourceNotes ? { sourceNotes: input.sourceNotes } : {}),
@@ -1639,7 +1639,7 @@ function renderUiKitComponent(name: string, title: string, purpose: string): str
   if (name === 'Composer') return renderComposerUiKitComponent(title);
   return `function ${name}({ children, title = '${escapeJsString(title)}' }) {
   return (
-    <section className="od-ui-kit-${name.toLowerCase()}">
+    <section className="readable-ui-kit-${name.toLowerCase()}">
       <small>${escapeTsxText(purpose)}</small>
       <h2>{title}</h2>
       <div>{children}</div>
@@ -1652,7 +1652,7 @@ window.${name} = ${name};
 }
 
 function isReplaceableUiKitScaffold(text: string): boolean {
-  return Buffer.byteLength(text, 'utf8') < 700 && /od-ui-kit-[a-z-]+/u.test(text);
+  return Buffer.byteLength(text, 'utf8') < 700 && /readable-ui-kit-[a-z-]+/u.test(text);
 }
 
 function renderAppUiKitComponent(title: string): string {
@@ -2376,7 +2376,7 @@ function upsertBlockquoteMeta(body: string, key: string, value: string): string 
 function buildDraftDesignSystemBody(input: UserDesignSystemInput & { title: string }): string {
   const category = cleanText(input.category) || 'Custom';
   const surface = input.surface ?? 'web';
-  const summary = cleanText(input.summary) || 'A user-authored design system for future Open Design projects.';
+  const summary = cleanText(input.summary) || 'A user-authored design system for future Readable Studio projects.';
   const sourceNotes = cleanText(input.sourceNotes);
   return `# ${input.title}
 
@@ -2479,7 +2479,7 @@ function renderReadme(input: {
     .join('\n');
   return `# ${input.title}
 
-A reusable Open Design package for ${input.title}.
+A reusable Readable Studio package for ${input.title}.
 
 ## Product Overview
 
@@ -2545,7 +2545,7 @@ function renderSkill(input: {
   const skillName = slugify(input.title);
   return `---
 name: ${skillName}
-description: Use this skill when generating Open Design artifacts that should follow ${input.title}.
+description: Use this skill when generating Readable Studio artifacts that should follow ${input.title}.
 user-invocable: true
 ---
 
@@ -2653,7 +2653,7 @@ function renderCssTokens(input: { title: string; palette: GeneratedPalette }): s
   --space-4: var(--${slug}-space-4);
 }
 
-.od-design-system-preview {
+.readable-studio-design-system-preview {
   color: var(--${slug}-foreground);
   background: var(--${slug}-background);
   font-family: var(--${slug}-font-sans);
@@ -2667,7 +2667,7 @@ function renderLogoSvg(title: string, palette: GeneratedPalette): string {
     .filter(Boolean)
     .slice(0, 2)
     .map((word) => word[0]?.toUpperCase() ?? '')
-    .join('') || 'OD';
+    .join('') || 'RS';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="160" viewBox="0 0 320 160" role="img" aria-label="${escapeHtml(title)}">
   <rect width="320" height="160" rx="28" fill="${palette.background}"/>
   <circle cx="84" cy="80" r="38" fill="${palette.accent}"/>
@@ -2680,7 +2680,7 @@ function renderLogoSvg(title: string, palette: GeneratedPalette): string {
 function renderReferenceComponent(title: string): string {
   return `export function DesignSystemReference() {
   return (
-    <section className="od-design-system-preview">
+    <section className="readable-design-system-preview">
       <h1>${escapeTsxText(title)}</h1>
       <p>Use DESIGN.md and colors_and_type.css as the source of truth.</p>
     </section>
@@ -2702,7 +2702,7 @@ function renderOverviewHtml(
   return renderHtmlDocument(
     title,
     `<main class="overview">
-      <p class="eyebrow">Open Design system</p>
+      <p class="eyebrow">Readable Studio system</p>
       <h1>${escapeHtml(title)}</h1>
       <p class="lead">${escapeHtml(summary)}</p>
       <div class="palette">
@@ -3006,7 +3006,7 @@ async function readProjectManifest(
 function isProjectManifest(value: unknown, expectedId: string): value is DesignSystemProjectManifest {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
   const record = value as Record<string, unknown>;
-  if (record.schemaVersion !== 'od-design-system-project/v1') return false;
+  if (record.schemaVersion !== 'readable.design-system-project/v1') return false;
   if (record.id !== expectedId) return false;
   if (typeof record.name !== 'string' || record.name.trim().length === 0) return false;
   if (typeof record.category !== 'string' || record.category.trim().length === 0) return false;

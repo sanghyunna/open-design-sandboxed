@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 import {
   filterPluginsBySubChip,
   isSubChipParent,
@@ -7,13 +7,13 @@ import {
 } from '../src/components/home-hero/sub-chips';
 
 // Minimal record whose facet derivation lands in a known prototype scene.
-// `byMode('prototype')` keys off manifest.od.mode; subcategory tests key off
+// `byMode('prototype')` keys off manifest.readable.mode; subcategory tests key off
 // tags (slugified). See plugins-home/facets.ts.
 function prototypePlugin(id: string, tags: string[]): InstalledPluginRecord {
   return {
     id,
     title: id,
-    manifest: { name: id, od: { mode: 'prototype' }, tags },
+    manifest: { name: id, readable: { mode: 'prototype' }, tags },
   } as unknown as InstalledPluginRecord;
 }
 

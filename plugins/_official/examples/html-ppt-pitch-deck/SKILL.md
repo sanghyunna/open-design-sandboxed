@@ -9,7 +9,7 @@ triggers:
   - "investor deck"
   - "vc deck"
   - "pitch slides"
-od:
+readable:
   mode: deck
   scenario: finance
   featured: 20

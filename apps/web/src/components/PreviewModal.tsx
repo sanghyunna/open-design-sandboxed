@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useT } from '../i18n';
 import { copyToClipboard } from '../lib/copy-to-clipboard';
 import {
-  exportAsHtml,
+  exportStandaloneHtml,
   exportAsImage,
   exportAsPdf,
   exportAsZip,
@@ -10,8 +10,10 @@ import {
   openSandboxedPreviewInNewTab,
   requestPreviewSnapshot,
 } from '../runtime/exports';
+import type { StandaloneHtmlSource } from '@readable-studio/contracts';
 import { buildSrcdoc } from '../runtime/srcdoc';
 import { Icon } from './Icon';
+import { Toast } from './Toast';
 
 export interface PreviewView {
   id: string;
@@ -27,7 +29,7 @@ export interface PreviewView {
   // at the loading state forever. Issue #860.
   error?: string | null;
   // Set when the underlying surface ships no HTML preview at all (its
-  // `od.preview.type` is `image`, `markdown`, etc.). The modal renders
+  // `readable.preview.type` is `image`, `markdown`, etc.). The modal renders
   // a calm "no shipped preview" placeholder instead of the loading or
   // error states — fetching `/api/skills/:id/example` (or the symmetric
   // plugin route) returns 404 today and the resulting "Couldn't load
@@ -51,6 +53,7 @@ export interface PreviewView {
   // fullscreen toggle still applies via the modal's own
   // `ds-modal-fullscreen` class.
   custom?: ReactNode;
+  standaloneSource?: StandaloneHtmlSource;
 }
 
 export interface PreviewSidebar {
@@ -269,6 +272,7 @@ export function PreviewModal({
     : views[0]?.id ?? '';
   const [activeId, setActiveId] = useState<string>(initial);
   const [templateShareOpen, setTemplateShareOpen] = useState(false);
+  const [exportToast, setExportToast] = useState<{ message: string; tone: 'default' | 'error' } | null>(null);
   const [primaryMenuOpen, setPrimaryMenuOpen] = useState(false);
   const [copyShareFeedback, setCopyShareFeedback] = useState<{
     key: string;
@@ -454,6 +458,7 @@ export function PreviewModal({
   const activeError = activeView?.error ?? null;
   const activeUnavailable = activeView?.unavailable ?? null;
   const activeDeck = activeView?.deck ?? false;
+  const activeStandaloneSource = activeView?.standaloneSource;
   const isCustomView = activeCustom !== null && activeCustom !== undefined;
   const srcDoc = useMemo(
     () => (activeHtml ? buildSrcdoc(activeHtml, { deck: activeDeck }) : ''),
@@ -872,21 +877,44 @@ export function PreviewModal({
                             </span>
                             <span>{t('common.exportZip')}</span>
                           </button>
-                          <button
-                            type="button"
-                            className="share-menu-item"
-                            role="menuitem"
-                            onClick={() => {
-                              onSharePopoverItemClick?.('html');
-                              setTemplateShareOpen(false);
-                              if (activeHtml) exportAsHtml(activeHtml, exportTitle);
-                            }}
-                          >
-                            <span className="share-menu-icon">
-                              <Icon name="file-code" size={14} />
-                            </span>
-                            <span>{t('common.exportHtml')}</span>
-                          </button>
+                          {activeStandaloneSource ? (
+                            <button
+                              type="button"
+                              className="share-menu-item"
+                              role="menuitem"
+                              onClick={async () => {
+                                onSharePopoverItemClick?.('html');
+                                setTemplateShareOpen(false);
+                                try {
+                                  const summary = await exportStandaloneHtml({ source: activeStandaloneSource, title: exportTitle });
+                                  const external = summary.externalReferenceCount;
+                                  const missing = summary.missingLocalReferenceCount;
+                                  setExportToast({
+                                    message: external && missing
+                                      ? t('fileViewer.standaloneExportExternalAndMissing', { external, missing })
+                                      : external
+                                        ? t('fileViewer.standaloneExportExternal', { count: external })
+                                        : missing
+                                          ? t('fileViewer.standaloneExportMissing', { count: missing })
+                                          : t('fileViewer.standaloneExportSuccess'),
+                                    tone: 'default',
+                                  });
+                                } catch (error) {
+                                  setExportToast({
+                                    message: error instanceof Error && error.name === 'PAYLOAD_TOO_LARGE'
+                                      ? t('fileViewer.standaloneExportTooLarge')
+                                      : t('fileViewer.standaloneExportFailed'),
+                                    tone: 'error',
+                                  });
+                                }
+                              }}
+                            >
+                              <span className="share-menu-icon">
+                                <Icon name="file-code" size={14} />
+                              </span>
+                              <span>{t('common.exportHtml')}</span>
+                            </button>
+                          ) : null}
                           <button
                             type="button"
                             className="share-menu-item"
@@ -1113,6 +1141,14 @@ export function PreviewModal({
           ) : null}
         </div>
       </div>
+      {exportToast ? (
+        <Toast
+          message={exportToast.message}
+          tone={exportToast.tone}
+          role={exportToast.tone === 'error' ? 'alert' : 'status'}
+          onDismiss={() => setExportToast(null)}
+        />
+      ) : null}
     </div>
   );
 }

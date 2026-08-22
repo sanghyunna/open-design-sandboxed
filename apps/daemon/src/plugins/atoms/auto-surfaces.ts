@@ -15,7 +15,7 @@
 import type {
   GenUISurfaceSpec,
   PluginPipeline,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 export interface AutoAtomSurfaceContext {
   pipeline?: PluginPipeline | undefined;

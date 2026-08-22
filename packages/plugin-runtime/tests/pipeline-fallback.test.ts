@@ -1,24 +1,24 @@
 // Spec §23.3.3 — bundled-scenario pipeline fallback.
 
 import { describe, expect, it } from 'vitest';
-import type { PluginManifest } from '@open-design/contracts';
+import type { PluginManifest } from '@readable-studio/contracts';
 import { resolveAppliedPipeline, type ScenarioRegistryEntry } from '../src/index.js';
 
-const baseManifest = (od: NonNullable<PluginManifest['od']> | undefined): PluginManifest => ({
-  $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+const baseManifest = (readable: NonNullable<PluginManifest['readable']> | undefined): PluginManifest => ({
+  $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
   name: 'fixture',
   version: '0.0.1',
-  ...(od ? { od } : {}),
-}) as PluginManifest;
+  ...(readable ? { readable } : {}),
+});
 
 const scenarios: ScenarioRegistryEntry[] = [
   {
-    id: 'od-new-generation',
+    id: 'readable-new-generation',
     taskKind: 'new-generation',
     pipeline: { stages: [{ id: 'discovery', atoms: ['discovery-question-form'] }] },
   },
   {
-    id: 'od-code-migration',
+    id: 'readable-code-migration',
     taskKind: 'code-migration',
     pipeline: { stages: [{ id: 'import', atoms: ['code-import'] }] },
   },
@@ -40,7 +40,7 @@ describe('resolveAppliedPipeline', () => {
     const manifest = baseManifest({ taskKind: 'code-migration' });
     const out = resolveAppliedPipeline({ manifest, scenarios });
     expect(out.source).toBe('scenario');
-    expect(out.scenarioId).toBe('od-code-migration');
+    expect(out.scenarioId).toBe('readable-code-migration');
     expect(out.pipeline?.stages?.[0]?.id).toBe('import');
   });
 
@@ -48,7 +48,7 @@ describe('resolveAppliedPipeline', () => {
     const manifest = baseManifest({});
     const out = resolveAppliedPipeline({ manifest, scenarios });
     expect(out.source).toBe('scenario');
-    expect(out.scenarioId).toBe('od-new-generation');
+    expect(out.scenarioId).toBe('readable-new-generation');
   });
 
   it("returns source='none' when the manifest is itself a scenario", () => {
@@ -80,6 +80,6 @@ describe('resolveAppliedPipeline', () => {
     });
     const out = resolveAppliedPipeline({ manifest, scenarios });
     expect(out.source).toBe('scenario');
-    expect(out.scenarioId).toBe('od-new-generation');
+    expect(out.scenarioId).toBe('readable-new-generation');
   });
 });

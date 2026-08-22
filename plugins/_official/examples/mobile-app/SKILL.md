@@ -12,7 +12,7 @@ triggers:
   - "phone screen"
   - "app ui"
   - "app mockup"
-od:
+readable:
   mode: prototype
   platform: mobile
   scenario: design

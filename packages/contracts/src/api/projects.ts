@@ -4,6 +4,8 @@ import type {
   ProjectContextPluginRef,
 } from './context.js';
 
+export const READABLE_STUDIO_PROJECT_LOCATION_ID = 'readable-studio-default';
+
 export type ProjectKind =
   | 'prototype'
   | 'deck'
@@ -78,7 +80,7 @@ export interface ProjectMetadata {
   entryFile?: string;
   sourceFileName?: string;
   // Folder-import (#597): when set, the project's files live under this
-  // absolute path instead of .od/projects/<id>/. OD reads and writes
+  // absolute path instead of .readable-studio/projects/<id>/. Readable Studio reads and writes
   // directly inside the user's folder. Stored as the realpath() result so
   // symlinks can't redirect writes after import time.
   baseDir?: string;
@@ -88,7 +90,7 @@ export interface ProjectMetadata {
   // PR #974: marker stamped by the daemon's HMAC-gated import handler
   // when a folder import passed the desktop-main-process trust gate.
   // Only set on folder-imported projects (`baseDir` set) and only when
-  // the import request carried a valid `X-OD-Desktop-Import-Token`
+  // the import request carried a valid `X-Readable-Studio-Desktop-Import-Token`
   // signed with the secret the desktop main process registered with the
   // daemon at startup. The desktop `shell.openPath` IPC refuses to
   // forward folder-imported projects whose metadata lacks this marker,
@@ -185,7 +187,7 @@ export interface Conversation {
 
 export interface CreateProjectRequest {
   name: string;
-  /** Optional project library location id. Omit or use `default` for .od/projects. */
+  /** Optional project library location id. Omit or use `default` for .readable-studio/projects. */
   projectLocationId?: string;
   skillId?: string | null;
   designSystemId?: string | null;
@@ -269,8 +271,8 @@ export interface ScanProjectLocationsResponse {
 
 // POST /api/import/folder — create a project rooted at an existing local
 // folder. The submitted baseDir is stored as the project's metadata.baseDir
-// (after realpath canonicalization) and OD reads/writes directly inside it.
-// The user owns version control; OD does not snapshot or copy.
+// (after realpath canonicalization) and Readable Studio reads/writes directly inside it.
+// The user owns version control; Readable Studio does not snapshot or copy.
 export interface ImportFolderRequest {
   baseDir: string;
   name?: string;

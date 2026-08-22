@@ -11,7 +11,7 @@ import type {
 import { INPUT_MAX_BYTES } from './langfuse-trace.js';
 import { mimeFor, readProjectFile, resolveProjectFilePath } from './projects.js';
 
-const OBJECT_RELAY_MARKER_HEADER = 'X-Open-Design-Telemetry';
+const OBJECT_RELAY_MARKER_HEADER = 'X-Readable-Studio-Telemetry';
 const OBJECT_RELAY_MARKER_VALUE = 'object-ingestion-v1';
 const DEFAULT_RETENTION_DAYS = 90;
 const DEFAULT_OBJECT_MAX_BYTES = 10 * 1024 * 1024;
@@ -131,7 +131,7 @@ function storageRef(projectId: string, runId: string, objectClass: ObjectClass, 
   const safeRun = sanitizeSegment(runId || 'unknown-run') || 'unknown-run';
   const safeClass = sanitizeSegment(objectClass);
   const safeId = sanitizeSegment(id);
-  return `od://objects/workspaces/unknown/projects/${safeProject}/runs/${safeRun}/${safeClass}/${safeId}`;
+  return `readable-studio://objects/workspaces/unknown/projects/${safeProject}/runs/${safeRun}/${safeClass}/${safeId}`;
 }
 
 function inferRelayUrl(_env: NodeJS.ProcessEnv): string | null {
@@ -162,15 +162,15 @@ function readRelayConfig(env: NodeJS.ProcessEnv): ObjectRelayConfig | null {
     authorizeUrl: inferAuthorizeUrl(url),
     uploadsEnabled: true,
     timeoutMs: parsePositiveInt(
-      env.OPEN_DESIGN_OBJECT_RELAY_TIMEOUT_MS ?? env.OPEN_DESIGN_TELEMETRY_TIMEOUT_MS,
+      env.READABLE_OBJECT_RELAY_TIMEOUT_MS ?? env.READABLE_TELEMETRY_TIMEOUT_MS,
       10_000,
     ),
     objectMaxBytes: parsePositiveInt(
-      env.OPEN_DESIGN_OBJECT_MAX_BYTES,
+      env.READABLE_OBJECT_MAX_BYTES,
       DEFAULT_OBJECT_MAX_BYTES,
     ),
     objectBatchMaxBytes: parsePositiveInt(
-      env.OPEN_DESIGN_OBJECT_BATCH_MAX_BYTES ?? env.TRACE_OBJECT_BATCH_MAX_BYTES,
+      env.READABLE_OBJECT_BATCH_MAX_BYTES ?? env.TRACE_OBJECT_BATCH_MAX_BYTES,
       DEFAULT_OBJECT_BATCH_MAX_BYTES,
     ),
   };
@@ -202,15 +202,15 @@ function manifestBase(
     ...(extension ? { extension } : {}),
     redacted: false,
     truncated: source.truncated === true,
-    stored_in_open_design: false,
+    stored_in_readable_studio: false,
     retention_policy: 'observability_90d' as const,
     access_scope: 'project' as const,
     sensitivity: 'private' as const,
     expires_at: new Date(now.getTime() + DEFAULT_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString(),
     approved_by: null,
-    open_in_open_design_url: null,
+    open_in_readable_studio_url: null,
     preview_status: 'not_available',
-    access_policy: 'open_design_auth_required' as const,
+    access_policy: 'readable_studio_auth_required' as const,
     ...(source.reason ? { reason: source.reason } : {}),
   };
   if (source.objectClass === 'attachment') {
@@ -646,7 +646,7 @@ export async function buildTraceObjectManifests(
     return groupManifests(manifests.map((entry, index) => ({
       ...mergeSourceDigest(entry, sources[index]!),
       status: 'unavailable' as const,
-      stored_in_open_design: false,
+      stored_in_readable_studio: false,
       ...(entry.reason ? { reason: entry.reason } : {}),
     })));
   }
@@ -674,7 +674,7 @@ export async function buildTraceObjectManifests(
     return {
       ...entry,
       status: result.status === 'available' ? 'ok' as const : 'unavailable' as const,
-      stored_in_open_design: result.status === 'available',
+      stored_in_readable_studio: result.status === 'available',
       ...(result.reason ? { reason: result.reason } : {}),
       ...(result.size_bytes !== undefined ? { size_bytes: result.size_bytes } : {}),
       ...(result.sha256 ? { sha256: result.sha256 } : {}),

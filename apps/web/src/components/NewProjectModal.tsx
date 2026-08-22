@@ -9,7 +9,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import type { OpenDesignHostProjectImportSuccess } from '@open-design/host';
+import type { ReadableStudioHostProjectImportSuccess } from '@readable-studio/host';
 import { modalOverlay, modalContent } from '../motion';
 import type {
   DesignSystemSummary,
@@ -37,7 +37,7 @@ interface Props {
     file: File,
   ) => Promise<ImportClaudeDesignOutcome | void> | ImportClaudeDesignOutcome | void;
   onImportFolder?: (baseDir: string) => Promise<void> | void;
-  onImportFolderResponse?: (response: OpenDesignHostProjectImportSuccess) => Promise<void> | void;
+  onImportFolderResponse?: (response: ReadableStudioHostProjectImportSuccess) => Promise<void> | void;
   onClose: () => void;
   initialTab?: CreateTab;
 }

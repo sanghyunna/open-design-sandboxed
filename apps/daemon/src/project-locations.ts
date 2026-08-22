@@ -1,30 +1,40 @@
 import { lstat, mkdir, readdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { READABLE_STUDIO_PROJECT_LOCATION_ID } from '@readable-studio/contracts';
 import type { ProjectLocationPrefs } from './app-config.js';
 import { expandHomePrefix } from './home-expansion.js';
 import { isSafeId } from './projects.js';
 
-export const BUILT_IN_PROJECT_LOCATION_ID = 'default';
-export const PROJECT_MANIFEST_RELATIVE_PATH = path.join('.open-design', 'project.json');
+export const BUILT_IN_PROJECT_LOCATION_ID = READABLE_STUDIO_PROJECT_LOCATION_ID;
+export const PROJECT_MANIFEST_RELATIVE_PATH = path.join('.readable-studio', 'project.json');
+
+export class UnsupportedLegacyProductV1Error extends Error {
+  readonly name = 'UnsupportedLegacyProductV1Error';
+  readonly code = 'UNSUPPORTED_LEGACY_PRODUCT_V1';
+
+  constructor() {
+    super('UNSUPPORTED_LEGACY_PRODUCT_V1');
+  }
+}
 
 export interface ProjectLocation extends ProjectLocationPrefs {
   builtIn?: boolean;
 }
 
 export interface ProjectManifest {
-  schemaVersion: 1;
-  id: string;
-  name: string;
-  createdAt: number;
-  updatedAt: number;
-  skillId?: string | null;
-  designSystemId?: string | null;
+  readonly schemaVersion: 1;
+  readonly id: string;
+  readonly name: string;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly skillId?: string | null;
+  readonly designSystemId?: string | null;
 }
 
 export function builtInProjectLocation(projectsDir: string): ProjectLocation {
   return {
     id: BUILT_IN_PROJECT_LOCATION_ID,
-    name: 'Open Design projects',
+    name: 'Readable Studio projects',
     path: projectsDir,
     builtIn: true,
   };
@@ -86,6 +96,18 @@ export async function writeProjectManifest(projectDir: string, manifest: Project
 }
 
 export async function readProjectManifest(projectDir: string): Promise<ProjectManifest | null> {
+  const canonicalMetadataDir = path.dirname(PROJECT_MANIFEST_RELATIVE_PATH);
+  for (const entry of await readdir(projectDir, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !entry.name.startsWith('.') || entry.name === canonicalMetadataDir) continue;
+    try {
+      await readFile(path.join(projectDir, entry.name, 'project.json'), 'utf8');
+      throw new UnsupportedLegacyProductV1Error();
+    } catch (error: unknown) {
+      if (error instanceof UnsupportedLegacyProductV1Error) throw error;
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    }
+  }
+
   try {
     const raw = await readFile(manifestPath(projectDir), 'utf8');
     const parsed: unknown = JSON.parse(raw);
@@ -97,6 +119,7 @@ export async function readProjectManifest(projectDir: string): Promise<ProjectMa
     const createdAt = typeof obj.createdAt === 'number' && Number.isFinite(obj.createdAt) ? obj.createdAt : Date.now();
     const updatedAt = typeof obj.updatedAt === 'number' && Number.isFinite(obj.updatedAt) ? obj.updatedAt : createdAt;
     return {
+      ...obj,
       schemaVersion: 1,
       id: obj.id,
       name: obj.name.trim(),

@@ -112,6 +112,7 @@ describe('normal artifact create helper', () => {
         name: 'component.jsx',
         content: 'export function Component() { return <div />; }',
         artifactManifest: {
+          schema: 'readable-studio.artifact-manifest.v1',
           kind: 'react-component',
           exports: ['jsx'],
         },
@@ -125,7 +126,7 @@ describe('normal artifact create helper', () => {
   });
 
   it('lists explicit manifests for nested artifact entry files', async () => {
-    const projectsRoot = await mkdtemp(path.join(tmpdir(), 'od-artifact-create-'));
+    const projectsRoot = await mkdtemp(path.join(tmpdir(), 'readable-artifact-create-'));
     try {
       await createProjectArtifactFile({
         projectsRoot,
@@ -134,6 +135,7 @@ describe('normal artifact create helper', () => {
           name: 'dry-run/deck.html',
           content: '<!doctype html><h1>Deck</h1>',
           artifactManifest: {
+            schema: 'readable-studio.artifact-manifest.v1',
             kind: 'deck',
             renderer: 'deck-html',
             exports: ['html', 'pdf'],

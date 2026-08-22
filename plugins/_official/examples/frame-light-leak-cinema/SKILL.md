@@ -18,7 +18,7 @@ example_tagline: "Warm orange light leak + 35mm grain"
 example_desc: "2.39:1 letterbox + large italic serif type + film sprocket holes"
 example_source_url: "https://github.com/nexu-io/html-anything"
 example_source_label: "html-frames · light-leak"
-od:
+readable:
   mode: video
   surface: video
   scenario: video

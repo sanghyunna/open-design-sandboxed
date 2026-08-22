@@ -2,7 +2,7 @@
 name: dashboard-ui-glass
 description: "Use this plugin when the user wants a premium liquid-glassmorphism conference / meeting dashboard: dual fullscreen background videos swapped by theme, a 4x2 glass/solid card grid, animated voice-wave participant indicators, and a floating control bar. Invoke for 'glass dashboard', 'conference dashboard', 'meeting room UI', or when the user references the Dashboard UI liquid-glass template."
 version: 0.3.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

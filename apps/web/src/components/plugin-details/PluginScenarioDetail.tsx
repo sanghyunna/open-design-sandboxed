@@ -11,7 +11,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   InstalledPluginRecord,
   PluginManifest,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { useI18n } from '../../i18n';
 import { Icon } from '../Icon';
 import { TrustBadge } from '../TrustBadge';
@@ -40,7 +40,7 @@ export function PluginScenarioDetail({
   const closeRef = useRef<HTMLButtonElement | null>(null);
   // The text/scenario fallback modal gets the same split "Use plugin /
   // Replicate this content" affordance as the HTML/design/media variants, so a
-  // scenario plugin with an `od.useCase.query` still offers use-with-query.
+  // scenario plugin with an `readable.useCase.query` still offers use-with-query.
   const useMenu = buildPluginUseMenu(record, onUse, t);
   const [useMenuOpen, setUseMenuOpen] = useState(false);
   const useMenuRef = useRef<HTMLDivElement | null>(null);
@@ -77,10 +77,10 @@ export function PluginScenarioDetail({
   }, []);
 
   const manifest: PluginManifest = record.manifest ?? ({} as PluginManifest);
-  const od = manifest.od ?? {};
+  const readable = manifest.readable ?? {};
   const examples = useMemo(
-    () => (od.useCase?.exampleOutputs ?? []) as Array<{ path: string; title?: string }>,
-    [od.useCase?.exampleOutputs],
+    () => (readable.useCase?.exampleOutputs ?? []) as Array<{ path: string; title?: string }>,
+    [readable.useCase?.exampleOutputs],
   );
   const tags = manifest.tags ?? [];
 
@@ -106,8 +106,8 @@ export function PluginScenarioDetail({
             </div>
             <div className="plugin-details-modal__meta">
               <span>v{record.version}</span>
-              {od.taskKind ? <span>· {od.taskKind}</span> : null}
-              {od.kind ? <span>· {od.kind}</span> : null}
+              {readable.taskKind ? <span>· {readable.taskKind}</span> : null}
+              {readable.kind ? <span>· {readable.kind}</span> : null}
               <span>· {record.sourceKind}</span>
               {tags.length > 0 ? (
                 <span className="plugin-details-modal__meta-tags">

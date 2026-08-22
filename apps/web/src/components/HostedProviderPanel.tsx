@@ -1,11 +1,11 @@
 'use client';
 
-import { Button, Input, Select } from '@open-design/components';
+import { Button, Input, Select } from '@readable-studio/components';
 import type {
   HostedProviderId,
   HostedProviderStatusResponse,
   HostedSessionResponse,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useHostedT } from '../i18n/hosted';
 import { HostedProviderClient } from '../providers/hosted';

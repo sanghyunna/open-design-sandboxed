@@ -46,11 +46,11 @@ export interface AnalyticsConfigureGlobals {
 
 // Legacy header names used by the web/daemon compatibility layer. The current
 // runtime does not use them to emit telemetry.
-export const ANALYTICS_HEADER_DEVICE_ID = 'x-od-analytics-device-id';
-export const ANALYTICS_HEADER_SESSION_ID = 'x-od-analytics-session-id';
-export const ANALYTICS_HEADER_CLIENT_TYPE = 'x-od-analytics-client-type';
-export const ANALYTICS_HEADER_LOCALE = 'x-od-analytics-locale';
-export const ANALYTICS_HEADER_REQUEST_ID = 'x-od-analytics-request-id';
+export const ANALYTICS_HEADER_DEVICE_ID = 'x-readable-studio-analytics-device-id';
+export const ANALYTICS_HEADER_SESSION_ID = 'x-readable-studio-analytics-session-id';
+export const ANALYTICS_HEADER_CLIENT_TYPE = 'x-readable-studio-analytics-client-type';
+export const ANALYTICS_HEADER_LOCALE = 'x-readable-studio-analytics-locale';
+export const ANALYTICS_HEADER_REQUEST_ID = 'x-readable-studio-analytics-request-id';
 
 // Compatibility response for /api/analytics/config. This fork always serves
 // disabled config with null sink credentials.

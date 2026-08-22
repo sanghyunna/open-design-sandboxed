@@ -13,7 +13,7 @@ triggers:
   - "Hyperframes template"
   - "video template"
   - "pixel-art motion"
-od:
+readable:
   mode: template
   surface: video
   type: hyperframes
@@ -51,7 +51,7 @@ Ship a premium template-mode Hyperframes composition with a ready default showca
 ```
 
 The rendered MP4 showcase used by `example.html` is hosted at
-`https://repo-assets.open-design.ai/resources/videos/skills/8-bit-orbit-video-template/default-showcase.mp4`.
+`https://repo-assets.readable-studio.ai/resources/videos/skills/8-bit-orbit-video-template/default-showcase.mp4`.
 
 ## Workflow
 

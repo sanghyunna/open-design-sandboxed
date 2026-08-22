@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { DesignSystemTokenContractRebuildJobResponse } from '@open-design/contracts';
+import type { DesignSystemTokenContractRebuildJobResponse } from '@readable-studio/contracts';
 
 import { isLocalSameOrigin } from '../src/origin-validation.js';
 import { listDesignSystems } from '../src/design-systems.js';
@@ -19,7 +19,7 @@ describe('static resource mutation routes', () => {
   beforeAll(
     () =>
       new Promise<void>((resolve) => {
-        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'od-static-routes-'));
+        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'readable-static-routes-'));
         const app = express();
         app.use(express.json({ limit: '4mb' }));
         registerStaticResourceRoutes(app, {
@@ -42,7 +42,7 @@ describe('static resource mutation routes', () => {
             BUNDLED_PETS_DIR: path.join(tempRoot, 'pets'),
             DESIGN_SYSTEMS_DIR: path.join(tempRoot, 'design-systems'),
             DESIGN_TEMPLATES_DIR: path.join(tempRoot, 'design-templates'),
-            OD_BIN: path.join(tempRoot, 'od'),
+            READABLE_BIN: path.join(tempRoot, 'readable'),
             PROJECT_ROOT: tempRoot,
             PROJECTS_DIR: path.join(tempRoot, 'projects'),
             RUNTIME_DATA_DIR: path.join(tempRoot, 'data'),
@@ -164,7 +164,7 @@ describe('design system import catalog lookup', () => {
   beforeAll(
     () =>
       new Promise<void>((resolve) => {
-        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'od-static-import-'));
+        tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'readable-static-import-'));
         sourceRoot = path.join(tempRoot, 'source-app');
         userDesignSystemsDir = path.join(tempRoot, 'user-design-systems');
         fs.mkdirSync(path.join(sourceRoot, 'src', 'styles'), { recursive: true });
@@ -203,7 +203,7 @@ describe('design system import catalog lookup', () => {
             BUNDLED_PETS_DIR: path.join(tempRoot, 'pets'),
             DESIGN_SYSTEMS_DIR: path.join(tempRoot, 'design-systems'),
             DESIGN_TEMPLATES_DIR: path.join(tempRoot, 'design-templates'),
-            OD_BIN: path.join(tempRoot, 'od'),
+            READABLE_BIN: path.join(tempRoot, 'readable'),
             PROJECT_ROOT: tempRoot,
             PROJECTS_DIR: path.join(tempRoot, 'projects'),
             RUNTIME_DATA_DIR: path.join(tempRoot, 'data'),

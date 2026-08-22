@@ -11,8 +11,8 @@ import {
   SIDECAR_MODES,
   SIDECAR_SOURCES,
   type SidecarStamp,
-} from '@open-design/sidecar-proto';
-import type { SidecarRuntimeContext } from '@open-design/sidecar';
+} from '@readable-studio/sidecar-proto';
+import type { SidecarRuntimeContext } from '@readable-studio/sidecar';
 
 import {
   STANDALONE_LAUNCH_WARNING,
@@ -45,7 +45,7 @@ interface DiagnosticsManifestFile {
 
 describe('diagnostics export handler — non-sidecar launch', () => {
   // Reviewer-requested regression spec: `runDaemonCliStartup()` calls
-  // `startDaemonRuntime()` without a runtime context, so plain `od` users
+  // `startDaemonRuntime()` without a runtime context, so plain `readable` users
   // hit the diagnostics handler with `options.runtime == null`. The bundle
   // must still produce a valid zip AND surface a manifest warning that
   // file-based logs were not captured, so the operator can tell the
@@ -86,7 +86,7 @@ describe('diagnostics export handler — packaged (runtime) layout', () => {
   // resolved the daemon log to `<namespaceRoot>/runtime/<namespace>/logs/...`
   // → ENOENT, so the bundle silently captured nothing.
   it('captures the daemon log from the real <namespaceRoot>/logs tree', async () => {
-    const root = join(tmpdir(), `od-diag-${randomUUID()}`);
+    const root = join(tmpdir(), `readable-diag-${randomUUID()}`);
     const namespaceRoot = join(root, 'namespaces', 'release-stable');
     const daemonLogPath = join(namespaceRoot, 'logs', APP_KEYS.DAEMON, 'latest.log');
     const marker = 'DAEMON-LOG-MARKER critique runId=rc100-poster';
@@ -98,7 +98,7 @@ describe('diagnostics export handler — packaged (runtime) layout', () => {
         app: APP_KEYS.DAEMON,
         // packaged launches children with base == <namespaceRoot>/runtime
         base: join(namespaceRoot, 'runtime'),
-        ipc: '/tmp/od-diag-test-daemon.sock',
+        ipc: '/tmp/readable-diag-test-daemon.sock',
         mode: SIDECAR_MODES.RUNTIME,
         namespace: 'release-stable',
         source: SIDECAR_SOURCES.PACKAGED,
@@ -129,7 +129,7 @@ describe('diagnostics export handler — packaged (runtime) layout', () => {
   });
 
   it('reports missing packaged log files under logical log paths without duplicating runtime segments', async () => {
-    const root = join(tmpdir(), `od-diag-missing-${randomUUID()}`);
+    const root = join(tmpdir(), `readable-diag-missing-${randomUUID()}`);
     const namespaceRoot = join(root, 'namespaces', 'release-beta');
     const daemonLogPath = join(namespaceRoot, 'logs', APP_KEYS.DAEMON, 'latest.log');
     try {
@@ -139,7 +139,7 @@ describe('diagnostics export handler — packaged (runtime) layout', () => {
       const runtime: SidecarRuntimeContext<SidecarStamp> = {
         app: APP_KEYS.DAEMON,
         base: join(namespaceRoot, 'runtime'),
-        ipc: '/tmp/od-diag-missing.sock',
+        ipc: '/tmp/readable-diag-missing.sock',
         mode: SIDECAR_MODES.RUNTIME,
         namespace: 'release-beta',
         source: SIDECAR_SOURCES.PACKAGED,
@@ -173,7 +173,7 @@ describe('diagnostics export handler — packaged (runtime) layout', () => {
 
 describe('diagnostics export handler — run event logs', () => {
   it('bundles recent per-run events.jsonl logs for agent stream forensics', async () => {
-    const root = join(tmpdir(), `od-diag-runs-${randomUUID()}`);
+    const root = join(tmpdir(), `readable-diag-runs-${randomUUID()}`);
     const runsDir = join(root, 'runs');
     const runLogPath = join(runsDir, 'run-3165', 'events.jsonl');
     const marker = 'Agent stalled without emitting any new output for 600s';

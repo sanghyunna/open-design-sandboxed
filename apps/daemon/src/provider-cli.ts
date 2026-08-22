@@ -4,7 +4,7 @@ import {
   API_ERROR_CODES,
   HOSTED_CSRF_HEADER,
   HOSTED_PROVIDER_IDS,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import type {
   HostedProviderClearResponse,
   HostedProviderId,
@@ -14,7 +14,7 @@ import type {
   HostedProviderTestRequest,
   HostedProviderTestResponse,
   HostedSessionResponse,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { resolveDaemonUrl } from './daemon-url.js';
 
 const MAX_SECRET_BYTES = 16 * 1024;
@@ -23,14 +23,14 @@ const ERROR_CODES = new Set<string>(API_ERROR_CODES);
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
 export const PROVIDER_CLI_USAGE = `Usage:
-  od provider status [--identity-token-file <path|->] [--json]
-  od provider set --provider anthropic|vercel-ai-gateway --key-file <path|->
+  readable provider status [--identity-token-file <path|->] [--json]
+  readable provider set --provider anthropic|vercel-ai-gateway --key-file <path|->
                   [--identity-token-file <path|->] [--json]
-  od provider test --provider anthropic|vercel-ai-gateway
+  readable provider test --provider anthropic|vercel-ai-gateway
                    [--identity-token-file <path|->] [--json]
-  od provider clear [--identity-token-file <path|->] [--json]
+  readable provider clear [--identity-token-file <path|->] [--json]
 
-Identity is read from --identity-token-file or OD_HOSTED_IDENTITY_TOKEN_FILE.
+Identity is read from --identity-token-file or READABLE_HOSTED_IDENTITY_TOKEN_FILE.
 Provider keys are read only from --key-file; use - for stdin.
 All commands also accept --daemon-url <url>.
 `;
@@ -328,10 +328,10 @@ export async function runProviderCli(
     }
     json = options.json;
     const env = dependencies.env ?? process.env;
-    const identityFile = options.identityTokenFile ?? env.OD_HOSTED_IDENTITY_TOKEN_FILE;
+    const identityFile = options.identityTokenFile ?? env.READABLE_HOSTED_IDENTITY_TOKEN_FILE;
     if (!identityFile) {
       throw new CliError(
-        'identity requires --identity-token-file <path|-> or OD_HOSTED_IDENTITY_TOKEN_FILE',
+        'identity requires --identity-token-file <path|-> or READABLE_HOSTED_IDENTITY_TOKEN_FILE',
         'INVALID_ARGUMENT',
       );
     }

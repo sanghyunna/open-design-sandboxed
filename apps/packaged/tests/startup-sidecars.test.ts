@@ -5,12 +5,13 @@ import { join } from "node:path";
 
 import {
   APP_KEYS,
-  OPEN_DESIGN_SIDECAR_CONTRACT,
+  createRuntimeDescriptor,
+  SIDECAR_CONTRACT,
   SIDECAR_MODES,
   SIDECAR_SOURCES,
   type SidecarStamp,
-} from "@open-design/sidecar-proto";
-import { resolveAppIpcPath, type SidecarRuntimeContext } from "@open-design/sidecar";
+} from "@readable-studio/sidecar-proto";
+import { resolveAppIpcPath, type SidecarRuntimeContext } from "@readable-studio/sidecar";
 import { describe, expect, it } from "vitest";
 
 import type { PackagedNamespacePaths } from "../src/paths.js";
@@ -24,6 +25,7 @@ function fixtureSource(
   behavior: FixtureBehavior,
 ): string {
   const peer = app === "daemon" ? "web" : "daemon";
+  const descriptor = createRuntimeDescriptor("1.2.3");
   return `
 import { appendFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
@@ -31,7 +33,7 @@ import { dirname, join } from "node:path";
 
 const app = ${JSON.stringify(app)};
 const behavior = ${JSON.stringify(behavior)};
-const ipcPath = process.env.OD_SIDECAR_IPC_PATH;
+const ipcPath = process.env.READABLE_SIDECAR_IPC_PATH;
 const root = ${JSON.stringify(root)};
 const readyPath = join(root, app + ".status-requested");
 const peerReadyPath = join(root, ${JSON.stringify(peer)} + ".status-requested");
@@ -39,7 +41,7 @@ const tracePath = join(root, "trace.log");
 const isPipe = ipcPath.startsWith("\\\\\\\\.\\\\pipe\\\\");
 const trace = (event) => appendFileSync(tracePath, event + "\\n", "utf8");
 
-trace(app + ":spawned:" + (process.env.OD_PORT ?? ""));
+trace(app + ":spawned:" + (process.env.READABLE_PORT ?? ""));
 if (behavior === "fail") {
   console.error(app + " fixture startup failed");
   process.exit(3);
@@ -47,8 +49,8 @@ if (behavior === "fail") {
 if (behavior === "port-conflict-once") {
   const markerPath = join(root, app + ".port-conflict");
   if (!existsSync(markerPath)) {
-    writeFileSync(markerPath, process.env.OD_PORT ?? "", "utf8");
-    console.error("listen EADDRINUSE: address already in use 127.0.0.1:" + process.env.OD_PORT);
+    writeFileSync(markerPath, process.env.READABLE_PORT ?? "", "utf8");
+    console.error("listen EADDRINUSE: address already in use 127.0.0.1:" + process.env.READABLE_PORT);
     process.exit(4);
   }
 }
@@ -68,10 +70,11 @@ const server = createServer((socket) => {
     if (message.type === "status") {
       if (behavior === "concurrent") writeFileSync(readyPath, "", "utf8");
       const ready = behavior !== "concurrent" || existsSync(peerReadyPath);
-      const port = app === "daemon" ? process.env.OD_PORT : "32123";
+      const port = app === "daemon" ? process.env.READABLE_PORT : "32123";
       socket.end(JSON.stringify({
         ok: true,
         result: {
+          descriptor: ${JSON.stringify(descriptor)},
           pid: process.pid,
           state: "running",
           updatedAt: new Date().toISOString(),
@@ -116,12 +119,10 @@ function fixturePaths(root: string, namespace: string): PackagedNamespacePaths {
     electronUserDataRoot: join(namespaceRoot, "user-data"),
     headlessIdentityPath: join(namespaceRoot, "runtime", "headless-root.json"),
     installationRoot: root,
-    installerObservationRoot: join(namespaceRoot, "data", "observations", "installer"),
     logsRoot: join(namespaceRoot, "logs"),
     namespaceRoot,
     resourceRoot: join(root, "resources"),
     runtimeRoot: join(namespaceRoot, "runtime"),
-    updateRoot: join(namespaceRoot, "updates"),
     webIdentityPath: join(namespaceRoot, "runtime", "web-root.json"),
   };
 }
@@ -137,7 +138,7 @@ function createFixtureHarness(
   daemonBehavior: FixtureBehavior,
   webBehavior: FixtureBehavior,
 ): FixtureHarness {
-  const root = mkdtempSync(join(tmpdir(), "od-packaged-startup-"));
+  const root = mkdtempSync(join(tmpdir(), "readable-packaged-startup-"));
   const namespace = `startup-${randomUUID()}`;
   const paths = fixturePaths(root, namespace);
   const fixturesRoot = join(root, "fixtures");
@@ -158,7 +159,7 @@ function createFixtureHarness(
     base: paths.runtimeRoot,
     ipc: resolveAppIpcPath({
       app: APP_KEYS.DESKTOP,
-      contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+      contract: SIDECAR_CONTRACT,
       namespace,
     }),
     mode: SIDECAR_MODES.RUNTIME,

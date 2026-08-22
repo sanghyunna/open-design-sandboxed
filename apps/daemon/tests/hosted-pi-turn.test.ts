@@ -91,7 +91,7 @@ function fixture(): {
   uploadsA: string;
   uploadsB: string;
 } {
-  const root = mkdtempSync(path.join(tmpdir(), 'od-hosted-pi-turn-'));
+  const root = mkdtempSync(path.join(tmpdir(), 'readable-hosted-pi-turn-'));
   roots.push(root);
   const packageRoot = path.join(root, 'pi-package');
   const directories = {
@@ -286,9 +286,9 @@ describe('startHostedPiTurn', () => {
     const env = spawned.options.env as NodeJS.ProcessEnv;
     expect(env.ANTHROPIC_API_KEY).toBe('lane-secret');
     expect(env.AI_GATEWAY_API_KEY).toBeUndefined();
-    expect(env.OD_HOSTED_DESIGN_SYSTEM_READ_URL).toBe(readUrl);
-    expect(env.OD_TOOL_TOKEN).toBe(designToolToken);
-    expect(env.OD_DAEMON_URL).toBeUndefined();
+    expect(env.READABLE_HOSTED_DESIGN_SYSTEM_READ_URL).toBe(readUrl);
+    expect(env.READABLE_TOOL_TOKEN).toBe(designToolToken);
+    expect(env.READABLE_DAEMON_URL).toBeUndefined();
     expect(Object.values(env)).not.toContain('ambient-secret');
     expect(spawned.args).not.toContain('lane-secret');
     expect(spawned.args).not.toContain('prompt-not-in-argv');
@@ -297,7 +297,7 @@ describe('startHostedPiTurn', () => {
       type: 'message_update',
       assistantMessageEvent: {
         type: 'text_delta',
-        delta: `hidden ${caps.projectRoot} lane-secret ${env.OD_HOSTED_PI_BROKER_TOKEN} ${readUrl} ${designToolToken}`,
+        delta: `hidden ${caps.projectRoot} lane-secret ${env.READABLE_HOSTED_PI_BROKER_TOKEN} ${readUrl} ${designToolToken}`,
       },
     });
     const file = sessionFile(caps);
@@ -314,7 +314,7 @@ describe('startHostedPiTurn', () => {
       projectId: caps.projectId,
       generation: caps.generation,
       designSystemId: caps.designSystemId,
-      carrierToken: env.OD_HOSTED_PI_BROKER_TOKEN,
+      carrierToken: env.READABLE_HOSTED_PI_BROKER_TOKEN,
     });
     expect(revoke).toHaveBeenCalledTimes(1);
     const serialized = JSON.stringify({ events, result });
@@ -324,10 +324,10 @@ describe('startHostedPiTurn', () => {
       caps.sessionRoot,
       caps.brokerRoot,
       caps.uploadRoot,
-      env.OD_HOSTED_PI_BROKER_TOKEN!,
-      env.OD_HOSTED_PI_BROKER_SOCKET!,
-      env.OD_HOSTED_DESIGN_SYSTEM_READ_URL!,
-      env.OD_TOOL_TOKEN!,
+      env.READABLE_HOSTED_PI_BROKER_TOKEN!,
+      env.READABLE_HOSTED_PI_BROKER_SOCKET!,
+      env.READABLE_HOSTED_DESIGN_SYSTEM_READ_URL!,
+      env.READABLE_TOOL_TOKEN!,
     ]) expect(serialized).not.toContain(secret);
   });
 
@@ -389,8 +389,8 @@ describe('startHostedPiTurn', () => {
     const envA = spawnA[0]!.options.env as NodeJS.ProcessEnv;
     const envB = spawnB[0]!.options.env as NodeJS.ProcessEnv;
 
-    await expect(socketRequest(envB.OD_HOSTED_PI_BROKER_SOCKET!, {
-      token: envA.OD_HOSTED_PI_BROKER_TOKEN,
+    await expect(socketRequest(envB.READABLE_HOSTED_PI_BROKER_SOCKET!, {
+      token: envA.READABLE_HOSTED_PI_BROKER_TOKEN,
       operation: 'project:file:list',
       path: '',
     })).resolves.toMatchObject({ ok: false, code: 'BROKER_TOKEN_INVALID' });
@@ -403,8 +403,8 @@ describe('startHostedPiTurn', () => {
       { value: { status: 'succeeded' } },
       { value: { status: 'succeeded' } },
     ]);
-    await expect(socketRequest(envB.OD_HOSTED_PI_BROKER_SOCKET!, {
-      token: envB.OD_HOSTED_PI_BROKER_TOKEN,
+    await expect(socketRequest(envB.READABLE_HOSTED_PI_BROKER_SOCKET!, {
+      token: envB.READABLE_HOSTED_PI_BROKER_TOKEN,
       operation: 'project:file:list',
       path: '',
     })).rejects.toBeInstanceOf(Error);
@@ -438,8 +438,8 @@ describe('startHostedPiTurn', () => {
       value: { exitCode: null, signal: 'SIGTERM', status: 'canceled' },
     });
     const env = spawns[0]!.options.env as NodeJS.ProcessEnv;
-    await expect(socketRequest(env.OD_HOSTED_PI_BROKER_SOCKET!, {
-      token: env.OD_HOSTED_PI_BROKER_TOKEN,
+    await expect(socketRequest(env.READABLE_HOSTED_PI_BROKER_SOCKET!, {
+      token: env.READABLE_HOSTED_PI_BROKER_TOKEN,
       operation: 'project:file:list',
       path: '',
     })).rejects.toBeInstanceOf(Error);
@@ -467,8 +467,8 @@ describe('startHostedPiTurn', () => {
       value: { exitCode: 1, signal: null, status: 'failed' },
     });
     const crashedEnv = spawns[0]!.options.env as NodeJS.ProcessEnv;
-    await expect(socketRequest(crashedEnv.OD_HOSTED_PI_BROKER_SOCKET!, {
-      token: crashedEnv.OD_HOSTED_PI_BROKER_TOKEN,
+    await expect(socketRequest(crashedEnv.READABLE_HOSTED_PI_BROKER_SOCKET!, {
+      token: crashedEnv.READABLE_HOSTED_PI_BROKER_TOKEN,
       operation: 'project:file:list',
       path: '',
     })).rejects.toBeInstanceOf(Error);

@@ -4,14 +4,14 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import type { ArtifactManifest } from '@open-design/contracts';
+import type { ArtifactManifest } from '@readable-studio/contracts';
 import { runAndPersistHandoff } from '../src/plugins/atoms/handoff.js';
 import { applyDiffReviewDecisionToCwd } from '../src/plugins/atoms/diff-review-genui-bridge.js';
 
 let cwd: string;
 
 beforeEach(async () => {
-  cwd = await mkdtemp(path.join(os.tmpdir(), 'od-handoff-persist-'));
+  cwd = await mkdtemp(path.join(os.tmpdir(), 'readable-handoff-persist-'));
 });
 
 afterEach(async () => {
@@ -66,7 +66,7 @@ describe('runAndPersistHandoff', () => {
     const result = await runAndPersistHandoff({
       cwd,
       manifestSeed: {
-        version: 1, kind: 'react-component', title: 'Button',
+        schema: 'readable-studio.artifact-manifest.v1', kind: 'react-component', title: 'Button',
         entry: 'Button.tsx', renderer: 'react-component', exports: [],
       },
     });
@@ -79,7 +79,7 @@ describe('runAndPersistHandoff', () => {
   it('round-trips an existing manifest + advances handoffKind monotonically', async () => {
     await writeDecision('accept');
     const initial: ArtifactManifest = {
-      version: 1, kind: 'react-component', title: 'Button',
+      schema: 'readable-studio.artifact-manifest.v1', kind: 'react-component', title: 'Button',
       entry: 'Button.tsx', renderer: 'react-component', exports: [],
       handoffKind: 'design-only',
     };
@@ -102,10 +102,10 @@ describe('runAndPersistHandoff', () => {
     const result = await runAndPersistHandoff({
       cwd,
       manifestSeed: {
-        version: 1, kind: 'react-component', title: 'Button',
+        schema: 'readable-studio.artifact-manifest.v1', kind: 'react-component', title: 'Button',
         entry: 'Button.tsx', renderer: 'react-component', exports: [],
       },
-      exportTarget: { surface: 'docker', target: 'ghcr.io/od/x:1', exportedAt: 1 },
+      exportTarget: { surface: 'docker', target: 'ghcr.io/readable/x:1', exportedAt: 1 },
     });
     expect(result.manifest.handoffKind).toBe('deployable-app');
     expect(result.signals.deployable).toBe(true);

@@ -23,7 +23,7 @@ import type {
   RollbackFileChangeCounts,
   RollbackMode,
   RollbackResponse,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import {
   clearAgentSessionsForConversation,
   deleteMessagesAfterPosition,
@@ -49,7 +49,7 @@ type ProjectRecord = { id: string; metadata?: unknown };
 const CHECKPOINTS_DIR_NAME = 'checkpoints';
 const BLOB_ALGORITHM = 'sha256';
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
-const TRANSIENT_DOT_DIRS = new Set(['.git', '.od', '.tmp', '.od-skills']);
+const TRANSIENT_DOT_DIRS = new Set(['.git', '.readable-studio', '.tmp', '.readable-studio-skills']);
 const TRANSIENT_DOT_FILES = new Set(['.mcp.json']);
 
 export class ProjectCheckpointError extends Error {
@@ -631,7 +631,7 @@ export function createProjectCheckpointService(
         if (!source) {
           throw new ProjectCheckpointError(410, 'CHECKPOINT_UNAVAILABLE', 'checkpoint blob unavailable');
         }
-        const temp = `${absolute}.od-restore-${randomUUID()}.tmp`;
+        const temp = `${absolute}.readable-studio-restore-${randomUUID()}.tmp`;
         await copyFile(source, temp);
         await rename(temp, absolute);
         if (current) fileChanges.modified += 1;

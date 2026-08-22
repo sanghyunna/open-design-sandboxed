@@ -58,7 +58,7 @@ describe("daemon windows footgun collector", () => {
       "apps/daemon/tests/daemon-footgun.test.ts",
       [
         "import { mkdtemp } from 'node:fs/promises';",
-        "await mkdtemp('/tmp/od-foo');",
+        "await mkdtemp('/tmp/readable-foo');",
       ].join("\n"),
     );
 
@@ -71,7 +71,7 @@ describe("daemon windows footgun collector", () => {
       "apps/daemon/src/server.ts",
       [
         "import { rm } from 'node:fs/promises';",
-        "await rm('/tmp/od-foo', { recursive: true, force: true });",
+        "await rm('/tmp/readable-foo', { recursive: true, force: true });",
         "process.exit(0);",
       ].join("\n"),
     );
@@ -83,7 +83,7 @@ describe("daemon windows footgun collector", () => {
   test("does not flag semantic fixture strings that are not filesystem paths", () => {
     const violations = collectDaemonWindowsFootgunViolations(
       "apps/daemon/tests/daemon-footgun.test.ts",
-      "const fixture = { cwd: '/tmp/od-project' };",
+      "const fixture = { cwd: '/tmp/readable-project' };",
     );
 
     assert.deepEqual(violations, []);

@@ -1,6 +1,6 @@
 // Plan §6 Phase 2A.5 — `GET /api/runs/:runId/genui/:surfaceId` enriches
 // the response with the surface spec (incl. JSON Schema) pulled out of
-// the AppliedPluginSnapshot. This is the wire that lets `od ui show`
+// the AppliedPluginSnapshot. This is the wire that lets `readable ui show`
 // (and the web JsonSchemaFormSurface fallback) inspect the schema for
 // surfaces whose `schema_digest` is the only thing the genui_surfaces
 // table holds. Without enrichment, headless callers can't render
@@ -21,9 +21,9 @@ type StartedServer = { server: http.Server; url: string };
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(here, '../../..');
-const serverRuntimeDataRoot = process.env.OD_DATA_DIR
-  ? path.resolve(projectRoot, process.env.OD_DATA_DIR)
-  : path.join(projectRoot, '.od');
+const serverRuntimeDataRoot = process.env.READABLE_DATA_DIR
+  ? path.resolve(projectRoot, process.env.READABLE_DATA_DIR)
+  : path.join(projectRoot, '.readable-studio');
 
 let server: http.Server | undefined;
 let baseUrl: string;
@@ -33,22 +33,22 @@ const cleanupRows: string[] = [];
 const PLUGIN_ID = `phase2a5-form-${Date.now()}`;
 
 beforeEach(async () => {
-  pluginRoot = await mkdtemp(path.join(os.tmpdir(), 'od-genui-spec-'));
+  pluginRoot = await mkdtemp(path.join(os.tmpdir(), 'readable-genui-spec-'));
   // We have to materialise the plugin under a folder whose basename
   // becomes the plugin id (the local installer derives the id from
   // the folder name). Build the fixture nested inside pluginRoot.
   const pluginFolder = path.join(pluginRoot, PLUGIN_ID);
   await mkdir(pluginFolder, { recursive: true });
   await writeFile(
-    path.join(pluginFolder, 'open-design.json'),
+    path.join(pluginFolder, 'readable-studio.json'),
     JSON.stringify({
-      $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+      $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
       name: PLUGIN_ID,
       title: 'Phase 2A.5 fixture',
       version: '1.0.0',
       description: 'fixture',
       license: 'MIT',
-      od: {
+      readable: {
         kind: 'skill',
         taskKind: 'new-generation',
         useCase: { query: 'demo' },
@@ -107,7 +107,7 @@ afterEach(async () => {
   server = undefined;
 
   // Best-effort cleanup of the plugin row + snapshot rows we created.
-  // The user's real `.od/app.sqlite` is what the daemon talks to, so we
+  // The user's real `.readable-studio/app.sqlite` is what the daemon talks to, so we
   // strip our PLUGIN_ID rows after each test to avoid polluting it.
   try {
     const dbPath = path.join(serverRuntimeDataRoot, 'app.sqlite');

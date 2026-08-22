@@ -1,7 +1,7 @@
 import {
   createApiError,
   type ApiErrorCode,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import type { Request, RequestHandler, Response } from 'express';
 
 import type { HostedRuntimeLease } from '../hosted-runtime-registry.js';

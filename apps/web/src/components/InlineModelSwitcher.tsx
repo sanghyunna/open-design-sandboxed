@@ -22,7 +22,7 @@ import {
   agentIdToTracking,
   byokProtocolToTracking,
   modelIdForTracking,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import { useAnalytics } from '../analytics/provider';
 import { recordAmrEntry, type AmrEntryAttribution } from '../analytics/amr-attribution';
 import { trackExecutionSettingsPopoverClick } from '../analytics/events';
@@ -96,7 +96,7 @@ const API_PROTOCOL_TABS: Array<{ id: ApiProtocol; title: string }> = [
   { id: 'aihubmix', title: 'AIHubMix' },
 ];
 
-const AMR_REMINDER_SEEN_KEY = 'open-design:inline-amr-cli-reminder-seen:v2';
+const AMR_REMINDER_SEEN_KEY = 'readable-studio:inline-amr-cli-reminder-seen:v2';
 let amrReminderSeenFallback = false;
 
 function readAmrReminderSeen(): boolean {
@@ -124,7 +124,7 @@ function markAmrReminderSeen(): void {
 }
 
 function displayAgentName(agent: Pick<AgentInfo, 'id' | 'name'>): string {
-  return agent.id === 'amr' ? 'Open Design AMR' : agent.name;
+  return agent.id === 'amr' ? 'Readable Studio AMR' : agent.name;
 }
 
 function displayAgentChipName(agent: Pick<AgentInfo, 'id' | 'name'>): string {

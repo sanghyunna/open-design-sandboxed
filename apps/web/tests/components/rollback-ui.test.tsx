@@ -46,7 +46,7 @@ vi.mock('../../src/state/projects', async (importOriginal) => {
   };
 });
 
-const ASSISTANT_ROLLBACK_EVENT = 'open-design:assistant-rollback';
+const ASSISTANT_ROLLBACK_EVENT = 'readable-studio:assistant-rollback';
 
 function baseMessage(overrides: Partial<ChatMessage> = {}): ChatMessage {
   return {

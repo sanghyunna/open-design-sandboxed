@@ -1,36 +1,35 @@
 import { randomBytes } from "node:crypto";
 import {
   APP_KEYS,
-  OPEN_DESIGN_SIDECAR_CONTRACT,
+  SIDECAR_CONTRACT,
   SIDECAR_ENV,
   SIDECAR_MODES,
   SIDECAR_SOURCES,
   type SidecarStamp,
-} from "@open-design/sidecar-proto";
-import { parseLauncherAfterQuitArgs } from "@open-design/launcher-proto";
+} from "@readable-studio/sidecar-proto";
 import {
   bootstrapSidecarRuntime,
   createSidecarLaunchEnv,
   resolveAppIpcPath,
-} from "@open-design/sidecar";
+} from "@readable-studio/sidecar";
 import {
   applyOsLocaleSwitch,
   consumeDesktopApprovalToken,
   createSplashWindow,
-} from "@open-design/desktop/main";
-import { addLoopbackNoProxyEnv, readProcessStamp } from "@open-design/platform";
+} from "@readable-studio/desktop/main";
+import { addLoopbackNoProxyEnv, readProcessStamp } from "@readable-studio/platform";
 import { join } from "node:path";
-import { app, dialog } from "electron";
+import { app, dialog, session } from "electron";
 
-import { readPackagedConfig } from "./config.js";
+import { readPackagedConfig, resolveEarlyPackagedElectronPaths } from "./config.js";
 import { writePackagedDesktopIdentity } from "./identity.js";
-import { PackagedPathAccessError } from "./errors.js";
-import { inspectExistingDesktopForLauncher, waitForLauncherAfterQuit } from "./launcher-after-quit.js";
-import { confirmPackagedLauncherRuntime, resolvePackagedLauncherRuntime } from "./launcher-runtime.js";
+import { PackagedNetworkingRestoreError, PackagedPathAccessError } from "./errors.js";
 import {
   applyPackagedElectronPathOverrides,
   claimPackagedSingleInstanceLock,
   ensurePackagedNamespacePaths,
+  inspectExistingPackagedDesktop,
+  releasePackagedElectronNetworking,
 } from "./launch.js";
 import {
   attachPackagedDesktopProcessLogging,
@@ -38,10 +37,13 @@ import {
   type PackagedDesktopLogger,
 } from "./logging.js";
 import { resolvePackagedNamespacePaths } from "./paths.js";
-import { packagedEntryUrl, registerOdProtocol } from "./protocol.js";
+import { packagedEntryUrl, registerReadableStudioProtocol } from "./protocol.js";
 import { startPackagedSidecars } from "./sidecars.js";
 import { createPackagedStartupPhaseTimer } from "./startup-timing.js";
-import { syncWindowsUninstallDisplayVersion } from "./windows-lifecycle.js";
+
+const startupArgvStamp = readProcessStamp(process.argv.slice(1), SIDECAR_CONTRACT);
+const earlyElectronPaths = resolveEarlyPackagedElectronPaths(startupArgvStamp?.namespace);
+if (earlyElectronPaths != null) applyPackagedElectronPathOverrides(earlyElectronPaths);
 
 let packagedLogger: PackagedDesktopLogger | null = null;
 let pendingSecondInstanceFocus = false;
@@ -53,7 +55,7 @@ function createPackagedDesktopStamp(namespace: string): SidecarStamp {
     app: APP_KEYS.DESKTOP,
     ipc: resolveAppIpcPath({
       app: APP_KEYS.DESKTOP,
-      contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+      contract: SIDECAR_CONTRACT,
       namespace,
     }),
     mode: SIDECAR_MODES.RUNTIME,
@@ -65,24 +67,12 @@ function createPackagedDesktopStamp(namespace: string): SidecarStamp {
 function applyLaunchEnv(base: string, stamp: SidecarStamp): void {
   const env = createSidecarLaunchEnv({
     base,
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
     stamp,
   });
 
   for (const [key, value] of Object.entries(env)) {
     if (value != null) process.env[key] = value;
-  }
-}
-
-async function applyPackagedUpdaterEnv(updateMetadataUrl: string | null, portable: boolean): Promise<void> {
-  const { resolvePackagedUpdaterEnv } = await import("./updater-env.js");
-  const overrides = resolvePackagedUpdaterEnv({
-    updateMetadataUrl,
-    portable,
-    env: process.env,
-  });
-  for (const [key, value] of Object.entries(overrides)) {
-    process.env[key] = value;
   }
 }
 
@@ -99,39 +89,39 @@ async function main(): Promise<void> {
   // renderer's `navigator.language` follow the OS instead of Chromium's
   // en-US default. runDesktopMain (called later) calls the same helper
   // again to recover the resolved locale string for the BrowserWindow.
+  app.setName("Readable Studio");
   applyOsLocaleSwitch(app);
   addLoopbackNoProxyEnv(process.env);
 
   const config = await readPackagedConfig();
   startupTiming.mark("config-read-complete");
-  const afterQuit = parseLauncherAfterQuitArgs(process.argv.slice(1));
-  const argvStamp = readProcessStamp(process.argv.slice(1), OPEN_DESIGN_SIDECAR_CONTRACT);
+  const argvStamp = startupArgvStamp;
   const namespace = argvStamp?.namespace ?? config.namespace;
-  const namespaceConfig = namespace === config.namespace ? config : { ...config, namespace };
-  const initialPaths = resolvePackagedNamespacePaths(namespaceConfig, namespace, process.env);
-  await waitForLauncherAfterQuit(afterQuit, initialPaths);
-  const existingDesktop = await inspectExistingDesktopForLauncher(namespace, {
+  const activeConfig = namespace === config.namespace ? config : { ...config, namespace };
+  const paths = resolvePackagedNamespacePaths(activeConfig, namespace, process.env);
+  if (earlyElectronPaths == null) applyPackagedElectronPathOverrides(paths);
+  await ensurePackagedNamespacePaths(paths);
+  const existingDesktop = await inspectExistingPackagedDesktop(namespace, {
     logger: console,
-    paths: initialPaths,
+    paths,
   });
   if (existingDesktop.action === "exit") {
     startupTiming.flush();
     flushStartupTimingOnFailure = null;
     return;
   }
-  const launcherRuntime = await resolvePackagedLauncherRuntime(namespaceConfig, initialPaths);
-  const activeConfig = launcherRuntime.config;
-  const paths = launcherRuntime.paths;
   startupTiming.mark("packaged-paths-resolved");
   const stamp = argvStamp ?? createPackagedDesktopStamp(namespace);
 
-  await ensurePackagedNamespacePaths(paths);
   packagedLogger = createPackagedDesktopLogger(paths);
-  attachPackagedDesktopProcessLogging({ logger: packagedLogger, paths, stamp });
+  attachPackagedDesktopProcessLogging({
+    descriptor: activeConfig.descriptor,
+    logger: packagedLogger,
+    paths,
+    stamp,
+  });
   startupTiming.flush();
   flushStartupTimingOnFailure = null;
-  applyPackagedElectronPathOverrides(paths);
-  await applyPackagedUpdaterEnv(activeConfig.updateMetadataUrl, activeConfig.portable);
   if (!claimPackagedSingleInstanceLock(app, () => {
     if (showExistingDesktop == null) {
       pendingSecondInstanceFocus = true;
@@ -141,7 +131,7 @@ async function main(): Promise<void> {
   })) {
     return;
   }
-  const identity = await writePackagedDesktopIdentity({ paths, stamp });
+  const identity = await writePackagedDesktopIdentity({ descriptor: activeConfig.descriptor, paths, stamp });
   await app.whenReady();
 
   // Show the brand splash IMMEDIATELY, before we await the daemon/web sidecars
@@ -158,7 +148,7 @@ async function main(): Promise<void> {
   const runtime = bootstrapSidecarRuntime(stamp, process.env, {
     app: APP_KEYS.DESKTOP,
     base: paths.runtimeRoot,
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
   });
 
   const sidecars = await startPackagedSidecars(runtime, paths, {
@@ -179,9 +169,9 @@ async function main(): Promise<void> {
     webOutputMode: activeConfig.webOutputMode,
     logStartupPhase: startupTiming.mark,
   });
-  registerOdProtocol(sidecars.web.url ?? "http://127.0.0.1:0");
+  registerReadableStudioProtocol(sidecars.web.url ?? "http://127.0.0.1:0");
 
-  const { runDesktopMain } = await import("@open-design/desktop/main");
+  const { runDesktopMain } = await import("@readable-studio/desktop/main");
   startupTiming.mark("desktop-main-handoff");
   await runDesktopMain(runtime, {
     desktopApprovalToken,
@@ -199,44 +189,27 @@ async function main(): Promise<void> {
     },
     // Round-7 (lefarcen P2 @ runtime.ts:336): packaged main-process
     // fetch targets the daemon sidecar's real http URL — never the
-    // od://app/ renderer URL, which Node/undici cannot resolve through
+    // readable-studio://app/ renderer URL, which Node/undici cannot resolve through
     // Electron's protocol handler.
     async discoverDaemonUrl() {
       return sidecars.daemon.url;
     },
-    onDesktopReady(controls) {
-      void confirmPackagedLauncherRuntime(launcherRuntime).catch((error: unknown) => {
-        packagedLogger?.warn("failed to confirm packaged launcher runtime", { error });
-      });
-      void syncWindowsUninstallDisplayVersion({
-        namespace,
-        portable: activeConfig.portable,
-        version: launcherRuntime.config.appVersion,
-      }).catch((error: unknown) => {
-        packagedLogger?.warn("failed to sync Windows uninstall registry version", { error });
-      });
+    async onDesktopReady(controls) {
+      await releasePackagedElectronNetworking(session.defaultSession);
       showExistingDesktop = controls.show;
       if (!pendingSecondInstanceFocus) return;
       pendingSecondInstanceFocus = false;
       controls.show();
     },
+    appVersion: activeConfig.appVersion,
     preloadPath: join(app.getAppPath(), "preload.cjs"),
-    update: {
-      currentVersion: activeConfig.appVersion,
-      downloadRoot: paths.updateRoot,
-      installerObservationRoot: paths.installerObservationRoot,
-      launcherLaunchPath: launcherRuntime.installedLaunchPath,
-      launcherRoot: launcherRuntime.launcherPaths.root,
-      launcherPayloadExtractorPath: activeConfig.resourceRoot == null ? null : join(activeConfig.resourceRoot, "bin", "7z.exe"),
-      launcherRuntimePath: launcherRuntime.launcherPaths.runtimePath,
-    },
   });
 }
 
 void main().catch((error: unknown) => {
   flushStartupTimingOnFailure?.();
   flushStartupTimingOnFailure = null;
-  if (error instanceof PackagedPathAccessError) {
+  if (error instanceof PackagedPathAccessError || error instanceof PackagedNetworkingRestoreError) {
     try {
       dialog.showErrorBox(error.title, error.message);
     } catch {

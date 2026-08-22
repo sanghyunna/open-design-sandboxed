@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { AppliedPluginSnapshot, InstalledPluginRecord, PluginManifest } from '@open-design/contracts';
+import type { AppliedPluginSnapshot, InstalledPluginRecord, PluginManifest } from '@readable-studio/contracts';
 import { getPluginContextCraft, getSnapshotContextCraft } from '../src/plugins/context-craft.js';
 
 function pluginRecord(manifest: PluginManifest): InstalledPluginRecord {
@@ -29,7 +29,7 @@ describe('getPluginContextCraft', () => {
       title: 'Fixture Plugin',
       version: '0.1.0',
       description: 'Fixture plugin.',
-      od: {
+      readable: {
         kind: 'scenario',
         taskKind: 'new-generation',
         useCase: { query: 'Generate a fixture artifact.' },
@@ -53,7 +53,7 @@ describe('getPluginContextCraft', () => {
       title: 'Fixture Plugin',
       version: '0.1.0',
       description: 'Fixture plugin.',
-      od: {
+      readable: {
         kind: 'scenario',
         taskKind: 'new-generation',
         useCase: { query: 'Generate a fixture artifact.' },
@@ -76,7 +76,7 @@ describe('getPluginContextCraft', () => {
       title: 'Fixture Plugin',
       version: '0.1.0',
       description: 'Fixture plugin.',
-      od: {
+      readable: {
         kind: 'scenario',
         taskKind: 'new-generation',
         useCase: { query: 'Generate a fixture artifact.' },
@@ -93,7 +93,7 @@ describe('getPluginContextCraft', () => {
       title: 'Fixture Plugin',
       version: '0.1.0',
       description: 'Fixture plugin.',
-      od: {
+      readable: {
         kind: 'scenario',
         taskKind: 'new-generation',
         useCase: { query: 'Generate a fixture artifact.' },

@@ -26,7 +26,7 @@ let shutdown: (() => Promise<void> | void) | undefined;
 let pluginRoot: string;
 
 beforeAll(async () => {
-  pluginRoot = await mkdtemp(path.join(os.tmpdir(), 'od-asset-'));
+  pluginRoot = await mkdtemp(path.join(os.tmpdir(), 'readable-asset-'));
   const surfacesDir = path.join(pluginRoot, 'surfaces');
   await mkdir(surfacesDir, { recursive: true });
   await writeFile(
@@ -34,15 +34,15 @@ beforeAll(async () => {
     '<!DOCTYPE html><title>fixture</title><script>console.log(1)</script>',
   );
   await writeFile(
-    path.join(pluginRoot, 'open-design.json'),
+    path.join(pluginRoot, 'readable-studio.json'),
     JSON.stringify({
-      $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+      $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
       name: 'asset-plugin',
       title: 'Asset',
       version: '1.0.0',
       description: 'fixture',
       license: 'MIT',
-      od: { kind: 'skill', capabilities: ['prompt:inject', 'genui:custom-component'] },
+      readable: { kind: 'skill', capabilities: ['prompt:inject', 'genui:custom-component'] },
     }),
   );
 

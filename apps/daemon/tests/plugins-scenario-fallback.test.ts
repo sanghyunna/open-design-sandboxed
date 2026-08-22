@@ -9,16 +9,16 @@ import path from 'node:path';
 import type {
   InstalledPluginRecord,
   PluginManifest,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { applyPlugin } from '../src/plugins/apply.js';
 import { openDatabase } from '../src/db.js';
 import { upsertInstalledPlugin } from '../src/plugins/registry.js';
-import { resolveAppliedPipeline, type ScenarioRegistryEntry } from '@open-design/plugin-runtime';
+import { resolveAppliedPipeline, type ScenarioRegistryEntry } from '@readable-studio/plugin-runtime';
 
 let tmpRoot: string;
 
 beforeEach(async () => {
-  tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'od-scenario-fallback-'));
+  tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'readable-scenario-fallback-'));
 });
 
 afterEach(async () => {
@@ -60,13 +60,13 @@ const baseRegistry = (
   scenarios,
 });
 
-const consumerPlugin = (od: NonNullable<PluginManifest['od']>): InstalledPluginRecord => {
+const consumerPlugin = (readable: NonNullable<PluginManifest['readable']>): InstalledPluginRecord => {
   const manifest: PluginManifest = {
-    $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+    $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
     name: 'fixture-consumer',
     title: 'Fixture consumer',
     version: '0.1.0',
-    od,
+    readable,
   } as PluginManifest;
   return {
     id: 'fixture-consumer',
@@ -93,7 +93,7 @@ describe('apply: bundled-scenario pipeline fallback (spec §23.3.3)', () => {
       plugin,
       inputs: {},
       registry: baseRegistry([
-        { id: 'od-code-migration', taskKind: 'code-migration', pipeline: codeMigrationScenarioPipeline },
+        { id: 'readable-code-migration', taskKind: 'code-migration', pipeline: codeMigrationScenarioPipeline },
       ]),
     });
     expect(out.result.pipeline?.stages?.[0]?.id).toBe('custom');
@@ -106,8 +106,8 @@ describe('apply: bundled-scenario pipeline fallback (spec §23.3.3)', () => {
       plugin,
       inputs: {},
       registry: baseRegistry([
-        { id: 'od-new-generation',  taskKind: 'new-generation',  pipeline: newGenerationScenarioPipeline },
-        { id: 'od-code-migration',  taskKind: 'code-migration',  pipeline: codeMigrationScenarioPipeline },
+        { id: 'readable-new-generation',  taskKind: 'new-generation',  pipeline: newGenerationScenarioPipeline },
+        { id: 'readable-code-migration',  taskKind: 'code-migration',  pipeline: codeMigrationScenarioPipeline },
       ]),
     });
     expect(out.result.pipeline?.stages?.map((s) => s.id)).toEqual([
@@ -125,7 +125,7 @@ describe('apply: bundled-scenario pipeline fallback (spec §23.3.3)', () => {
       plugin,
       inputs: {},
       registry: baseRegistry([
-        { id: 'od-new-generation', taskKind: 'new-generation', pipeline: newGenerationScenarioPipeline },
+        { id: 'readable-new-generation', taskKind: 'new-generation', pipeline: newGenerationScenarioPipeline },
       ]),
     });
     expect(out.result.pipeline?.stages?.[0]?.id).toBe('discovery');
@@ -147,7 +147,7 @@ describe('apply: bundled-scenario pipeline fallback (spec §23.3.3)', () => {
       plugin,
       inputs: {},
       registry: baseRegistry([
-        { id: 'od-new-generation', taskKind: 'new-generation', pipeline: newGenerationScenarioPipeline },
+        { id: 'readable-new-generation', taskKind: 'new-generation', pipeline: newGenerationScenarioPipeline },
       ]),
     });
     expect(out.result.pipeline).toBeUndefined();
@@ -156,7 +156,7 @@ describe('apply: bundled-scenario pipeline fallback (spec §23.3.3)', () => {
   it('produces stable manifestSourceDigest across two applies of the consumer + same registry', () => {
     const plugin = consumerPlugin({ taskKind: 'code-migration' });
     const reg = baseRegistry([
-      { id: 'od-code-migration', taskKind: 'code-migration', pipeline: codeMigrationScenarioPipeline },
+      { id: 'readable-code-migration', taskKind: 'code-migration', pipeline: codeMigrationScenarioPipeline },
     ]);
     const a = applyPlugin({ plugin, inputs: {}, registry: reg });
     const b = applyPlugin({ plugin, inputs: {}, registry: reg });
@@ -182,19 +182,19 @@ describe('daemon scenarios collector (registry view source)', () => {
     const dataDir = path.join(tmpRoot, 'scenario');
     await mkdir(dataDir, { recursive: true });
     const db = openDatabase(tmpRoot, { dataDir });
-    const folder = path.join(tmpRoot, 'od-code-migration');
+    const folder = path.join(tmpRoot, 'readable-code-migration');
     await mkdir(folder, { recursive: true });
-    await writeFile(path.join(folder, 'open-design.json'), JSON.stringify({
-      name: 'od-code-migration',
+    await writeFile(path.join(folder, 'readable-studio.json'), JSON.stringify({
+      name: 'readable-code-migration',
       version: '0.0.1',
-      od: {
+      readable: {
         kind: 'scenario',
         taskKind: 'code-migration',
         pipeline: codeMigrationScenarioPipeline,
       },
     }));
     upsertInstalledPlugin(db, {
-      id: 'od-code-migration',
+      id: 'readable-code-migration',
       title: 'Code migration scenario',
       version: '0.0.1',
       sourceKind: 'bundled',
@@ -205,10 +205,10 @@ describe('daemon scenarios collector (registry view source)', () => {
       installedAt: Date.now(),
       updatedAt: Date.now(),
       manifest: {
-        $schema: 'https://open-design.ai/schemas/plugin.v1.json',
-        name: 'od-code-migration',
+        $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
+        name: 'readable-code-migration',
         version: '0.0.1',
-        od: {
+        readable: {
           kind: 'scenario',
           taskKind: 'code-migration',
           pipeline: codeMigrationScenarioPipeline,
@@ -222,10 +222,10 @@ describe('daemon scenarios collector (registry view source)', () => {
     ).all() as Array<{ id: string; source_kind: string; manifest_json: string }>;
     expect(rows.length).toBe(1);
     const manifest = JSON.parse(rows[0]!.manifest_json) as PluginManifest;
-    expect(manifest.od?.kind).toBe('scenario');
+    expect(manifest.readable?.kind).toBe('scenario');
     expect(resolveAppliedPipeline({
-      manifest: { $schema: '', name: 'consumer', version: '0.1.0', od: { taskKind: 'code-migration' } } as PluginManifest,
-      scenarios: [{ id: 'od-code-migration', taskKind: 'code-migration', pipeline: manifest.od!.pipeline! }],
+      manifest: { $schema: '', name: 'consumer', version: '0.1.0', readable: { taskKind: 'code-migration' } } as PluginManifest,
+      scenarios: [{ id: 'readable-code-migration', taskKind: 'code-migration', pipeline: manifest.readable!.pipeline! }],
     }).source).toBe('scenario');
     db.close();
   });

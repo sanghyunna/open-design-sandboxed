@@ -2,7 +2,7 @@
 //
 // The web frontend pushes preferences here via PUT /api/app-config; the
 // daemon persists them to <dataDir>/app-config.json (where dataDir defaults
-// to <projectRoot>/.od but follows OD_DATA_DIR when set, keeping test and
+// to <projectRoot>/.readable-studio but follows READABLE_DATA_DIR when set, keeping test and
 // multi-namespace runs isolated). This survives browser storage resets and
 // origin changes so onboarding and agent selection don't reappear unexpectedly.
 //
@@ -38,7 +38,7 @@ export interface PluginEnvKnobs {
   // its run/conversation/project is terminal. Default unset -> unlimited.
   snapshotRetentionDays: number | null;
   // GC worker tick interval. Phase 5 reads this; Phase 1 just exposes the
-  // knob through `od config get` so operators can plan ahead.
+  // knob through `readable config get` so operators can plan ahead.
   snapshotGcIntervalMs: number;
 }
 
@@ -60,10 +60,10 @@ function nullableIntFromEnv(key: string): number | null {
 
 export function readPluginEnvKnobs(): PluginEnvKnobs {
   return {
-    maxDevloopIterations:        intFromEnv('OD_MAX_DEVLOOP_ITERATIONS', 10),
-    snapshotUnreferencedTtlDays: intFromEnv('OD_SNAPSHOT_UNREFERENCED_TTL_DAYS', 30),
-    snapshotRetentionDays:       nullableIntFromEnv('OD_SNAPSHOT_RETENTION_DAYS'),
-    snapshotGcIntervalMs:        intFromEnv('OD_SNAPSHOT_GC_INTERVAL_MS', 6 * 60 * 60 * 1000),
+    maxDevloopIterations:        intFromEnv('READABLE_MAX_DEVLOOP_ITERATIONS', 10),
+    snapshotUnreferencedTtlDays: intFromEnv('READABLE_SNAPSHOT_UNREFERENCED_TTL_DAYS', 30),
+    snapshotRetentionDays:       nullableIntFromEnv('READABLE_SNAPSHOT_RETENTION_DAYS'),
+    snapshotGcIntervalMs:        intFromEnv('READABLE_SNAPSHOT_GC_INTERVAL_MS', 6 * 60 * 60 * 1000),
   };
 }
 
@@ -188,7 +188,7 @@ const AGENT_CLI_ENV_KEYS: ReadonlyMap<string, ReadonlySet<string>> = new Map([
     'VELA_LINK_URL',
     'VELA_RUNTIME_KEY',
     'VELA_OPENCODE_BIN',
-    'OPEN_DESIGN_AMR_PROFILE',
+    'READABLE_AMR_PROFILE',
     'OPENCODE_TEST_HOME',
   ])],
   ['aider', new Set(['AIDER_BIN'])],

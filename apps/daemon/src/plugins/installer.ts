@@ -35,7 +35,7 @@ import type {
   MarketplaceTrust,
   PluginSourceKind,
   TrustTier,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import type Database from 'better-sqlite3';
 import { recordPluginEvent } from './events.js';
 import { upsertPluginLockfileEntry } from './lockfile.js';
@@ -89,7 +89,7 @@ export interface InstallOptions {
   manifestDigest?: string;
   archiveIntegrity?: string;
   // Optional runtime-data lockfile path. Daemon routes pass
-  // `<OD_DATA_DIR>/od-plugin-lock.json`; tests can point at temp dirs.
+  // `<READABLE_DATA_DIR>/readable-plugin-lock.json`; tests can point at temp dirs.
   lockfilePath?: string;
 }
 
@@ -291,7 +291,7 @@ async function* installFromGithubContents(
   if (!candidate.subpath) return;
   const fetcher = opts.fetcher ?? defaultFetcher;
   const maxBytes = opts.maxBytes ?? DEFAULT_MAX_BYTES;
-  const tmpRoot = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-plugin-github-contents-'));
+  const tmpRoot = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-plugin-github-contents-'));
   const stagingFolder = path.join(tmpRoot, 'plugin');
   try {
     yield {
@@ -459,7 +459,7 @@ async function* installFromArchiveUrl(
 ): AsyncGenerator<InstallEvent, void, void> {
   const fetcher = opts.fetcher ?? defaultFetcher;
   const maxBytes = opts.maxBytes ?? DEFAULT_MAX_BYTES;
-  const tmpRoot = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-plugin-archive-'));
+  const tmpRoot = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-plugin-archive-'));
   try {
     const resp = await fetcher(url);
     if (!resp.ok || !resp.body) {
@@ -747,7 +747,7 @@ export async function* installFromLocalFolder(
 
   // Plan §3.II1 / §3.JJ1 — emit 'plugin.installed' OR
   // 'plugin.upgraded' (per opts.eventKind) so ops dashboards +
-  // `od plugin events tail` see the operation land in the in-
+  // `readable plugin events tail` see the operation land in the in-
   // memory ring buffer. Best-effort; recordPluginEvent never
   // throws.
   recordPluginEvent({

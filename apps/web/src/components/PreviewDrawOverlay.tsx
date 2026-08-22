@@ -28,7 +28,7 @@ interface PreviewSnapshot {
 }
 type CaptureFrameRect = Pick<DOMRect, 'left' | 'top' | 'width' | 'height'>;
 
-export const ANNOTATION_EVENT = 'opendesign:annotation';
+export const ANNOTATION_EVENT = 'readable-studio:annotation';
 export type AnnotationAction = 'draft' | 'queue' | 'send';
 export type DrawToolbarElement =
   | 'rect'
@@ -228,19 +228,19 @@ export function PreviewDrawOverlay({
 
   function activePreviewIframe(): HTMLIFrameElement | null {
     return (
-      wrapRef.current?.querySelector<HTMLIFrameElement>('iframe[data-od-active="true"]') ??
+      wrapRef.current?.querySelector<HTMLIFrameElement>('iframe[data-readable-active="true"]') ??
       wrapRef.current?.querySelector<HTMLIFrameElement>('iframe')
     ) ?? null;
   }
 
   // The snapshot bridge only lives in the srcDoc transport iframe. For URL-load
-  // previews (e.g. decks) that iframe is mounted but hidden (data-od-active is on
+  // previews (e.g. decks) that iframe is mounted but hidden (data-readable-active is on
   // the bridgeless URL iframe), so snapshotting the *active* frame times out and
   // capture fails. Prefer the srcDoc-render-mode frame; capture mode keeps it on
   // full content, so it carries the bridge.
   function snapshotHostIframe(): HTMLIFrameElement | null {
     return (
-      wrapRef.current?.querySelector<HTMLIFrameElement>('iframe[data-od-render-mode="srcdoc"]') ??
+      wrapRef.current?.querySelector<HTMLIFrameElement>('iframe[data-readable-render-mode="srcdoc"]') ??
       activePreviewIframe()
     );
   }
@@ -252,7 +252,7 @@ export function PreviewDrawOverlay({
 
   function postFrameScrollBy(win: Window, left: number, top: number): boolean {
     try {
-      win.postMessage({ type: 'od:preview-scroll-by', left, top }, '*');
+      win.postMessage({ type: 'readable-studio:preview-scroll-by', left, top }, '*');
       return true;
     } catch {
       return false;

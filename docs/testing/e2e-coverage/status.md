@@ -152,23 +152,23 @@ Playwright 资源场景现在支持显式 contract：
 从仓库根目录运行：
 
 ```bash
-pnpm --filter @open-design/e2e typecheck
+pnpm --filter @readable-studio/e2e typecheck
 ```
 
 ```bash
-pnpm --filter @open-design/e2e test -- e2e/tests/dialog/artifact-consistency.test.ts
+pnpm --filter @readable-studio/e2e test -- e2e/tests/dialog/artifact-consistency.test.ts
 ```
 
 ```bash
-pnpm --filter @open-design/e2e exec playwright test -c playwright.config.ts ui/app.test.ts --project=chromium
+pnpm --filter @readable-studio/e2e exec playwright test -c playwright.config.ts ui/app.test.ts --project=chromium
 ```
 
 ```bash
-pnpm --filter @open-design/e2e exec playwright test -c playwright.config.ts ui/real-daemon-run.test.ts --project=chromium
+pnpm --filter @readable-studio/e2e exec playwright test -c playwright.config.ts ui/real-daemon-run.test.ts --project=chromium
 ```
 
 ```bash
-pnpm --filter @open-design/e2e exec playwright test -c playwright.config.ts ui/app-design-files.test.ts ui/app-restoration.test.ts ui/project-management-flows.test.ts ui/entry-configuration-flows.test.ts ui/workspace-keyboard-flows.test.ts --project=chromium
+pnpm --filter @readable-studio/e2e exec playwright test -c playwright.config.ts ui/app-design-files.test.ts ui/app-restoration.test.ts ui/project-management-flows.test.ts ui/entry-configuration-flows.test.ts ui/workspace-keyboard-flows.test.ts --project=chromium
 ```
 
 最近一次这五个强化过的 `extended` 文件 grouped run 结果是：

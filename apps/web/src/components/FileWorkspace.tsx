@@ -7,8 +7,8 @@ import {
   type DragEvent as ReactDragEvent,
   type ReactNode,
 } from 'react';
-import { Button } from '@open-design/components';
-import type { TrackingProjectKind } from '@open-design/contracts/analytics';
+import { Button } from '@readable-studio/components';
+import type { TrackingProjectKind } from '@readable-studio/contracts/analytics';
 import { useAnalytics } from '../analytics/provider';
 import {
   trackFileManagerClick,
@@ -55,7 +55,7 @@ import {
   type ProjectFile,
   type ProjectFolder,
 } from '../types';
-import type { ChatSessionMode, WorkspaceContextItem } from '@open-design/contracts';
+import type { ChatSessionMode, WorkspaceContextItem } from '@readable-studio/contracts';
 import { createTerminal, killTerminal } from '../state/projects';
 import type { QuestionForm } from '../artifacts/question-form';
 import { DesignFilesPanel, type DesignFilesNavState } from './DesignFilesPanel';
@@ -1730,7 +1730,7 @@ export function FileWorkspace({
         {onFocusModeChange && focusMode ? (
           <button
             type="button"
-            className="icon-only ws-focus-expand od-tooltip"
+            className="icon-only ws-focus-expand readable-tooltip"
             data-testid="workspace-focus-toggle"
             aria-pressed={focusMode}
             title={t('workspace.showChat')}
@@ -1925,7 +1925,7 @@ export function FileWorkspace({
           <button
             ref={launcherBtnRef}
             type="button"
-            className="icon-only ws-tab-add od-tooltip"
+            className="icon-only ws-tab-add readable-tooltip"
             data-testid="workspace-add-tab"
             aria-haspopup="dialog"
             aria-expanded={launcherOpen}
@@ -3539,7 +3539,7 @@ function designSystemSectionRunningNotice(
   activity: DesignSystemSectionActivity,
 ): string {
   if (activity.phase === 'reading') {
-    return `Open Design is reading ${section.title} context for this section.`;
+    return `Readable Studio is reading ${section.title} context for this section.`;
   }
   return `${designSystemSectionPhaseLabel(section, activity)} now.`;
 }
@@ -3685,7 +3685,7 @@ function Tab({
       {closable && onClose ? (
         <button
           type="button"
-          className="ws-tab-close od-tooltip"
+          className="ws-tab-close readable-tooltip"
           onClick={(e) => {
             e.stopPropagation();
             onClose();

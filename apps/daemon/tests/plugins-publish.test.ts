@@ -1,4 +1,4 @@
-// Phase 4 / spec §14.1 — `od plugin publish` URL builder unit test.
+// Phase 4 / spec §14.1 — `readable plugin publish` URL builder unit test.
 //
 // The PR-template launcher is purely string assembly; we lock the
 // public contract here so a future spec patch that retargets a
@@ -14,11 +14,11 @@ import {
 } from '../src/plugins/publish.js';
 
 const META = {
-  pluginId:          'open-design/sample-plugin',
+  pluginId:          'readable-studio/sample-plugin',
   pluginVersion:     '1.0.0',
   pluginTitle:       'Sample Plugin',
   pluginDescription: 'A fixture for the publish flow.',
-  repoUrl:           'https://github.com/open-design/sample-plugin',
+  repoUrl:           'https://github.com/readable-studio/sample-plugin',
 };
 
 describe('buildPublishLink', () => {
@@ -27,7 +27,7 @@ describe('buildPublishLink', () => {
       'anthropics-skills',
       'awesome-agent-skills',
       'clawhub',
-      'open-design',
+      'readable-studio',
       'skills-sh',
     ].sort());
   });
@@ -40,7 +40,7 @@ describe('buildPublishLink', () => {
     const params = new URLSearchParams(link.url.split('?')[1]);
     expect(params.get('title')).toBe('Add Sample Plugin');
     expect(params.get('body')).toContain('A fixture for the publish flow.');
-    expect(link.prBody).toContain('https://github.com/open-design/sample-plugin');
+    expect(link.prBody).toContain('https://github.com/readable-studio/sample-plugin');
   });
 
   it('builds a github-issue URL for awesome-agent-skills', () => {
@@ -56,20 +56,20 @@ describe('buildPublishLink', () => {
   it('points at skills.sh + the npx skills add command (no PR form there)', () => {
     const link = buildPublishLink({ catalog: 'skills-sh', meta: META });
     expect(link.url).toBe('https://skills.sh/');
-    expect(link.prBody).toContain('npx skills add open-design/sample-plugin');
+    expect(link.prBody).toContain('npx skills add readable-studio/sample-plugin');
   });
 
-  it('builds an Open Design registry submission URL', () => {
-    // The dedicated `open-design/plugin-registry` repo per
+  it('builds an Readable Studio registry submission URL', () => {
+    // The dedicated `readable-studio/plugin-registry` repo per
     // docs/plans/plugin-registry.md §1.2 is the long-term target; until that
-    // operational launch step happens, submissions land in `nexu-io/open-design`
+    // operational launch step happens, submissions land in `nexu-io/readable-studio`
     // (plugins/community/<plugin-name>/), keeping contribution where stars and
     // PR traffic already are.
-    const link = buildPublishLink({ catalog: 'open-design', meta: META });
-    expect(link.catalogLabel).toBe('nexu-io/open-design');
-    expect(link.url).toMatch(/^https:\/\/github\.com\/nexu-io\/open-design\/issues\/new\?/);
-    expect(link.prBody).toContain('plugins/community/<plugin-name>/open-design.json');
-    expect(link.prBody).toContain('plugins/registry/community/open-design-marketplace.json');
+    const link = buildPublishLink({ catalog: 'readable-studio', meta: META });
+    expect(link.catalogLabel).toBe('sanghyunna/readable-studio');
+    expect(link.url).toMatch(/^https:\/\/github\.com\/sanghyunna\/readable-studio\/issues\/new\?/);
+    expect(link.prBody).toContain('plugins/community/<plugin-name>/readable-studio.json');
+    expect(link.prBody).toContain('plugins/registry/community/readable-studio-marketplace.json');
   });
 
   it('falls back to owner/repo placeholder when repoUrl is missing for skills-sh', () => {
@@ -100,12 +100,12 @@ describe('upsertMarketplaceJsonEntry', () => {
 
     expect(outcome.inserted).toBe(true);
     expect(outcome.entry).toMatchObject({
-      name: 'open-design/sample-plugin',
-      source: 'github:open-design/sample-plugin',
+      name: 'readable-studio/sample-plugin',
+      source: 'github:readable-studio/sample-plugin',
       version: '1.0.0',
       title: 'Sample Plugin',
       publisher: {
-        github: 'open-design',
+        github: 'readable-studio',
       },
     });
     expect(outcome.manifest.plugins).toHaveLength(1);
@@ -122,8 +122,8 @@ describe('upsertMarketplaceJsonEntry', () => {
         extra: true,
         plugins: [
           {
-            name: 'open-design/sample-plugin',
-            source: 'github:open-design/sample-plugin@old',
+            name: 'readable-studio/sample-plugin',
+            source: 'github:readable-studio/sample-plugin@old',
             version: '0.9.0',
             tags: ['kept'],
           },
@@ -132,15 +132,15 @@ describe('upsertMarketplaceJsonEntry', () => {
       meta: {
         ...META,
         pluginVersion: '1.1.0',
-        repoUrl: 'https://github.com/open-design/sample-plugin/tree/main/plugins/sample',
+        repoUrl: 'https://github.com/readable-studio/sample-plugin/tree/main/plugins/sample',
       },
     });
 
     expect(outcome.inserted).toBe(false);
     expect(outcome.manifest.extra).toBe(true);
     expect(outcome.manifest.plugins[0]).toMatchObject({
-      name: 'open-design/sample-plugin',
-      source: 'github:open-design/sample-plugin@main/plugins/sample',
+      name: 'readable-studio/sample-plugin',
+      source: 'github:readable-studio/sample-plugin@main/plugins/sample',
       version: '1.1.0',
       tags: ['kept'],
     });
@@ -152,7 +152,7 @@ describe('upsertMarketplaceJsonEntry', () => {
       meta: {
         pluginId: 'sample-plugin',
         pluginVersion: '1.0.0',
-        repoUrl: 'https://github.com/open-design/sample-plugin',
+        repoUrl: 'https://github.com/readable-studio/sample-plugin',
       },
     })).toThrow(PublishError);
   });

@@ -33,8 +33,8 @@ import type {
   HostedRunCreateResponse,
   HostedRunCreateV1,
   HostedSessionResponse,
-} from '@open-design/contracts';
-import { HOSTED_CSRF_HEADER } from '@open-design/contracts';
+} from '@readable-studio/contracts';
+import { HOSTED_CSRF_HEADER } from '@readable-studio/contracts';
 
 const ENCODED_SEPARATOR = /%(?:2f|5c|25(?:2f|5c))/iu;
 const CONTROL_CHARACTER = /[\u0000-\u001f\u007f]/u;

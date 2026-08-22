@@ -9,7 +9,7 @@ triggers:
   - "scroll pin"
   - "scroll scrub"
 license: MIT
-od:
+readable:
   mode: prototype
   category: animation-motion
   upstream: "https://github.com/greensock/gsap-skills"
