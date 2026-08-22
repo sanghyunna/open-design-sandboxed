@@ -194,7 +194,7 @@ describe('isolated agent tool broker', () => {
     }
   });
 
-  it.skipIf(!nativeAvailable)('brokers an readable tools command from a real contained native process', async () => {
+  it.skipIf(!nativeAvailable)('brokers a readable tools command from a real contained native process', async () => {
     const fixture = await mkdtemp(path.join(os.tmpdir(), 'readable-isolated-native-broker-test-'));
     roots.push(fixture);
     const project = path.join(fixture, 'project');
